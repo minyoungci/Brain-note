@@ -1,0 +1,7 @@
+# OBSERVATORY는 2차 자료(문서)만. 데이터/체크포인트/대용량 산출물은 추적하지 않는다.
+*.pyc
+__pycache__/
+*.npz
+*.pt
+*.ckpt
+.DS_Store
