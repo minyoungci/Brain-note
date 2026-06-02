@@ -9,7 +9,7 @@
 2. `../insights/MUST_KNOW.md` — 핵심 교훈 우선 숙지.
 
 ### STEP 1 — 데이터 (가장 먼저, 모든 연구의 토대)
-1. `../knowledge/00_data_manifest.md` 정독.
+1. `../knowledge/00_data_manifest.md` 정독 → 이어서 `../knowledge/data/README.md`(세밀 확장: 코호트별 카드·ROI·ComBat·표현학습 난점).
 2. 직접 확인: official_manifest를 열어 코호트표·`cdr_global` 타입·결측 컬럼을 **손으로** 재현.
    - 체크: `cdr_global`을 `to_numeric` 없이 정렬하면 어떻게 깨지나?
    - 체크: NACC에만 있는 컬럼, ADNI에 없는 컬럼을 직접 세어보기.

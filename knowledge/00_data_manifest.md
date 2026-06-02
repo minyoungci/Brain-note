@@ -2,6 +2,9 @@
 
 > **목적:** 5개 워크스페이스가 공유하는 단일 데이터 원천의 구조·함정 이해  ·  **출처:** plant SCRATCHPAD §1, minyoungi 2026-05-31 daily, minyoung2 SCRATCHPAD  ·  **갱신:** 2026-06-02
 
+> 이 문서는 요약본이다. minyoungi ipynb tutorial 기반 **세밀한 확장**(코호트별 카드, ROI/부피, ComBat,
+> 표현학습 난점)은 `data/README.md` 및 `data/` 하위 문서를 참조.
+
 ## 1. 무엇인가
 
 - **파일**: `/home/vlm/data/preprocessed_official/official_manifest_full.parquet`
@@ -34,7 +37,7 @@
 
 1. **`cdr_global`은 string 타입.** `pd.to_numeric()` 안 하면 조용히 TypeError 나거나 `"0.5" < "1"` 문자열 비교로 오정렬. **모든 비교 전 숫자 변환.**
 2. **single-cohort 함정** (한 코호트에만 있는 컬럼 — pooled로 쓰면 누수/편향):
-   - `APOE`, `MoCA` = **NACC only**
+   - `MoCA` = **NACC only** (🟡 확인). `APOE`는 **NACC-only 아님** — A4에도 `APOEGN` 존재(`clinical_io.py` 로더 대조). NACC는 `NACCAPOE`+e4 allele 수(`NACCNE4S`) 보유.
    - `MMSE` = **ADNI에 없음**
    - `sex` = **A4·ADNI는 NaN** → `clin_sex_raw` 사용. AJU는 0=여/1=남(공식 설명서 확인).
 3. **ROI는 fail-closed 잠정.** `roi_usability` USABLE_AUTO 12,932 (∪W_CAVEAT 99.5%)이지만
