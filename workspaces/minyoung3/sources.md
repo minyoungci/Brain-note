@@ -1,8 +1,10 @@
 # minyoung3 sources — 근거 파일 + 재사용 자산
 
-_갱신: 2026-06-02_ · 읽은 날짜: 2026-06-02 · mtime은 UTC
+> **목적:** F04 카드가 인용한 근거 파일과 생존 코드 자산 목록  ·  **출처:** `/home/vlm/minyoung3` 파일 mtime + reports 본문  ·  **갱신:** 2026-06-02
 
-> 주의: minyoung3는 독립 git 저장소가 아님(.git 없음, toplevel=/home/vlm). 시점 추적은 mtime + reports 본문 날짜로만 가능. `Official/potato/Reset_Audits/`는 **현재 부재**(find 0건).
+읽은 날짜: 2026-06-02 · mtime은 UTC.
+
+⚠️ minyoung3는 독립 git 저장소가 아니다(.git 부재, toplevel=/home/vlm). 시점 추적은 mtime + reports 본문 날짜로만 가능하다. `Official/potato/Reset_Audits/`는 현재 부재(find 0건).
 
 ## 1. 최상위 / 정책 문서
 
@@ -34,7 +36,7 @@ _갱신: 2026-06-02_ · 읽은 날짜: 2026-06-02 · mtime은 UTC
 
 | 경로 | mtime | 내용 |
 |---|---|---|
-| `20260531_235859_roi_evidence_dataset/summary.json` | 2026-06-01 00:00 | 데이터셋 스코프·split overlap 0 (✅직접검증) |
+| `20260531_235859_roi_evidence_dataset/summary.json` | 2026-06-01 00:00 | 데이터셋 스코프·split overlap 0 (✅ 직접검증) |
 | `20260531_235859_roi_evidence_dataset/split_summary.csv` | 2026-06-01 00:00 | 7컨소시엄 분할 |
 | `20260531_235859_roi_evidence_dataset/target_summary.csv` | 2026-06-01 00:00 | 42 evidence target 분포 |
 | `20260531_235859_roi_evidence_dataset/pair_target_summary.csv` | 2026-06-01 00:00 | progression 라벨 분포(불균형) |
@@ -50,7 +52,7 @@ _갱신: 2026-06-02_ · 읽은 날짜: 2026-06-02 · mtime은 UTC
 
 | 경로 | mtime | 비고 |
 |---|---|---|
-| `manifests/v2_integrated/longitudinal_voxel_manifest_v0.csv` | (v2_integrated) | `roi_final_ready` 전 18,868행 False (✅검증, fail-closed) |
+| `manifests/v2_integrated/longitudinal_voxel_manifest_v0.csv` | (v2_integrated) | `roi_final_ready` 전 18,868행 False (✅ 검증, fail-closed) |
 | `manifests/f04_25d/` | 2026-05-28 01:39 | F04 2.5D slab manifest |
 
 ## 6. 재사용 코드 자산 (생존 스크립트)
@@ -59,7 +61,7 @@ _갱신: 2026-06-02_ · 읽은 날짜: 2026-06-02 · mtime은 UTC
 |---|---|---|
 | `scripts/train_f04_roi_evidence_cached.py` | 2026-06-01 12:53 | cache-backed ROI evidence multi-target encoder 학습 |
 | `scripts/build_f04_roi_slab_cache.py` | 2026-06-01 11:40 | slab cache(float16 npy + row-aligned manifest) 빌더 |
-| `scripts/train_f04_ssl_vit_mae_ddp.py` | 2026-05-28 07:28 | **MAE 2.5D SSL DDP/BF16 trainer (미full-train)** |
+| `scripts/train_f04_ssl_vit_mae_ddp.py` | 2026-05-28 07:28 | MAE 2.5D SSL DDP/BF16 trainer (미full-train) |
 | `scripts/train_f04_ssl_vit_mae.py` | 2026-05-28 02:57 | 단일 GPU MAE trainer(전신) |
 | `scripts/launch_f04_ddp_b200_4gpu_vitlarge.sh` | 2026-05-28 07:22 | 4×B200 DDP launch + cache/manifest gate |
 | `scripts/audit_f04_roi_evidence_leakage.py` | 2026-06-01 12:09 | split leakage + cache 정합 audit |
@@ -67,7 +69,7 @@ _갱신: 2026-06-02_ · 읽은 날짜: 2026-06-02 · mtime은 UTC
 | `scripts/run_f04_aeb_downstream_probe.py` | 2026-06-01 13:12 | AEB feature export + progression probe |
 | `scripts/run_f04_binary_cohort_shortcut_probe.py` | 2026-05-31 04:38 | cohort shortcut control(결과 삭제됨, 재실행 필요) |
 | `scripts/run_f04_binary_repeated_loco_probe.py` | 2026-05-31 04:48 | repeated LOCO probe |
-| `scripts/build_f04_official_label_slab_manifest.py` | 2026-05-27 11:52 | **다음 게이트: official-label slab manifest 빌더** |
+| `scripts/build_f04_official_label_slab_manifest.py` | 2026-05-27 11:52 | 다음 게이트: official-label slab manifest 빌더 |
 | `scripts/build_f04_25d_slab_manifest.py` | 2026-05-27 07:46 | 2.5D slab manifest 빌더 |
 | `scripts/build_f04_session_volume_cache.py` | 2026-05-28 02:58 | session volume cache 빌더 |
 | `scripts/f04_ssl_center_slice.py` | 2026-05-28 07:16 | center-slice SSL dataset/loss 정의 |
@@ -75,6 +77,9 @@ _갱신: 2026-06-02_ · 읽은 날짜: 2026-06-02 · mtime은 UTC
 | `scripts/posthoc_f04_subject_level_probe.py` | 2026-05-31 04:31 | subject-level probe |
 
 ## 검증 메모
-- ✅직접검증: 데이터셋 summary.json, split overlap, roi_final_ready=False, leakage PASS, results 트리(MAE checkpoint 부재), .git 부재.
-- 🟡텍스트의존: ROI R²·AEB metric은 report 표 인용(raw 산출물 일부는 cleanup으로 소실, dashboard.csv 등은 잔존).
-- [VERIFY]: Reset_Audits/pre-delete inventory 실제 보존 위치 불명, F04-label manifest·F05 검증 산출물 미확인, famous_ssl 최종 metric 미생성.
+
+| 구분 | 항목 |
+|---|---|
+| ✅ 직접검증 | 데이터셋 summary.json, split overlap, roi_final_ready=False, leakage PASS, results 트리(MAE checkpoint 부재), .git 부재 |
+| 🟡 텍스트의존 | ROI R²·AEB metric은 report 표 인용(raw 산출물 일부는 cleanup으로 소실, dashboard.csv 등은 잔존) |
+| `[VERIFY]` | Reset_Audits/pre-delete inventory 실제 보존 위치 불명, F04-label manifest·F05 검증 산출물 미확인, famous_ssl 최종 metric 미생성 |

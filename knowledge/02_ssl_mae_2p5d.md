@@ -1,7 +1,6 @@
 # 02 · 2.5D MAE self-supervised 표현학습 (F04)
 
-_minyoung3의 핵심 축. 라벨 없이 표현을 배우려는 시도. 아직 백본 미학습._
-_출처: minyoung3 README, reports/F04_*. (2026-06-02)_
+> **목적:** minyoung3의 핵심 축(라벨 없는 표현학습) 이해 — 현재 백본 미학습  ·  **출처:** minyoung3 README, reports/F04_*  ·  **갱신:** 2026-06-02
 
 ## 1. 2.5D란 무엇인가 (3D도 2D도 아닌)
 
@@ -33,7 +32,7 @@ _출처: minyoung3 README, reports/F04_*. (2026-06-02)_
 - **옛 full 3D voxel / PET-transfer 방향 부활 금지.**
 - `/home/vlm/data`는 read-only — 쓰기 금지.
 
-## 5. 현재 상태 (냉정하게)
+## 5. 현재 상태
 
 - 🟡 MAE 백본은 **pilot/scaffold만, full-train 0회**. DDP trainer는 있으나 대규모 미검증.
 - ✅ 검증된 신호는 **ROI evidence 회귀뿐**: ventricle(환실) R²≈0.64 강, hippo/MTL 약(R²≈0.19).

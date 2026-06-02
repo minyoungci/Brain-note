@@ -1,6 +1,6 @@
 # minyoungi — 근거 파일 / 재사용 자산
 
-_갱신: 2026-06-02 (커밋 2bfa860, HEAD) · 읽은날: 2026-06-02_
+> **목적:** 발견·리스크의 근거 파일과 재사용 자산 목록  ·  **출처:** `/home/vlm/minyoungi` (커밋 2bfa860, HEAD; READ-ONLY)  ·  **갱신:** 2026-06-02
 
 워크스페이스 루트: `/home/vlm/minyoungi` (독립 git repo). READ-ONLY로 열람.
 HEAD 커밋: `2bfa860 Audit Gate05b NACC per-target ROI failures` (커밋 author date 2026-05-28).

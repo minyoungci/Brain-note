@@ -1,6 +1,6 @@
 # plant — sources
 
-_갱신: 2026-06-02 · 읽은 날짜: 2026-06-02 · git 부재 → mtime 기준_
+> **목적:** 본 카드가 인용한 1차 근거·데이터 자산·외부 문헌 출처 추적  ·  **출처:** /home/vlm/plant 파일 mtime(git 부재)  ·  **갱신:** 2026-06-02
 
 ## 1. 1차 근거 파일 (경로 | mtime | 읽음)
 
@@ -47,7 +47,7 @@ _갱신: 2026-06-02 · 읽은 날짜: 2026-06-02 · git 부재 → mtime 기준_
 - Bron et al. 2021, NeuroImage:Clinical — deep CNN이 MCI→AD conversion에서 구조적 feature 비우위. [VERIFY DOI 10.1016/j.nicl.2021.102712]
 - Li/Habes/Wolk/Fan 2019, Alzheimer's & Dementia. [VERIFY]
 - TRIPOD 2015 (예측모델 보고 가이드). [VERIFY]
-- 출처: SCRATCHPAD §4b literature-scout(2026-06-01). deep-research 웹워크플로우는 실패(StructuredOutput 비호환, ~1.36M 토큰 낭비, 재시도 안 함).
+- 출처: SCRATCHPAD §4b literature-scout(2026-06-01). deep-research 웹워크플로우는 실패(StructuredOutput 비호환, 약 1.36M 토큰 소모, 재시도 없음).
 
 ## 6. 미확인/주의
 - session_time_years 파서의 cohort별 의미 정확성: 외부 ground-truth 대조 미수행 (risks R2).

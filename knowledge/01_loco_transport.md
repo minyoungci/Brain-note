@@ -1,7 +1,6 @@
 # 01 · LOCO · transportability · nuisance control
 
-_minyoung2 EXP01이 정립한 평가 프로토콜. plant가 시간축으로 물려받는다. 전체의 척추._
-_출처: minyoung2 SCRATCHPAD, reports/EXP01_OVERVIEW.md. (2026-06-02)_
+> **목적:** EXP01이 정립한 평가 프로토콜(전체의 척추) 이해 — plant가 시간축으로 계승  ·  **출처:** minyoung2 SCRATCHPAD, reports/EXP01_OVERVIEW.md  ·  **갱신:** 2026-06-02
 
 ## 1. 왜 이 프로토콜인가 (문제의식)
 

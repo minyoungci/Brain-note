@@ -1,7 +1,6 @@
 # 03 · 종단(longitudinal) 진행 예측 설계 (plant)
 
-_plant의 연구 축. EXP01을 시간축으로 확장. 가장 어렵고 표본이 작다._
-_출처: plant SCRATCHPAD §4, docs/plans/2026-06-01-...prereg.md. (2026-06-02)_
+> **목적:** plant의 연구 축(EXP01의 시간축 확장) 이해 — 난도 최고·표본 최소  ·  **출처:** plant SCRATCHPAD §4, docs/plans/2026-06-01-...prereg.md  ·  **갱신:** 2026-06-02
 
 ## 1. 과제 정의
 
@@ -47,7 +46,7 @@ CN baseline → 이후 CDR≥0.5 전환자 수:
 
 → 충분한 양성은 ADNI·A4뿐. **총 ~270~272 converter.** 통계력이 빈약 → MDE(최소검출효과) 분석이 deliverable.
 
-## 3. 왜 H1 positive의 사전확률이 낮은가 (냉정한 시각)
+## 3. H1 positive의 사전확률이 낮은 이유
 
 EXP01에서 deep은 **더 쉬운** cross-sectional task에서 **더 큰** 표본으로도 부피 baseline과 동률이었다.
 progression은 **더 어렵고** 표본(converter ~270)은 **훨씬 작다**. → null(음성)이 1순위 결과로 사전 수용됨.

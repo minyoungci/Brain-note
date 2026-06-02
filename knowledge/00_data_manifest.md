@@ -1,7 +1,6 @@
-# 00 · 공식 데이터 manifest 완전 이해
+# 00 · 공식 데이터 manifest
 
-_5개 워크스페이스가 공유하는 단일 데이터 원천. 여기를 모르면 어느 연구도 못 읽는다._
-_출처: plant SCRATCHPAD §1, minyoungi 2026-05-31 daily, minyoung2 SCRATCHPAD. (2026-06-02)_
+> **목적:** 5개 워크스페이스가 공유하는 단일 데이터 원천의 구조·함정 이해  ·  **출처:** plant SCRATCHPAD §1, minyoungi 2026-05-31 daily, minyoung2 SCRATCHPAD  ·  **갱신:** 2026-06-02
 
 ## 1. 무엇인가
 
@@ -31,7 +30,7 @@ _출처: plant SCRATCHPAD §1, minyoungi 2026-05-31 daily, minyoung2 SCRATCHPAD.
 - 🟡 `clin_dx_label`: 10,550 (CN 5025 / MCI 2937 / CN_preclinical 1811[=A4] / AD 558 / Dementia 165 / ImpairedNotMCI 54; **AJU=0**).
   - ⚠️ **subject-level 상수** → conversion(전환)을 인코딩 못 함. 종단 endpoint는 session-level `cdr_global`/`cdrsb`만 써야 한다.
 
-## 4. ⚠️ 데이터 함정 (5곳에서 반복해서 사람을 죽인 것들)
+## 4. ⚠️ 데이터 함정 (반복적으로 오류를 유발한 항목)
 
 1. **`cdr_global`은 string 타입.** `pd.to_numeric()` 안 하면 조용히 TypeError 나거나 `"0.5" < "1"` 문자열 비교로 오정렬. **모든 비교 전 숫자 변환.**
 2. **single-cohort 함정** (한 코호트에만 있는 컬럼 — pooled로 쓰면 누수/편향):
