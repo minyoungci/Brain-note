@@ -2,7 +2,7 @@
 
 > ❌ **2026-06-03: 이 라인은 minyoung3에서 완전 삭제됨.** 2.5D MAE SSL은 더 이상 F04의 축이 아니다.
 > minyoung3 현재 방향은 **ROI-evidence encoder + 정규화 보정 기반 해부학 QA/VQA 생성**이다
-> (→ `workspaces/02_minyoung3/README.md`). 아래 내용은 2.5D·MAE **개념 이해용**으로만 보존한다.
+> (→ `workspaces/03_minyoung3/README.md`). 아래 내용은 2.5D·MAE **개념 이해용**으로만 보존한다.
 >
 > **출처:** minyoung3 (구) README, reports/F04_*  ·  **갱신:** 2026-06-03
 
