@@ -19,6 +19,7 @@
 | ROI-evidence slab cache | `…/20260601_114226_roi_evidence_slab_cache_full_v1` | ✅ full cache (`slab_images_float16.npy` `[56439,5,96,112]`) |
 | 정규화 보정(normative calibration) | `…/20260603_031352_official_manifest_n4_normative_calibration_v6_global_cdr_primary` | ✅ train-only CN+CDR0+무악화 기준군 3,303 sess / 1,802 subj, pair 1,222/439(ADNI·AIBL) |
 | QA 생성 | 58,330 QA rows · 6 템플릿 · `normative_reference_cutoff` | ✅ 생성됨 |
+| **3D image-only VQA 학습** (smoke) | `20260603_052017_v6_3d_global_lowres_image_only_vqa_smoke90` — 3D global lowres, 90 sess/246 QA, 1 epoch | 🟡 smoke만, test macro AUC 0.47(≈chance) — 규모 확대 전 |
 
 ## 설계 원칙 (검증된 방어선)
 

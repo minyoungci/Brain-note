@@ -1,30 +1,50 @@
-# minyoung4 — 휴면 워크스페이스 (리셋된 모델링 영역)
+# minyoung4 — full_n4 nuisance-aware 3D 표현학습 감시 카드
 
-> **목적:** 리셋 후 재시작 대기 중인 모델링 워크스페이스 현황  ·  **출처:** `/home/vlm/minyoung4/README.md`, `docs/context/WORKSPACE_STATE.md`  ·  **갱신:** 2026-06-02 (커밋 6f0754d)
+> **목적:** full_n4 manifest 기반 shortcut-aware 3D MRI 표현학습(scanner/source domain-adversarial)의 현황 요약  ·  **출처:** `/home/vlm/minyoung4/docs/context/full_n4_experiment_redesign_20260603/`  ·  **갱신:** 2026-06-03
 
-## 상태
+## 주제 (2026-06-03 재가동 — 더 이상 휴면 아님)
 
-🟡 휴면 — 활성 연구 없음. Min 요청으로 기존 연구 디렉토리를 삭제하고 재시작만 준비된 상태다. 연구 방향(VLM/MLLM, JEPA, PET transfer, longitudinal)은 미확정이며 모두 후보 단계다.
+⚠️ **이전 카드의 "휴면" 판정은 2026-06-03 무효.** minyoung4는 `full_n4_experiment_redesign`으로
+재가동되어, **nuisance(scanner/source/site)를 domain-adversarial로 제거하면서 disease content(z_content)를
+보존하는 3D MRI 표현학습**을 돌리고 있다(Stage 8 ladder, 오늘 05:32 산출물 갱신).
 
-## 현재 보유
+핵심 가설: T1w 표현에서 scanner/source/consortium shortcut을 GRL(gradient reversal) + nuisance
+decorrelation으로 벗겨내면, deep 표현이 단순 부피 baseline을 넘는 transportable 신호를 남기는가.
+(이는 minyoung2 EXP01의 "deep ≈ volumetry, shortcut 의심" 결론에 대한 표현학습 차원의 응답이다.)
 
-| 항목 | 내용 |
-|---|---|
-| 파일 | `AGENTS.md`, `README.md`, `docs/context/`(RESET_DELETION_INVENTORY.tsv, cleanup_counts.json, WORKSPACE_STATE.md, VALIDATION_LOG.md) |
-| 코드·실험 산출물 | 없음 |
-| 최근 커밋 | ROI-token workspace 잔재 제거(retire) |
+## 데이터 정책 (full_n4)
 
-## 재시작 전 최소 정의 (README의 contract)
+base manifest = `official_manifest_full_n4.csv` (N4 bias 보정, `final_tensor_n4_path`/`final_mask_n4_path`).
+strict CN/AD subject-first numeric-ROI-pass = **2,737 subj**.
 
-새 연구는 아래 항목을 확정한 뒤 시작한다. 채워지기 전에는 감시 대상 실험이 없다.
+| 역할 | 코호트 | 수 |
+|---|---|---|
+| supervised CN/AD | ADNI(75AD/832CN)·AIBL(51/422)·KDRC(130/255) | 1,765 subj |
+| CN-only domain control | NACC(832CN)·OASIS(140CN) | — |
+| alt. Dementia 정책(승인 필요) | ADNI·NACC 등 AD_or_Dementia | Min 명시 승인 전 미적용 |
 
-```
-Research question / Outcome / Input·exposure / Unit of analysis /
-Cohort·filters / Split policy / Leakage risks / Baseline / Expected artifact / Validation
-```
+## 현재 결과 — Stage 8N (ROI-conditioned scanner/source adversary)
 
-## 감시 메모
+disease classifier 미학습(표현 단계). 8M에서 global content/nuisance 분해가 full-cohort scanner/source
+누수에 실패 → 8N은 ROI·consortium 조건부 adversary로 bounded Pareto frontier 개선 여부 검정.
 
-- 우선순위 낮음. 새 방향이 확정되고 첫 실험 디렉토리/config가 생기면 이 카드를 findings/risks/sources로 확장한다.
-- minyoungi README는 "실험은 minyoung2/minyoung4에서 한다"고 기술하나, 현재 minyoung4는 비어 있어 실질 실험 본진은 **minyoung2**다. minyoung4가 깨어나면 역할 중복을 점검한다.
-- 출처: `/home/vlm/minyoung4/README.md`, `docs/context/WORKSPACE_STATE.md` (@커밋 6f0754d, 2026-06-02 확인).
+| 조건 | ROI-ratio R²↓ | scanner-source bAcc↓ | held-consortium AUC | recon MSE |
+|---|---:|---:|---:|---:|
+| 8K-B bounded | 0.268 | 0.700 | 0.713 | 0.281 |
+| **8N cond005** | **0.161** | **0.642** | **0.796** | **0.243** |
+| 8N cond010(강) | 0.439 | 0.797 | 0.612 | 0.247 |
+
+**판정(리포트):** 강한 ROI-conditioned adversary(cond010)는 사용 금지(전 지표 악화). cond005는
+ROI-ratio·scanner-source·held AUC·recon은 개선했으나 **scanner-family/raw bAcc는 오히려 악화**
+(0.328→0.356, 0.174→0.255) → "clear win 아님, 더 큰 샘플에서 재검 필요".
+
+## 다음 게이트
+
+8N cond005를 full/larger sample에서 재현하여 scanner-family 누수 악화가 표본 noise인지 확인.
+이후 Direction 2(shortcut-aware ROI-text contrastive) 본학습 + disease head 부착.
+
+## 한 줄 리스크
+
+⚠️ n=55 subject / 275 ROI embedding의 **bounded smoke 규모**라 Pareto 비교가 noise에 취약하다.
+또한 redesign 산출물이 git에 커밋됐는지 미확인(최근 커밋 05-29, 본 작업은 06-03 docs/context 아래) — `[VERIFY]`.
+scanner-family/raw 누수가 남아 "nuisance-free 표현"은 아직 미달성.
