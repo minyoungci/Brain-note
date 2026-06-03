@@ -5,3 +5,4 @@ __pycache__/
 *.pt
 *.ckpt
 .DS_Store
+.cron.log
