@@ -78,13 +78,13 @@ collect() {
 
 echo "[daily_note] 작성: $OUT ($(wc -l < "$OUT")줄)"
 
-# commit
+# commit — daily 파일 경로로만 스코프(무관한 staged 변경 휩쓸림 방지)
 cd "$HUB" || exit 1
 git_id add "daily/${DATE}.md"
-if git diff --cached --quiet; then
+if git diff --cached --quiet -- "daily/${DATE}.md"; then
   echo "[daily_note] 변경 없음 — commit 생략"
 else
-  git_id commit -q -m "chore: daily note ${DATE} 자동 생성"
+  git_id commit -q -m "chore: daily note ${DATE} 자동 생성" -- "daily/${DATE}.md"
   echo "[daily_note] commit 완료"
   if [ "$DO_PUSH" = "1" ]; then
     if git_id push origin HEAD 2>/dev/null; then echo "[daily_note] push 완료"; else echo "[daily_note] push 실패(네트워크/인증)"; fi
