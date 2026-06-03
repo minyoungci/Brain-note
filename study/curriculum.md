@@ -24,8 +24,9 @@
    - 체크: 부피 baseline이 왜 단순 전뇌부피보다 센 bar인가?
 
 ### STEP 3 — 두 확장 축 (병렬)
-- **표현학습**: `../knowledge/02_ssl_mae_2p5d.md` → minyoung3 README + `reports/F04_*`.
-  - 체크: recon loss가 낮은데 왜 임상 표현 품질을 증명 못 하나?
+- **ROI-evidence → 해부학 QA/VQA 생성** (minyoung3): `workspaces/02_minyoung3/README.md` + `reports/F04_VQA_*`·`F04_ROI_NORMATIVE_*`.
+  (2.5D MAE SSL은 폐기 — 개념은 `../knowledge/02_ssl_mae_2p5d.md` 참고용으로만)
+  - 체크: ROI evidence R²(ventricle 강·hippo 약)가 QA 라벨 신뢰도에 어떤 상한을 거나? 왜 진단이 아니라 'anatomical evidence'인가?
 - **종단 예측**: `../knowledge/03_longitudinal.md` → plant prereg(`docs/plans/2026-06-01-...prereg.md`).
   - 체크: 왜 NACC를 종단에서 빼야 하나? converter 270개로 LOCO가 가능한가?
 

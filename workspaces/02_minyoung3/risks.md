@@ -1,6 +1,6 @@
 # minyoung3 risks — F04 감시
 
-> **목적:** F04 표현학습 파이프라인의 구조적·방법론적 약점과 확인 방법 정리  ·  **출처:** `/home/vlm/minyoung3` reports·configs·manifests  ·  **갱신:** 2026-06-02
+> **목적:** F04 ROI-evidence·QA 생성 파이프라인의 구조적·방법론적 약점과 확인 방법 정리  ·  **출처:** `/home/vlm/minyoung3` reports·configs·manifests  ·  **갱신:** 2026-06-03
 
 각 항목: 왜 문제 / 어떻게 확인.
 
@@ -10,10 +10,10 @@
 - **어떻게 확인**: `ls -la /home/vlm/minyoung3/.git`(부재 확인됨), `git -C /home/vlm/minyoung3 rev-parse --show-toplevel` → `/home/vlm`. cleanup 범위는 `.../20260531_235859_roi_evidence_dataset/CLEANUP_MANIFEST.md`.
 - **주의**: 배경 지시의 `Official/potato/Reset_Audits/`는 현재 존재하지 않는다(`find` 결과 0건). pre-delete inventory의 실제 보존 여부는 `[VERIFY]` — CLEANUP_MANIFEST.md의 삭제 목록만 확인됨.
 
-## R2. MAE 2.5D SSL 백본 미학습 (헤드라인 공백) ⚠️
+## R2. 2.5D MAE SSL 폐기 → 헤드라인 전환 위험 ⚠️
 
-- **왜 문제**: novelty 1순위인 "center-slice masked recon SSL 표현"이 full-train 0회. scaffold + 짧은 CUDA pilot만 통과. DDP launch 산출물은 cleanup으로 삭제됐고 `results/`에 MAE checkpoint가 없다. 현재 검증된 신호는 ROI 회귀 encoder(별개 경로)뿐이라, 논문 헤드라인을 받칠 SSL 표현 품질 증거가 0이다.
-- **어떻게 확인**: `results/` 트리에 ViT/MAE checkpoint·run 디렉토리 부재 확인됨. trainer(`train_f04_ssl_vit_mae_ddp.py`)·launch(`launch_f04_ddp_b200_4gpu_vitlarge.sh`)는 생존. full-train 시 `runs/f04_axial_k5_s4_dense_main/` 산출 예상.
+- **왜 문제**: 과거 novelty 1순위였던 "center-slice masked recon SSL"은 **완전 삭제**(코드·결과 제거, full-train 0회였음). 헤드라인이 ROI-grounded **QA 생성**으로 이동했다. 새 위험은 공백이 아니라 **과대주장**: 생성된 QA는 진단이 아니라 보정 ROI evidence 파생인데, "MRI VQA로 치매를 진단/판별한다"는 식으로 포지셔닝되면 임상적 과대주장이 된다. 정답 라벨 품질은 ROI evidence R²에 상한이 걸린다(ventricle 강, hippo/MTL 약).
+- **어떻게 확인**: `F04_VQA_QA_GENERATION_GUIDELINE_AND_PROVENANCE_REVIEW.md`의 verdict("ROI-grounded anatomical QA, not free-form medical VQA, not clinical diagnosis"). QA 라벨 출처가 diagnosis가 아닌 `normative_reference_cutoff`인지, scope 표현이 진단 단어를 피하는지 감사. 외부 anchor(MTA·progression·within-cohort) 부합 여부는 아직 `[VERIFY]`.
 
 ## R3. ROI fail-closed / 잠정 🟡
 

@@ -12,10 +12,10 @@
 - ☐ **OASIS 진단 삼중값 재현 불가.** master_df의 CN1126/MCI42/AD252가 `cdr_global`·raw_input 어느 쪽으로도
   재현 안 됨. 출처 컬럼/필터 확인. → `knowledge/data/cohorts/OASIS.md`
 - ☐ **minyoung2 3D CNN(IMG-020/022) 결과 미생성.** run 디렉토리 비어 있음 → 6-fold LOCO 결과 확인 후
-  strong-deep baseline 결론 확정. → `workspaces/minyoung2/risks.md`
+  strong-deep baseline 결론 확정. → `workspaces/01_minyoung2/risks.md`
 - ☐ **F10 +0.018 통계.** pooled exchangeability 가정 과대, equivalence test(TOST)·random-effects meta 미수행
-  → "음성"과 "검정력 부족" 미분리. → `workspaces/minyoung2/risks.md`
-- ☐ **plant converter 통계력.** converter ~270~272(A4 96 vs 98 불일치)로 LOCO 통계력 빈약. MDE 분석 필요. → `workspaces/plant/risks.md`
+  → "음성"과 "검정력 부족" 미분리. → `workspaces/01_minyoung2/risks.md`
+- ☐ **plant converter 통계력.** converter ~270~272(A4 96 vs 98 불일치)로 LOCO 통계력 빈약. MDE 분석 필요. → `workspaces/03_plant/risks.md`
 
 ## 🟠 설계·운영
 
@@ -23,12 +23,12 @@
 - ☐ **ROI 전수 BLOCKED_PROVISIONAL.** 사람 visual sign-off 전까지 ROI/부피 정량은 "후보". 게이트 정책 필요. → `knowledge/data/roi_volumes.md`
 - ☐ **ComBat/within-cohort 누수.** 05·06의 AUC≈0.9는 LOCO 미적용(site 누수 포함). train-fit ComBat 미검증. → `knowledge/data/cdr_target_and_harmonization.md`
 - ☐ **NACC 결측코드(88/99/-4).** 정수 저장이라 `isna()` 오판 → 디코딩 전 통계 금지(전수 점검). → `knowledge/data/cohorts/NACC.md`
-- ☐ **minyoungi 역할 경계.** README는 "실험 코드 없음"이나 `experiments/`에 GPU 산출물 존재. source of truth 명시. → `workspaces/minyoungi/risks.md`
+- ☐ **minyoungi 역할 경계.** README는 "실험 코드 없음"이나 `experiments/`에 GPU 산출물 존재. source of truth 명시. → `workspaces/04_minyoungi/risks.md`
 
 ## 🟡 정밀화
 
-- ☐ `cdrsb` 실값 vs placeholder 여부(minyoungi 2026-05-31 daily 숙제). → `workspaces/minyoungi/findings.md`
-- ☐ `Official/potato/Reset_Audits/` 부재 — minyoung3 pre-delete inventory 실제 위치 불명. → `workspaces/minyoung3/risks.md`
+- ☐ `cdrsb` 실값 vs placeholder 여부(minyoungi 2026-05-31 daily 숙제). → `workspaces/04_minyoungi/findings.md`
+- ☐ `Official/potato/Reset_Audits/` 부재 — minyoung3 pre-delete inventory 실제 위치 불명. → `workspaces/02_minyoung3/risks.md`
 - ☐ AIBL 세션 카운트 991(per-cohort) vs 987(통합 manifest) 4세션 차이. → `knowledge/data/cohorts/AIBL.md`
 - ☐ 코호트별 sex 코딩(1/2 ↔ M/F) 규약 확인(ADNI·AIBL·KDRC). → `knowledge/data/cohorts/`
 

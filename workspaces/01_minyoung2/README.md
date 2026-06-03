@@ -1,6 +1,6 @@
 # minyoung2 — EXP01 감시 카드
 
-> **목적:** nuisance shortcut 통제 후 T1w 표현이 transportable CDR 신호를 incremental하게 담는지 판정  ·  **출처:** workspaces/minyoung2 SCRATCHPAD·reports  ·  **갱신:** 2026-06-02 (커밋 bb9b29f)
+> **목적:** nuisance shortcut 통제 후 T1w 표현이 transportable CDR 신호를 incremental하게 담는지 판정  ·  **출처:** workspaces/01_minyoung2 SCRATCHPAD·reports  ·  **갱신:** 2026-06-02 (커밋 bb9b29f)
 
 ## 연구 주제
 

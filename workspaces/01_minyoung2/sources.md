@@ -1,6 +1,6 @@
 # minyoung2 — sources
 
-> **목적:** EXP01 카드의 근거 원본 문서·코드 자산·데이터 자산 목록  ·  **출처:** workspaces/minyoung2 (READ-ONLY, 수정/실행 안 함)  ·  **갱신:** 2026-06-02 (workspace HEAD bb9b29f)
+> **목적:** EXP01 카드의 근거 원본 문서·코드 자산·데이터 자산 목록  ·  **출처:** workspaces/01_minyoung2 (READ-ONLY, 수정/실행 안 함)  ·  **갱신:** 2026-06-02 (workspace HEAD bb9b29f)
 
 ## 근거 원본 문서 (경로 + 최신 커밋)
 
