@@ -1,10 +1,24 @@
 # minyoung3 sources — 근거 파일 + 재사용 자산
 
-> **목적:** F04 카드가 인용한 근거 파일과 생존 코드 자산 목록  ·  **출처:** `/home/vlm/minyoung3` 파일 mtime + reports 본문  ·  **갱신:** 2026-06-02
+> **목적:** F04 카드가 인용한 근거 파일과 생존 코드 자산 목록  ·  **출처:** `/home/vlm/minyoung3` 파일 mtime + reports 본문  ·  **갱신:** 2026-06-07
 
-읽은 날짜: 2026-06-02 · mtime은 UTC.
+읽은 날짜: 2026-06-02(기반) + 2026-06-07(three-zone/raw-visible) · mtime은 UTC.
 
 ⚠️ minyoung3는 독립 git 저장소가 아니다(.git 부재, toplevel=/home/vlm). 시점 추적은 mtime + reports 본문 날짜로만 가능하다. `Official/potato/Reset_Audits/`는 현재 부재(find 0건).
+
+## 0. 현재 헤드라인 근거 (2026-06-07, 최우선)
+
+| 경로 | 내용 |
+|---|---|
+| `results/f04_roi_evidence_encoder/20260607_092509_v6_latest_threezone_manuscript_assets/` | manuscript asset 패키지. `LATEST_MANUSCRIPT_ASSET_SUMMARY.md`(decision line)·`core_threezone_results_table.md`·`claim_decision_table.md`·`negative_control_ledger.md`(56건)·`stop_rules.md` |
+| `results/f04_roi_evidence_encoder/20260603_050611_3d_roi_grounded_vqa_design/matched_session_qa_with_3d_paths.csv` | matched 3D VQA 벤치마크 19,236 QA / 9,278 sess / 5,601 subj (overlap 0) |
+| `results/f04_roi_evidence_encoder/20260607_0650~0810*_raw_visible_*` | raw-visible 학습·벤치마크·seed 안정성·cross-cohort 합성 |
+| `results/f04_roi_evidence_encoder/20260607_0828~0921*_*policy*·*missed_positive*` | operating-policy·recall-constrained·OASIS miss 시각 audit |
+| `reports/F04_NEXT_UNCERTAINTY_AWARE_3D_ROI_VQA_PLAN.md` | 입력/출력 정책·아키텍처(global64³+MTL64³ fusion, tri-view) |
+| `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md` | 외부 morphometry bar(CN/AD LOCO AUC 0.910/0.909) |
+| `reports/F04_ACTIVE_ARTIFACT_REGISTRY.md` | adjusted→raw-visible 피벗 근거(ratio far-pos median 0.018 vs raw 0.706) |
+
+⚠️ front-door 문서(아래 1번 표)는 stale — 폐기된 2.5D-MAE-SSL 프레이밍을 광고. 현재 상태 판단에 쓰지 말 것.
 
 ## 1. 최상위 / 정책 문서
 

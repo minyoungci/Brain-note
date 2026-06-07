@@ -1,6 +1,6 @@
 # OPEN_QUESTIONS — 미해결·검증대기 추적기
 
-> **목적:** 5개 워크스페이스 + 데이터에서 모인 `[VERIFY]`·blocker·결정대기 항목을 한곳에서 추적  ·  **갱신:** 2026-06-02
+> **목적:** 5개 워크스페이스 + 데이터에서 모인 `[VERIFY]`·blocker·결정대기 항목을 한곳에서 추적  ·  **갱신:** 2026-06-07 (minyoung3·4 항목 반영)
 
 해소되면 줄을 지우고 해당 카드/문서에 결과를 반영한다. 상태: ☐ 미해결 / ☑ 해소.
 우선순위: 🔴 연구 결론에 영향 / 🟠 설계·운영 / 🟡 정밀화.
@@ -19,7 +19,8 @@
 
 ## 🟠 설계·운영
 
-- ☐ **minyoung3·plant git 부재.** 버전 안전망 0 → `git init` 권장. → `DASHBOARD.md`
+- ☐ **minyoung3·plant git 부재 + minyoung4 미커밋.** minyoung3·plant는 `.git` 부재(버전 안전망 0). minyoung4는 git 존재하나 HEAD `6f0754d`(05-29) 이후 6/3~6/7 redesign 전부 untracked → `git init`/`git commit` 권장. → `DASHBOARD.md`·`workspaces/02_minyoung4/README.md`
+- ☐ **minyoung4 G0 feature coverage 결정대기.** Stage220 게이트 미통과(기대 3,622 subj 중 1,857 missing). 통과하려면 1,857 subj × 5 ROI mask(~9.4GB I/O) 추출 필요 — **장시간 전처리, Min 승인 게이트**. 통과 전 Stage221 LOCO 모델링·Stage224 shortcut audit 전부 blocked. → `workspaces/02_minyoung4/README.md`
 - ☐ **ROI 전수 BLOCKED_PROVISIONAL.** 사람 visual sign-off 전까지 ROI/부피 정량은 "후보". 게이트 정책 필요. → `knowledge/data/roi_volumes.md`
 - ☐ **ComBat/within-cohort 누수.** 05·06의 AUC≈0.9는 LOCO 미적용(site 누수 포함). train-fit ComBat 미검증. → `knowledge/data/cdr_target_and_harmonization.md`
 - ☐ **NACC 결측코드(88/99/-4).** 정수 저장이라 `isna()` 오판 → 디코딩 전 통계 금지(전수 점검). → `knowledge/data/cohorts/NACC.md`

@@ -1,36 +1,40 @@
 # minyoung3 risks — F04 감시
 
-> **목적:** F04 ROI-evidence·QA 생성 파이프라인의 구조적·방법론적 약점과 확인 방법 정리  ·  **출처:** `/home/vlm/minyoung3` reports·configs·manifests  ·  **갱신:** 2026-06-03
+> **목적:** F04 3D ROI-grounded VQA·operating-policy 파이프라인의 구조적·방법론적 약점과 확인 방법  ·  **출처:** `/home/vlm/minyoung3` reports·results(2026-06-07)  ·  **갱신:** 2026-06-07
 
 각 항목: 왜 문제 / 어떻게 확인.
 
 ## R1. git 버전 안전망 0 (구조적) ⚠️
 
-- **왜 문제**: `/home/vlm/minyoung3`에 `.git`이 없다. git toplevel은 `/home/vlm`이며 minyoung3는 그 트리에서 추적되지 않는다(run의 `git_info.json` status에 minyoung3 파일이 전혀 나타나지 않음). 따라서 2026-05-27/06-01의 대규모 삭제(PET/3D 잔재, results 35개 디렉토리)는 되돌릴 수 없다. 실험 결과가 reports의 표 텍스트로만 남고 raw 산출물은 소실됐다(frozen embedding source run 포함).
-- **어떻게 확인**: `ls -la /home/vlm/minyoung3/.git`(부재 확인됨), `git -C /home/vlm/minyoung3 rev-parse --show-toplevel` → `/home/vlm`. cleanup 범위는 `.../20260531_235859_roi_evidence_dataset/CLEANUP_MANIFEST.md`.
-- **주의**: 배경 지시의 `Official/potato/Reset_Audits/`는 현재 존재하지 않는다(`find` 결과 0건). pre-delete inventory의 실제 보존 여부는 `[VERIFY]` — CLEANUP_MANIFEST.md의 삭제 목록만 확인됨.
+- **왜 문제**: `/home/vlm/minyoung3`에 `.git`이 없다(git toplevel=`/home/vlm`, minyoung3는 미추적). 2026-06-07 하루에만 **59개 run 디렉토리**(누적 422개)가 생성됐고 전부 버전 백업이 없다. 과거 대규모 삭제(results 35개)는 복구 불가, 결과가 report 텍스트로만 잔존.
+- **어떻게 확인**: `ls -la /home/vlm/minyoung3/.git`(부재), `git -C /home/vlm/minyoung3 rev-parse --show-toplevel` → `/home/vlm`. cleanup 범위는 `…/20260531_235859_roi_evidence_dataset/CLEANUP_MANIFEST.md`.
 
-## R2. 2.5D MAE SSL 폐기 → 헤드라인 전환 위험 ⚠️
+## R2. front-door 문서 stale → 상태 오인 위험 ⚠️ (신규)
 
-- **왜 문제**: 과거 novelty 1순위였던 "center-slice masked recon SSL"은 **완전 삭제**(코드·결과 제거, full-train 0회였음). 헤드라인이 ROI-grounded **QA 생성**으로 이동했다. 새 위험은 공백이 아니라 **과대주장**: 생성된 QA는 진단이 아니라 보정 ROI evidence 파생인데, "MRI VQA로 치매를 진단/판별한다"는 식으로 포지셔닝되면 임상적 과대주장이 된다. 정답 라벨 품질은 ROI evidence R²에 상한이 걸린다(ventricle 강, hippo/MTL 약).
-- **어떻게 확인**: `F04_VQA_QA_GENERATION_GUIDELINE_AND_PROVENANCE_REVIEW.md`의 verdict("ROI-grounded anatomical QA, not free-form medical VQA, not clinical diagnosis"). QA 라벨 출처가 diagnosis가 아닌 `normative_reference_cutoff`인지, scope 표현이 진단 단어를 피하는지 감사. 외부 anchor(MTA·progression·within-cohort) 부합 여부는 아직 `[VERIFY]`.
+- **왜 문제**: `README.md`·`docs/STUDY_DECISION.md`·`docs/context/WORKSPACE_STATE.md`·`configs/active/f04_roi_evidence_next_experiment.json`이 폐기된 **2.5D-MAE-SSL / progression-teacher** 프레이밍을 여전히 광고한다(mtime 5/27~5/31). 카드/외부가 이 문서를 현재 상태로 읽으면 헤드라인을 오인한다.
+- **어떻게 확인**: 위 파일 mtime이 5월 말. 현재 상태는 `reports/`(6/6~6/7)와 `results/.../20260607_092509_…manuscript_assets/`만 신뢰. decision line `promote_threezone_task_and_3d_vs_2p5d; do_not_promote_current_uncertainty_or_ranking_methods`.
 
-## R3. ROI fail-closed / 잠정 🟡
+## R3. 진단 과대주장 — morphometry 0.91 bar 미달 ⚠️
 
-- **왜 문제**: `manifests/v2_integrated/longitudinal_voxel_manifest_v0.csv`의 `roi_final_ready`가 전 18,868행 False(검증됨). ROI는 정책상 fail-closed — Visual-QC PASS를 해부학적 정확성으로 간주하지 않는다(README/STUDY_DECISION 명시). 즉 ROI 보조경로는 controlled novelty layer이지 검증된 atlas-wide 진실이 아니다. 또한 ROI evidence에서 강한 신호는 환실뿐이고 hippo/MTL(AD 핵심 영역)은 약하다(R²≈0.19).
-- **어떻게 확인**: 위 manifest `roi_final_ready` value_counts(`{False: 18868}`). 강/약 신호는 `F04_ROI_EVIDENCE_TRAINABILITY_REVIEW.md` 표.
+- **왜 문제**: 이미지 3D AJU CN/AD binary AUC 0.879(후보 0.853~0.866)로 외부 morphometry+simple-norm RF LOCO AUC **0.910/0.909** 아래다. "MRI VQA가 치매를 진단/판별한다" 또는 "이미지가 분류에서 우월"로 포지셔닝되면 임상적 과대주장. 정답 라벨 품질은 ROI evidence R²에 상한(ventricle 강, hippo/MTL 약).
+- **어떻게 확인**: `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md`, `claim_decision_table.md`의 `IMPORTANT_CAVEAT`, `stop_rules.md` rule 1.
 
-## R4. "recon loss ≠ 임상 표현 품질" 경계 위반 위험 🟡
+## R4. OASIS positive-recall 비대칭 🟡 (신규)
 
-- **왜 문제**: trainer docstring·README·STUDY_DECISION 모두 reconstruction loss와 GPU util은 plumbing 신호일 뿐이라 경고한다. 마찬가지로 ROI R²나 AEB feature가 학습된다는 사실이 임상적으로 유용한 표현을 증명하지 않는다. AEB downstream은 raw split에서 clinical context를 넘지 못했다(cdrsb 0.671 vs clinical 0.677). 단일 run downstream metric을 표현 품질 증거로 쓰는 것은 STUDY_DECISION이 금지한 헤드라인이다.
-- **어떻게 확인**: `configs/active/f04_roi_evidence_next_experiment.json`의 `promotion_gate`(clinical_matched/permutation 95th pct/LOCO/cohort shortcut). 이 게이트 통과 전에는 novelty 주장을 보류한다.
+- **왜 문제**: raw-visible 3D는 AUC·calibrated bacc에서 우월하나 OASIS positive recall은 모든 seed에서 2.5D보다 낮다(policy delta CI가 0을 가로지름). 잔존 pure-3D miss = 4세션/4명(3×환실확대, 1×저해마). recall 균형까지 주장하면 반증된다.
+- **어떻게 확인**: `…/20260607_084958_…policy_uncertainty_calibration_audit`(OASIS positive-recall delta mean −0.134, CI −0.313→+0.065), `…/20260607_091249_…OASIS_MISSED_POSITIVE_VISUAL_AUDIT.md`. 정직한 주장 = ranking + calibrated operating-policy.
 
-## R5. leakage / shortcut audit — 부분 존재 🟡
+## R5. method novelty 미확립 — 동일 tradeoff 반복 🟡
 
-- **왜 문제**: 직접 split leakage는 audit됨(PASS). 그러나 (a) cohort/site shortcut은 ROI 표현 단계에서 아직 미감사(코드 리뷰가 "high for claims"로 표시), (b) leakage audit이 soft warning 6건(여러 split에 걸친 rounded target 중복)을 남겼다 — 생물학적 공통값인지 미해소. (c) 옛 cohort/LOCO/permutation probe 결과는 전부 삭제돼 재현이 필요하다.
-- **어떻게 확인**: `scripts/audit_f04_roi_evidence_leakage.py` + 결과 `.../20260601_121136_roi_evidence_leakage_audit/`(verdict `PASS_NO_DIRECT_SPLIT_LEAKAGE_DETECTED`, soft_warnings 1항목). cohort shortcut은 `run_f04_binary_cohort_shortcut_probe.py`로 재실행해야 측정 가능(현재 결과 없음).
+- **왜 문제**: uncertainty/ranking/gating/morphometry-distillation/ROI-token 변형 56건 전부 3D primary 대비 NEGATIVE/MIXED. uncertain row를 회복하면 far-positive recall이 깎인다(반복 실패). `stop_rules.md`가 "새 메커니즘 없는 boundary/ranking/gate-reweight 변형 실행 중단"을 선언.
+- **어떻게 확인**: `…/20260607_092509_…/negative_control_ledger.md`(56건), `stop_rules.md` rule 2. 새 주장은 genuinely new mechanism 또는 operating-policy 검증 통과 전 보류.
 
-## R6. 라벨 불균형 + 다음 게이트 의존성 🟡
+## R6. ROI fail-closed / 라벨 construct 약점 🟡
 
-- **왜 문제**: progression 타깃 양성률이 낮다(future_ad ~3.6%, diagnosis_worsening ~8%). 다음 게이트(official-label slab manifest)가 검증 안 된 상태라 downstream 전체가 이 manifest 정합성에 의존한다. join 오류 시 모든 probe가 무효가 된다.
-- **어떻게 확인**: `pair_target_summary.csv` 분포. manifest 빌더 `build_f04_official_label_slab_manifest.py` 출력 검증 필요(현재 검증 산출물 미확인).
+- **왜 문제**: `manifests/v2_integrated/longitudinal_voxel_manifest_v0.csv`의 `roi_final_ready` 전 18,868행 False(검증). ROI는 정책상 fail-closed(Visual-QC PASS≠해부학적 정확성). 또한 adjusted normative residual 라벨이 ratio far-positive row에서 raw 해부와 약하게만 정렬(median 0.018 vs raw 0.706) → 원 라벨 일부는 이미지로부터 학습 불가했고, 그래서 raw-visible로 피벗.
+- **어떻게 확인**: 위 manifest `roi_final_ready` value_counts(`{False: 18868}`), `reports/F04_ACTIVE_ARTIFACT_REGISTRY.md`의 ratio 질문 분석.
+
+## R7. 평가 표본 작음 + leakage 부분 감사 🟡
+
+- **왜 문제**: raw-visible positive가 ~14%라 held-out 벤치마크가 작다(AJU 96 / OASIS 60 / NACC 96 row). recall-floor 정책은 "risk control이지 임상 sensitivity 추정 아님". 직접 split leakage는 PASS이나 cohort/site shortcut은 표현 단계에서 부분 감사.
+- **어떻게 확인**: `…_raw_visible_*` run의 row count, `scripts/audit_f04_roi_evidence_leakage.py` 결과(verdict `PASS_NO_DIRECT_SPLIT_LEAKAGE_DETECTED`, soft warning 잔존).

@@ -1,6 +1,6 @@
 # DASHBOARD — 5개 워크스페이스 현황 요약
 
-> **목적:** 5개 연구 워크스페이스의 상태·blocker·다음 게이트를 한 화면에 요약  ·  **출처:** 각 repo git log / SCRATCHPAD  ·  **갱신:** 2026-06-03
+> **목적:** 5개 연구 워크스페이스의 상태·blocker·다음 게이트를 한 화면에 요약  ·  **출처:** 각 repo git log / SCRATCHPAD  ·  **갱신:** 2026-06-03 (02·03행은 2026-06-07 갱신; 01·04·05행은 6/3 기준)
 
 진실의 원천은 각 워크스페이스다. 본 문서는 항법용 요약이며, 상세는 `workspaces/<NN_dir>/`를 참조한다.
 **디렉토리는 중요도 순 prefix(`01_`~`05_`)로 정렬**된다. 활동 상태 표기: **활발 / 진행중 / 신설 / 휴면**.
@@ -10,8 +10,8 @@
 | # | dir | 연구 요약 | 활동 | 다음 게이트 | 핵심 리스크 |
 |---|---|---|---|---|---|
 | 01 | **minyoung2** | EXP01: shortcut 통제 후 T1w가 CDR 신호를 incremental하게 담는가 (LOCO control battery) + 🆕 EXP04 N4 transport | 활발 | 3D CNN strong-deep baseline(IMG-020/022) ledger + EXP04 n4 vs base transport 결론 | headline 후퇴: deep ≈ regional volumetry (+0.018), LOCO seed 불안정 |
-| 02 | **minyoung4** | 🆕 **full_n4 nuisance-aware 3D 표현학습** (scanner/source domain-adversarial + GRL, shortcut-aware ROI-text contrastive) | 활발(6/3 재가동) | Stage 8N cond005를 larger sample 재현(scanner-family 누수 악화가 noise인지) | bounded smoke 규모(n=55), scanner-family/raw 누수 잔존, git 커밋 `[VERIFY]` |
-| 03 | **minyoung3** | F04: ROI-evidence encoder + 정규화 보정 기반 **해부학 QA/VQA 생성** + 3D image-only VQA 학습(smoke) (2.5D MAE SSL 폐기) | 활발(6/3) | 생성 QA 외부 anchor(MTA·progression) 검증 + VQA 학습 규모 확대 | 진단 과대주장 위험, ROI evidence hippo/MTL 약(R²≈0.19), git 부재 |
+| 02 | **minyoung4** | full_n4 nuisance-aware 3D 표현학습 → **ROI-intensity LOCO 게이트**로 2회 피벗(표현·calibration 모두 ❌) | 활발이나 **BLOCKED**(6/7) | Stage 220 G0 feature coverage(1,857 subj 추출, **Min 승인 필요**) 통과 → Stage221 LOCO | **6/3~6/7 전부 미커밋** · scanner-family 누수 미해결(0.328→0.660) · 이미지 표현 ≯ ROI morphometry |
+| 03 | **minyoung3** | F04: **3D ROI-grounded VQA(three-zone)** + raw-visible 트랙 — 3D > 고정 2.5D 확립 (2.5D MAE SSL 폐기) | 활발(6/7, 당일 59 run) | OASIS recall 손실 통제하는 validation-locked operating-policy | git 부재 · 진단 과대주장(0.91 morphometry bar 미달) · method novelty 미확립(56 control) · front-door 문서 stale |
 | 04 | **plant** | Longitudinal: 단일 baseline scan으로 미래 CDR 진행 예측 (EXP01 시간축 확장) | 신설(6/1, 이후 idle) | prereg 설계 lock 후 4코호트(ADNI/AIBL/A4/OASIS) 파이프라인 | converter 희소(ADNI 130·A4 96), git 부재 |
 | 05 | **minyoungi** | 문헌 triage + clinical 데이터 이해(ipynb) + ROI QC(Gate05b) + minyoung4 figure 생성 | 진행중(지원) | Gate05b NACC per-target ROI 실패 audit | ROI BLOCKED_PROVISIONAL, 과거 데이터 버그 전례 |
 
@@ -52,7 +52,7 @@ plant는 시간축, minyoung3는 ROI-evidence QA 생성, minyoung4는 domain-adv
 ## 감시자 권고 (즉시)
 
 - ✅ **prefix 재정렬 완료(2026-06-03)** → 활동 기준 01_minyoung2 · 02_minyoung4 · 03_minyoung3 · 04_plant · 05_minyoungi.
-- ⚠️ **minyoung4 redesign 산출물 git 커밋 여부 `[VERIFY]`** → 06-03 작업이 `docs/context/` 아래 비커밋이면
-  대규모 표현학습 결과가 안전망 없이 노출. minyoung3·plant git 부재와 동일 리스크.
+- ⚠️ **minyoung4 redesign 산출물 미커밋 확정(2026-06-07)** → HEAD `6f0754d`(05-29) 이후 6/3~6/7 작업
+  (stage 스크립트 227·md 596·전 결과)이 전부 untracked. 대규모 표현학습 결과가 안전망 없이 노출 — `git add/commit` 권장. minyoung3·plant git 부재와 동일 리스크.
 - ⚠️ **plant converter 희소성** → 양성 표본이 작아 LOCO 통계력이 빈약. 부트스트랩 CI·MDE를 prereg에 명시.
 - ⚠️ **minyoung2 RAM 압박 신호**(disconnect 생존·RAM 90% 캡) + EXP04 transport 추가 GPU 부하 → 1TB 상한 모니터링과 연동.

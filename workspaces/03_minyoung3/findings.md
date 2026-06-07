@@ -1,68 +1,74 @@
 # minyoung3 findings — F04 패밀리
 
-> **목적:** F04 패밀리의 검증된 결과와 미검증 항목 분리 기록  ·  **출처:** `/home/vlm/minyoung3` reports·results summary.json  ·  **갱신:** 2026-06-03
+> **목적:** F04 패밀리의 검증된 결과와 미검증 항목 분리 기록  ·  **출처:** `/home/vlm/minyoung3` reports·results summary.json·manuscript_assets(2026-06-07)  ·  **갱신:** 2026-06-07
 
 표기: ✅확정 / 🟡잠정 / ❌반증 / `[VERIFY]`미검증
 
-## F04 패밀리 구조 (2026-06-03 전환)
+## F04 패밀리 구조 (2026-06-07)
 
 | 라인 | 정의 | 상태 |
 |---|---|---|
-| ~~2.5D MAE SSL~~ | ~~axial slab masked center-slice SSL (ViT/MAE)~~ | ❌ **완전 삭제(폐기).** 코드·결과 모두 제거 — 헤드라인 라인 아님 |
-| **ROI-evidence encoder** | T1w 이미지 → 42개 FreeSurfer ROI evidence 회귀 | ✅ full run 완료 (활성 canonical 데이터셋) |
-| **normative calibration** | train-only CN/안정 기준군으로 ROI → 보정 percentile·z-score | ✅ `…_n4_normative_calibration_v6_global_cdr_primary` |
-| **ROI-grounded QA 생성** | 보정 ROI evidence → T1w에 붙일 해부학 QA/VQA (진단 아님) | ✅ 58,330 QA rows · 6 템플릿 · `normative_reference_cutoff` |
+| ~~2.5D MAE SSL~~ | ~~axial slab masked center-slice SSL~~ | ❌ **완전 삭제(폐기)** — 헤드라인 아님 |
+| ROI-evidence encoder | T1w 이미지 → 42개 FreeSurfer ROI evidence 회귀 | ✅ full run 완료 (canonical 데이터셋 원천) |
+| normative calibration | train-only CN/안정 기준군으로 ROI → 보정 percentile·z-score | ✅ `…_n4_normative_calibration_v6_global_cdr_primary` |
+| **3D ROI-grounded VQA (three-zone)** | image-only 3D 입력 → far-neg/uncertain/far-pos 해부 추론 | ✅ **현 헤드라인.** 3D > 고정 2.5D 확립 |
+| **raw-visible ROI-VQA** | 원본 영상에서 보이는 해부 기준 라벨 | ✅ positive image track, 전 seed 3D > 2.5D |
 
-라벨 권위: `official_manifest_full_n4.csv` (CDR global / CDR-SB / source). QA 정답은 진단이 아닌 **보정 ROI evidence**에서 파생. ✅
+## three-zone 3D-vs-2.5D 결과 (✅ 검증, 2026-06-07)
 
-## 활성 데이터셋 (검증됨)
+`results/f04_roi_evidence_encoder/20260607_092509_v6_latest_threezone_manuscript_assets/core_threezone_results_table.md`:
 
-`results/f04_roi_evidence_encoder/20260531_235859_roi_evidence_dataset` — `summary.json` 직접 확인:
+| 평가 | 고정 2.5D (zone-bacc/uncertain-recall/far-AUC) | 3D primary | Δzone-bacc |
+|---|---|---|---|
+| AJU LOCO (n=340) | 0.436 / 0.000 / 0.756 | 0.643 / 0.543 / 0.948 | +0.208 [+0.148,+0.270] |
+| 내부 matched test (n=2538) | — | 0.687 / 0.662 / 0.969 | +0.223 [+0.196,+0.250] |
+| OASIS LOCO (n=210) tri-view | — | zone-bacc 0.649 / far-AUC 0.968 | — |
+| NACC LOCO (n=320) tri-view | — | zone-bacc 0.683 / far-AUC 0.968 | — |
 
-- ✅ 18,815 세션 / 56,445 selected slab / 10,564 longitudinal pair
-- ✅ ROI summary 가용: 18,813/18,815 세션, 56,439/56,445 slab (각 2·6개 결측)
-- ✅ evidence target 42개
-- ✅ subject split overlap = 0 (train/val/test 전 쌍)
-- ✅ 7개 컨소시엄 분할 균형 (A4/ADNI/AIBL/AJU/KDRC/NACC/OASIS, `split_summary.csv`)
-- 🟡 pair label 분포(`pair_target_summary.csv`): cdrsb_progression_ge05 1,179/4,457, diagnosis_worsening 436/4,774, future_ad_from_nonad 177/4,774 — 양성 클래스 불균형(특히 future_ad ~3.6%)
+raw-visible 학습 모델(`negative_control_ledger.md`, AUC/calibrated-bacc): AJU `0.593/0.531`→`0.934/0.812` ·
+OASIS `0.700/0.650`→`0.957/0.833` · NACC `0.714/0.667`→`0.898/0.812`. seed sd: 3D 0.001~0.005 vs 2.5D 0.04~0.06,
+최소 cross-cohort delta AUC +0.159·bacc +0.146(`…_cross_cohort_seed_synthesis`).
 
-## ROI evidence encoder 결과 (full cache-backed run, 검증됨)
+✅ **검증된 핵심 주장**: image-only 3D가 three-zone 해부 추론 task에서 고정 2.5D를 internal·AJU·OASIS·NACC LOCO 전반에서 능가(ranking·calibrated bacc 기준).
+🟡 **경계**: OASIS positive recall은 3D < 2.5D(비대칭). recall 균형이 아닌 ranking 우위로 한정해야 함.
 
-run `20260601_125527_roi_evidence_cached_full_v1` (best epoch 4, train 13,221세션/39,663slab, test 2,855세션/8,565slab). test session-level R² (`F04_ROI_EVIDENCE_TRAINABILITY_REVIEW.md`):
+## 외부 morphometry bar (⚠️ 분류 우월 주장 가드레일)
 
-| target | R² | Pearson | 해석 |
-|---|---:|---:|---|
-| `roi_ventricle_to_brain_proxy` | **0.643** | 0.809 | ✅ 강 |
-| `log1p_roi_ventricle_sum_vol` | **0.618** | 0.802 | ✅ 강 |
-| `roi_hippocampus_to_ventricle` | 0.417 | 0.734 | 🟡 primary로 충분, 단 ventricle-driven 의심 |
-| `log1p_roi_mtl_sum_vol` | 0.195 | 0.472 | 🟡 약, secondary |
-| `log1p_roi_hippocampus_vol` | 0.190 | 0.482 | 🟡 약, secondary |
-| `roi_mtl_to_brain_proxy` | 0.109 | 0.344 | 🟡 약하지만 양성 |
+`reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md`(원천 `/home/vlm/minyoungi/roi_qc/.../09_modeling_path_comparison/RESULTS.md`):
+CN/AD LOCO morphometry+simple-norm RF AUC **0.910(train-z)/0.909(ICV)**. 현 이미지 3D AJU binary AUC 0.879, 후보 0.853~0.866, 고정 2.5D 0.684.
+→ 이미지 방법은 아직 bar 아래. "이미지가 CN/AD 분류에서 우월" 주장 금지.
 
-- ✅ **검증된 핵심 주장**: 다중 타깃 ROI 감독으로 T1w 이미지 인코더가 해부학적 퇴행 패턴을 회복 가능. 가장 강한 신호는 환실(ventricle) 확대/비율. 512→1,024→full 세션 확대 시 단조 개선(소규모 artifact 아님).
-- 🟡 **해석 경계**: hippo/MTL은 axial-only slab + tiny CNN에서 약하다. "해마 위축을 정밀하게 학습한다"는 주장은 금지(코드 리뷰 명시). hippocampus_to_ventricle 개선도 분모(환실) 신호에 끌려갈 수 있다.
+## negative-control / method novelty (❌ 미확립)
 
-### feasibility 단계 (참고)
+`negative_control_ledger.md`: 컨트롤 **56건**. uncertainty/ranking/gating/morphometry-distillation/ROI-token 변형 전부
+3D primary 대비 NEGATIVE 또는 MIXED — uncertain row 회복이 far-positive recall 손상을 동반(반복 실패 모드).
+유일한 POSITIVE는 *방법이 아닌 진단*: frozen-primary morphometry probe(Spearman hip/MTL/vent/ratio 0.655/0.771/0.881/0.629), raw-visible 3D>2.5D 우위.
 
-512s smoke / 1,024s medium 모두 동일 추세(ventricle 강, hippo 약). medium val RMSE 0.1657→0.1595→0.1578(ep3). 4,096s 시도는 산출물 미완성으로 폐기. ✅
+## ROI evidence encoder 결과 (full cache-backed run, ✅ 검증 — 기반 결과)
 
-## downstream (AEB) probe 결과 🟡
+run `20260601_125527_roi_evidence_cached_full_v1`. test session-level R²(`F04_ROI_EVIDENCE_TRAINABILITY_REVIEW.md`):
 
-run `20260601_131409_aeb_downstream_probe_full_v1`, 10,562 pair. 최선 모델 `aeb_pred_plus_clinical`:
-
-| 타깃 | macro F1 | 비교 |
+| target | R² | 해석 |
 |---|---:|---|
-| diagnosis_worsening | 0.662 | clinical 대비 F1 유사, balanced acc 0.687·pos recall 0.453 개선 |
-| cdrsb_progression_ge05 | 0.671 | clinical(0.677) 못 넘음 |
-| future_ad_from_nonad | 0.750 | clinical과 유사, balanced acc는 낮음 |
+| `roi_ventricle_to_brain_proxy` | **0.643** | ✅ 강 |
+| `log1p_roi_ventricle_sum_vol` | **0.618** | ✅ 강 |
+| `roi_hippocampus_to_ventricle` | 0.417 | 🟡 ventricle-driven 의심 |
+| `log1p_roi_mtl_sum_vol` | 0.195 | 🟡 약, secondary |
+| `log1p_roi_hippocampus_vol` | 0.190 | 🟡 약, secondary |
+| `roi_mtl_to_brain_proxy` | 0.109 | 🟡 약하지만 양성 |
 
-🟡 결론: ROI evidence는 학습되나, raw split downstream은 여전히 clinical context 지배. **novelty 확정 불가** — clinical-matched / within-cohort 평가 필요.
+✅ 다중 타깃 ROI 감독으로 T1w 인코더가 해부학적 퇴행 패턴 회복, 최강 신호는 ventricle. 🟡 hippo/MTL 약 — "해마 위축 정밀 학습" 주장 금지.
+
+## downstream (AEB) probe — 🟡 novelty 미확정 (기반 결과)
+
+run `20260601_131409_aeb_downstream_probe_full_v1`. 최선 `aeb_pred_plus_clinical`: diagnosis_worsening F1 0.662·cdrsb_progression 0.671(clinical 0.677 못 넘음)·future_ad 0.750.
+🟡 raw split downstream은 여전히 clinical context 지배 → 단독 novelty 근거 아님.
 
 ## 검증 / 미검증 분리
 
 | 구분 | 항목 |
 |---|---|
-| ✅ 검증 | 활성 데이터셋 무결성(split overlap 0), leakage audit PASS, ROI evidence 학습 가능성(ventricle 강), feasibility 스케일 단조성 |
-| 🟡 미검증 | F04-label manifest, F05, clinical-matched/LOCO/permutation 게이트 통과 여부 |
-| ❌ 폐기(헤드라인 전환) | 2.5D MAE SSL 라인 **완전 삭제** — full-train 0회였고 이제 코드·결과 모두 제거. 헤드라인은 ROI-grounded QA 생성으로 이동. 검증 부담: QA가 진단 데이터셋으로 오인되지 않고 외부 anchor에 부합하는가 |
-| `[VERIFY]` | `20260602_005520_famous_ssl_dinov2_smoke_download_check`는 DINOv2 frozen baseline 비교 준비 단계(스크립트 `run_f04_famous_ssl_downstream_probe.py`, 06-02 00:34/00:55 갱신) — 결과 metric 미생성, manifest export만 존재 |
+| ✅ 검증 | 데이터셋 무결성(overlap 0)·leakage PASS·ROI evidence 학습성(ventricle 강)·three-zone 3D>2.5D(internal·AJU·OASIS·NACC)·raw-visible 3D>2.5D 전 seed·seed 안정성 |
+| 🟡 미검증/잠정 | OASIS recall 비대칭 통제(operating-policy 진행 중)·외부 anchor(MTA·progression) 부합 |
+| ❌ 폐기/반증 | 2.5D MAE SSL 완전 삭제 · uncertainty/ranking method novelty(56 control NEGATIVE/MIXED) · 이미지 CN/AD 분류 우월(0.91 bar 미달) |
+| `[VERIFY]` | front-door 문서(README·STUDY_DECISION·configs/active) stale — 현재 상태와 불일치, `reports/`·최신 run만 신뢰 |
