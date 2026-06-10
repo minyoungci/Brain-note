@@ -6,3 +6,6 @@ __pycache__/
 *.ckpt
 .DS_Store
 .cron.log
+.scheduler.log
+.scheduler.pid
+.scheduler.lock

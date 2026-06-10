@@ -1,5 +1,9 @@
 # CRON_SETUP — daily note 자동화 구성
 
+> ⚠️ **폐기됨 (2026-06-10).** 이 OS cron 방식은 컨테이너 재시작(2026-06-09) 때 패키지·데몬·crontab이
+> 전부 소멸해 6/9 노트가 누락됐다. 현재 방식은 **`SCHEDULER_SETUP.md`**(userland, 재시작 생존형)를 보라.
+> 아래는 이력 보존용 기록이다.
+
 > **목적:** `daily_note.sh`를 매일 23:50 KST 자동 실행하는 스케줄러 구성과 복구 절차  ·  **갱신:** 2026-06-03
 
 이 서버는 **s6-overlay 컨테이너**(PID1 = `s6-svscan`)다. systemd·기본 cron이 없어 일반적인
