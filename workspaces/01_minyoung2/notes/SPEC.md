@@ -2,13 +2,14 @@
 
 > **단일 출처(SSOT).** 연구 방향·데이터·설계·전처리·계획의 유일 기준. 새 문서 만들지 않고 여기 누적 갱신.
 > 이전 docs는 `docs/archive/`로 이관(SPEC으로 통합 완료).
-> 갱신: 2026-06-10 · 상태: **셋업 확정 — S0(novelty 검증) 완료, S1(backbone) 착수 대기.** · 목표 venue: **ACCV**(증거기반 적합 — comparable accepted, §6) / fallback MICCAI.
+> 갱신: 2026-06-10 · 상태: **debiasing 방향 경험적 기각(D1a cosmetic·D1b payoff 부재 — site≈disease 구조적 confound). 전략 재평가 중(research-advisor). §9가 현 SSOT.** · 목표 venue: **ACCV**(증거기반 §6·§9) / fallback MICCAI.
 > 원칙: 성능 주장 보류, 자기평가로 "완료/novelty" 판정 금지, `[VERIFY]`는 실행 전까지 사실 아님, 생성·검증 분리.
 
 ---
 
-## 0. 한 줄 요약
-**Frozen 3D T1 backbone**에 **available 모달리티(FLAIR)**와 **privileged 모달리티(PET/Centiloid, train-only)**를 **경량 3D adapter**로 주입하는 **3D medical adapter/module 개발.** 기여는 *adapter(method) 자체*이며 **ablation study가 핵심 증거**. 평가는 절대성능이 아니라 **adapter의 상대 이득 · parameter 효율 · 결측/해상도 robustness**(→ amyloid 신호 천장과 무관).
+## 0. 한 줄 요약 (2026-06-10 방향 전환 — 상세 §9)
+**Frozen 3D brain-MRI foundation 표현이 acquisition site를 선형 인코딩**(linear probe bal-acc 0.756 vs chance 0.379, leakage 0.377) → cross-cohort 임상 전이를 깸(S2/S3 LOCO Δ<0). 해법: **train-only 임상 scalar(amyloid/Centiloid)로 disease 부분공간을 *보호*하면서 closed-form concept erasure로 site를 제거**(privileged-guided certified erasure, backbone 재학습 0). 기여 = *erasure 메커니즘 + privileged KEEP/REMOVE governance*(scout+critic 독립 수렴). 평가 = site_leakage↓ vs LOCO 임상전이 보존, baseline=ComBat·domain-adversarial·**vanilla-LEACE(핵심 ablation)**.
+> 이전 방향(FLAIR/PET adapter)은 S1–S3에서 LOCO first-win 실패 → §1–8은 그 탐색 기록(보존), **§9가 현 SSOT.**
 
 ---
 
@@ -160,3 +161,52 @@ task(CDR-SB MAE/corr, amyloid AUROC 상대 lift, age MAE) · 효율(trainable pa
 - QC: `reports/qc/*.png`, `reports/tracer_verification.md`, `reports/rematch_report.md`
 
 > 검증 의무: 각 게이트는 독립 산출물(scout gap·linear-probe 신호·ablation 지표)로만 판정. 자기평가로 "완료/novelty" 금지.
+
+---
+
+## 9. 방향 전환 (2026-06-10) — adapter → frozen-representation debiasing (**현 SSOT 핵심**)
+
+### 9.1 전환 근거 (S1–S3가 가리킨 단일 근인 = site bias)
+| 실험 | 결과 | 함의 |
+|---|---|---|
+| **S1a** | frozen brain-age feature: **linear site bal-acc 0.756 vs chance 0.379**(leakage 0.377). CDR-SB random-split corr 0.473(site-confounded), amyloid AUROC 0.646. | frozen 표현이 site를 강하게 인코딩. |
+| **S2** | FLAIR adapter: pooled +0.060이나 **LOCO Δ=-0.094/-0.039**(전이 실패). | naive adapter가 source-site nuisance에 overfit. |
+| **S3** | resolution-aug: AJU fold 전이 회복(naive 0.069→robust 0.157)했으나 **어느 fold도 T1 못 넘음**(first-win 아님). | aug 메커니즘은 작동, 그러나 FLAIR 추가로는 T1 초과 불가. |
+→ **모든 실패의 근인 = site/domain bias가 frozen 표현을 오염**시켜 cross-cohort 전이를 깸. "modality 추가"가 아니라 **"bias 제거 표현 학습"**이 데이터가 가리키는 방향(reframe 아님, 정정).
+
+### 9.2 Novelty wedge (literature-scout + research-critic **독립 수렴**, 2026-06-10)
+- **점유(=baseline, novelty 아님):** 목표 "site-invariant·disease-preserving frozen rep"(Moyer/MRM2020, Dinsdale/NeuroImage2021) · post-hoc frozen-FM debiasing(DNE/MICCAI2024, FairMedFM/NeurIPS2024, PRISM/ICCV2025) · 선형 concept erasure(INLP/ACL2020, RLACE/ICML2022, **LEACE/NeurIPS2023**) · privileged-info DG(EMBC2024).
+- **미점유(wedge, 검증됨):** ① **closed-form *certified* 선형 site-erasure를 frozen 3D brain-MRI foundation feature에**(데모적 attribute가 아닌 site/scanner; 검색상 미점유) + ② **train-only 임상 scalar(amyloid/Centiloid)로 disease 부분공간 보호**(privileged-guided KEEP/REMOVE) → erasure **over-projection/collateral damage**(INLP 알려진 실패모드) 회피.
+- **한 줄(sharpest):** *"frozen 3D brain-age feature가 site를 선형 인코딩함을 보이고(0.756 vs 0.379), privileged train-only 임상 scalar로 disease 부분공간을 보호하며 closed-form erasure로 site 제거 → backbone 재학습 없이 certified site-invariance + LOCO 임상전이 보존."*
+- load-bearing 3요소 {certified-closed-form, privileged-protection, frozen-3D-medical} — 하나라도 빠지면 기존 family로 붕괴.
+
+### 9.3 MUST-CITE baseline (반드시 비교·반드시 이기거나 동급)
+1. **ComBat** (Fortin, NeuroImage 2018) — harmonization 표준. 512-d에 직접 적용.
+2. **Domain-adversarial unlearning** (Dinsdale·Jenkinson·Namburete, "Deep learning-based unlearning of dataset bias for MRI harmonisation and confound removal", NeuroImage 228, 2021; DOI 10.1016/j.neuroimage.2020.117689; code: github.com/nkdinsdale/Unlearning_for_MRI_harmonisation) — iterative domain-adaptation(gradient-reversal류). post-hoc closed-form이 **재학습 없이** ≈/> 임을 보여야.
+3. **vanilla LEACE/INLP (privileged 보호 X)** — **핵심 ablation·kill-shot.** vanilla가 이미 전이 보존하면 privileged 기여 死.
+- "certified"는 ***선형* 한정으로 scope**(비선형 MLP probe 보고 필수). 보호자 amyloid=4코호트 100% 커버하나 AUROC 0.646(moderate); Centiloid 강하나 ADNI+OASIS만.
+- ACCV로 가려면 *vision/representation* 기여(certified erasure + privileged governance) 전면화. "뇌스캔 harmonization"은 MICCAI/MedIA(순수 LEACE 적용은 top-tier reject).
+
+### 9.4 게이트 (생성·검증 분리, critic 반영)
+- **D1a [완료 2026-06-10]** `experiments/d1.py`: transductive full-strength LEACE. 결과 raw→leace: linear site **0.707→0.110**(소거✓), **MLP site 0.653→0.465**(비선형 잔존✗), within-cohort CDR **0.352→0.342**(보존✓), amyloid 0.621→0.613(보존✓). **판정 (c): "certified *linear* erasure" 헤드라인 폐기**(site가 비선형 인코딩 → 선형 소거 cosmetic). 단 **disease는 선형 site와 분리됨(보존)** → critic 최악(outcome b) 반증. proxy만 측정했고 실제 payoff(LOCO 전이)는 D1b에서.
+- **D1b [완료 2026-06-10, 결정적]** `experiments/d1b.py`: 4-cohort LOCO 임상 전이. raw mean CDR corr **0.292**/amyloid **0.615**. persite-std **0.251(−0.040)**/0.584(OASIS fold 0.227→0.058 붕괴). LEACE 0.275/0.602. LEACE+privileged 0.299(+0.008)/0.604. **판정: 어떤 debiasing도 raw 초과 못 함 → payoff 부재.** 근인 = **site≈disease-stage 구조적 confound**(critic F1 실증): site 분산 제거 = disease-관련 cross-cohort 분산 제거. → **bias-removal-for-transfer 가설 경험적 기각**(메서드 아닌 데이터 구조 문제). 전략 재평가(research-advisor) 진행.
+- **D2 [완료 2026-06-10] Rank-1 de-risk** `experiments/d2.py`: site≈severity를 ordinal supervision으로(advisor top-EV). within-held-out-cohort Spearman: A(direct)=0.254 / B(cohort-median ordinal)=**0.083(실패)** / C(cohort-clf)=0.103 / D(within-pct)=0.266. **판정 null**: advisor의 B는 site-clf로 붕괴, D는 A를 +0.012(노이즈)만 초과. confound-as-supervision의 method 이득 없음.
+- **privileged headroom 측정 [완료]**: within-distribution Centiloid→CDR-SB: ADNI 0.416→0.500(+0.084), OASIS 0.185→0.325(+0.141). **유일한 양성 신호.** 단 Centiloid→amyloid AUROC=1.000(완전 circular → amyloid privileged 死). 정직한 privileged target=CDR뿐. 실현엔 GPU adapter 필요(frozen feature론 상한만 측정).
+
+### 9.6 전략 재평가 결과 (research-advisor + cheap de-risks, 2026-06-10)
+- **advisor 확정**: bias-removal-for-transfer 死(구조적). SSL site-invariant backbone=**low-EV**(site-invariant=severity-invariant). **cross-cohort transfer를 성공지표에서 포기**가 핵심 이동.
+- **cheap de-risk(캐시 feature) 소진**: bias removal(D1a/D1b)=死 · Rank-1 confound-as-supervision(D2)=null · Rank-3 privileged Centiloid→CDR=**양성 상한(+0.08~0.14, 유일 pulse)**, 실현=GPU adapter 베팅(novelty 얇음·2코호트) · Rank-2 selective prediction=미검증(cheap 가능, diagnosis-rot 위험).
+- **advisor Q5 kill 근접**: cheap 양성이 privileged(얇음)뿐 → "frozen brain-age feature + 4-confounded-cohort로 강한 ACCV method 불가" 가능. 필요 변화 = site·severity가 *crossed*된 데이터(현 4코호트엔 없음).
+- **결정 지점**: (i) privileged adapter(Rank-3) GPU 투입 / (ii) Rank-2 selective prediction cheap de-risk / (iii) scope·data·venue 재고. → 사용자 판단: **(i) 선택**.
+
+### 9.7 최종 종합 — 모든 구체적 방향 소진 (2026-06-10)
+- **P1 [완료] privileged adapter gate** `experiments/p1.py`: ADNI within-cohort 5-fold, baseline(λ=0) vs privileged(Centiloid distill λ=0.5). mean CDR **0.326→0.337(Δ+0.011, 노이즈)**. sizing(T1→Centiloid recoverability 0.266) 예측대로 **null**. adapter baseline(0.326)이 frozen-linear(0.416)보다도 낮음(overfit). → privileged 死.
+- **D3 [완료] bias-removal 재실험(confound-free)** `experiments/d3.py`: ADNI-internal site는 crossed(eta²=0.045) + leakage 존재(linear 0.147 vs chance 0.042). grouped-site LOCO: raw CDR **0.425** vs persite-std 0.368/leace 0.361/leace_priv 0.387 — **전부 raw 이하(−0.04~−0.06)**. → **confound이 없어도 debiasing이 전이를 악화** → "confound 때문" 가설 반증 → **bias-removal thesis 근본적으로 死**(confounded·crossed 양쪽 모두).
+- **종합 kill(advisor Q5 발동, 데이터로 강제):** amyloid(ceiling) · FLAIR adapter(전이 死) · bias-removal(D1b confounded + D3 crossed 양쪽 死) · confound-as-supervision(D2 null) · privileged adapter(P1 null). **현 frozen brain-age backbone + 4코호트로는 이 angle들에서 강한 ACCV method 불가**(소진적 경험 검증).
+- **공통 실패 인자:** ① 모든 게 cross-site/cohort 전이에서 죽음 ② frozen brain-age backbone(site-biased·약한 임상신호, T1→amyloid 0.646 천장) ③ 절대 ceiling. → 바꿔야 할 것 = backbone(표현 자체) 또는 problem framing 또는 venue. **다음 결정 사용자 판단 필요.**
+
+### 9.5 정직한 리스크 (낙관 금지)
+1. **가장 큰 리스크(critic):** frozen brain-age backbone은 disease/site 분리를 학습한 적 없음 → 선형 erasure가 LogReg만 속이고 disease는 붕괴(outcome b/c) 가능. **D1a가 오늘 판정.**
+2. **scout 경고:** vanilla LEACE가 전이까지 고치면 privileged 기여 소멸 → D1b에서 vanilla가 *under-deliver*해야 paper 성립(좁은 창).
+3. **venue:** ACCV-native neuroimaging-harmonization 선례 희박 → 실제 경쟁은 MICCAI/MRM. vision-method 프레이밍 필수.
+4. **보호자 신호 강도:** amyloid AUROC 0.646(moderate) → 보호 부분공간 noisy 가능. Centiloid(강)는 2코호트뿐.

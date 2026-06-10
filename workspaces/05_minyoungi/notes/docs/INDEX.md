@@ -88,6 +88,7 @@ Each folder keeps its `pb_*_input.md` prompt + `run_*/` artifacts for re-generat
 | Clinical enrichment | `enrich_amyloid_a4_nacc.py`, `enrich_oasis_data_files.py`, `enrich_aju_adni_clinical_v3.py`, `finalize_real_final_manifest.py` |
 | **raw path build** | `preprocessing/raw_manifest/build.py` (7코호트 resolver, --dry-run/--verify) |
 | **DICOM 변환** | `preprocessing/dicom_to_nifti/{aju,adni,nacc}.py` (dcm2niix 기반, 대량배치) |
+| **노트북 경로 검증 루프** | `Clinical/common/verify_notebook_paths.py` (비-Korean ipynb·helper의 경로/manifest canonicity/138-stale/clinical_io·ROI grid 라이브 점검, 종료코드 0=PASS) |
 
 All merges enforce row-invariance (13,022), original-column immutability, re-read integrity.
 
