@@ -9,3 +9,4 @@ __pycache__/
 .scheduler.log
 .scheduler.pid
 .scheduler.lock
+.synthesize.log
