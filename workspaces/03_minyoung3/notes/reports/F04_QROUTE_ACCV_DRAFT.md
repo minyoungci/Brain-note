@@ -13,10 +13,11 @@ benchmark, we ask a single question: *what form of ROI conditioning actually imp
 fine-grained 3D MRI VQA?* We compare single-view fusion, naive multi-crop concatenation,
 learned question-conditioned 3D localization with weak ROI-mask supervision, cross-ROI
 relational reasoning, and question-conditioned anatomical routing over high-resolution
-dedicated ROI experts. Three findings: (1) **anatomical routing** to dedicated
-high-resolution ROI crops is the only conditioning that robustly beats both single-view
-and multi-crop baselines (+0.034 / +0.059 macro AUC), with gains concentrated in fine
-medial-temporal questions (MTL +0.113, hippocampal +0.073); (2) **learned soft
+dedicated ROI experts. Three findings: (1) **a learned anatomy-prior-guided question
+router** to dedicated high-resolution ROI experts is the conditioning that robustly beats
+both single-view and multi-crop baselines (+0.045 / +0.070 macro AUC, positive on every
+seed) and exceeds even a hard anatomical router, with gains concentrated in fine
+medial-temporal questions (MTL +0.120, hippocampal +0.095 vs multi-crop); (2) **learned soft
 localization and relational reasoning do not help** — the benefit comes specifically
 from high-resolution dedicated ROI evidence, not from localizing within a global volume
 or relating pooled features; (3) the benefit of any conditioning module is **gated by
@@ -76,10 +77,18 @@ answer head; they differ only in how ROI information is conditioned.
 | B2 multi-crop concat | 0.812 +/- 0.032 | 0.730 | 0.730 | 0.870 | 0.919 | -0.025 | - |
 | B_loc localization (weak-sup) | 0.827 +/- 0.010 | 0.741 | 0.761 | 0.888 | 0.917 | -0.010 | +0.015 |
 | B2rel relational | 0.832 +/- 0.004 | - | - | - | - | -0.005 | +0.020 |
-| **Routing (oracle)** | **0.871 +/- 0.014** | 0.803 | 0.843 | 0.896 | 0.942 | **+0.034** | **+0.059** |
+| Routing (oracle, hard) | 0.871 +/- 0.014 | 0.803 | 0.843 | 0.896 | 0.942 | +0.034 | +0.059 |
+| **Learned router (anatomy-prior, lambda=0.3)** | **0.882 +/- 0.012** | 0.825 | 0.850 | 0.901 | 0.951 | **+0.045** | **+0.070** |
+| Learned router (lambda=1.0) | 0.870 +/- 0.013 | 0.801 | 0.839 | 0.891 | 0.950 | +0.034 | +0.058 |
 
-Routing vs B2 subject-bootstrap: P(delta>0) = 1.00 / 1.00 / 0.77 across seeds (positive
-in all 3). Routing vs B1: +0.034 mean, driven by MTL (+0.077 vs B1) and hippocampal.
+Both the hard router and the learned anatomy-prior-guided router beat all baselines on
+every seed. The LEARNED router (a question-conditioned gate trained with a weak
+anatomical-prior cross-entropy, lambda=0.3) is the best variant overall, recovering and
+slightly exceeding the hard router (0.882 vs 0.871), with all-three-seed-positive deltas
+vs B1 (+0.045) and vs B2 (+0.070), improving every question (MTL +0.120, hippo +0.095 vs
+B2). Its learned gate converges to the correct anatomical routing (hippo/MTL->MTL,
+ratio/ventricle->ROI-union; per-question gate mass > 0.999). This removes the
+"hand-specified" objection: the router is learned, not hard-coded.
 
 ### 4.2 Representation-gating (why the base matters)
 
@@ -109,9 +118,13 @@ in all 3). Routing vs B1: +0.034 mean, driven by MTL (+0.077 vs B1) and hippocam
   question**, not soft localization or feature relations.
 - Routing benefit is **representation-gated**; reporting only one encoder regime would
   have hidden it (frozen) or buried it (from-scratch).
-- A free-form learned router collapses to a single safe expert; gate supervision recovers
-  the routing but a competing loss degrades the answer task; hard routing (a function of
-  the allowed question id) is cleanest and best.
+- Learning the router is regime-dependent. A free-form learned gate collapses to a single
+  safe expert. On a weak (from-scratch) base, anatomy-prior gate supervision recovers the
+  correct routing but its competing loss degrades the answer task, so hard routing wins
+  there. On the strong fine-tuned base this competition vanishes: a weak anatomy-prior
+  cross-entropy (lambda=0.3) yields a fully learned router that converges to the correct
+  routing and is the best variant overall (0.882), exceeding the hard router. Strong
+  supervision (lambda=1.0) is slightly worse, consistent with the competing-loss account.
 
 ## 6. Limitations
 
@@ -123,7 +136,8 @@ in all 3). Routing vs B1: +0.034 mean, driven by MTL (+0.077 vs B1) and hippocam
 
 ## 7. Conclusion
 
-For image-only 3D MRI ROI-VQA, question-conditioned anatomical routing to high-resolution
-dedicated ROI experts is the conditioning that helps, especially on fine medial-temporal
-questions; learned localization and relational reasoning do not, and the effect only
-appears on a properly fine-tuned representation.
+For image-only 3D MRI ROI-VQA, a learned anatomy-prior-guided question router to
+high-resolution dedicated ROI experts is the conditioning that helps, especially on fine
+medial-temporal questions; learned soft localization and relational reasoning do not, and
+the effect only appears on a properly fine-tuned representation. The router is learnable
+(not hand-coded) and exceeds a hard anatomical router on the strong base.

@@ -1,8 +1,10 @@
 # Master Index — Official v2 Dataset, Manifest & Site-Bias Work
 
-_Navigation hub, ordered by importance. Updated 2026-06-03._
+_Navigation hub, ordered by importance. **Updated 2026-06-10.**_
 _Scope: building/verifying the final integrated manifest, N4 harmonization, site-bias
 analysis, and the figures/docs around them. Experiments live in `/home/vlm/minyoung4`._
+
+> ⭐ **오늘의 노트 → [`research_notes/daily/2026-06-10.md`](../research_notes/daily/2026-06-10.md)** — manifest 138컬럼 완성 · raw_*_path 11,947경로 검증 · 전처리 구조 정비.
 
 ---
 
@@ -10,12 +12,15 @@ analysis, and the figures/docs around them. Experiments live in `/home/vlm/minyo
 
 | What | Path | Status |
 |---|---|---|
-| **Final manifest** (13,022 × 101) | `/home/vlm/data/preprocessed_official/official_manifest_full_n4.{parquet,csv}` | ✅ canonical, use for all downstream |
+| **Final manifest** (13,022 × **138**) | `/home/vlm/data/preprocessed_official/official_manifest_full_n4_real_final.{parquet,csv}` | ✅ canonical · **2026-06-10 최신** |
 | **Official data dictionary** | `/home/vlm/data/preprocessed_official/official_manifest_full_n4.README.md` | ✅ authoritative reference |
 | N4 model-input tensors | `…/v2/{C}/subjects/*/t1w/final_tensor_n4/` (per-session) | ✅ scanner-bias-reduced, ROI-aligned |
+| **raw_*_path 컬럼** (5개) | manifest 내 `raw_t1/flair/t2/dwi/pet_path` | ✅ 11,947경로 전수검증 · AJU/ADNI/NACC 변환 후 추가 반영 |
+| **raw_manifest 빌드** | `preprocessing/raw_manifest/build.py --verify` | ✅ 이미 실행됨 · 재실행 idempotent |
+| **Korean manifest** (2,196 × 89) | `/home/vlm/data/preprocessed_official/korean_multimodal_manifest.{parquet,csv}` | ✅ AJU 1,287 + KDRC 909 · 1세션1행 완전체 |
 
 > Load `final_tensor_n4_path` (not the original), subject-level + leave-one-consortium-out
-> splits, watch residual site bias. Originals (`official_manifest.csv`, `…_full`) are unchanged.
+> splits, watch residual site bias. raw_*_path = 전처리 전 원본 NIfTI 위치.
 
 > 🧭 **다음 연구 주제를 정하려면 → [`research_topic/README.md`](../research_topic/README.md)** — 문헌+우리 실험 적부 판정. 직답: 정확도 SOTA는 죽음, 살아있는 베팅 = cross-population shortcut-audit(CPU 즉시) + biology-guided foundation linear-probe(GPU 조건).
 
@@ -25,8 +30,10 @@ analysis, and the figures/docs around them. Experiments live in `/home/vlm/minyo
 
 | Doc | Path | Contents |
 |---|---|---|
-| **Full analysis log** | `research_notes/daily/2026-06-02.md` | site-bias quantification, N4 (chosen) vs WhiteStripe/Nyúl/blur (rejected), voxel/scanner backfill, clinical backfill |
-| **Harmonization 실험 폴더** | `roi_qc/experiments/harmonization/README.md` | scanner/site bias 측정·완화 실험 모음(우산). 01 bias check, 02 ComBat. `research_notes/daily/2026-06-04.md` |
+| ⭐ **오늘 (2026-06-10)** | `research_notes/daily/2026-06-10.md` | manifest 138컬럼, raw_*_path, 멀티모달 서베이, 전처리 구조 |
+| 2026-06-04 | `research_notes/daily/2026-06-04.md` | ComBat 01~09 + Harmonization 전 실험 결론 + PLAYBOOK |
+| 2026-06-02 | `research_notes/daily/2026-06-02.md` | site-bias quantification, N4 (chosen) vs WhiteStripe/Nyúl/blur (rejected) |
+| **Harmonization 실험 폴더** | `roi_qc/experiments/harmonization/README.md` | scanner/site bias 측정·완화 실험 모음(우산). 01 bias check, 02 ComBat |
 | ├ 01 site bias check | `…/harmonization/01_scanner_site_bias_check/RESULTS.md` | 7-컨소시엄 식별: **metadata 0.761 > appearance 0.556 > N4 0.517 ≫ biology 0.151≈chance**. site는 픽셀보다 vendor/voxel에 더 박힘. A4/KDRC/AJU/AIBL 지문 수준 |
 | └ 02 ComBat (fs_vol) | `…/harmonization/02_combat_fsvol/RESULTS.md` | fs_vol에 ComBat → site 0.238→0.175, biology 비순환 보존(within-ADNI AUC 0.885 불변)+null통과. feature-level만 해결. 문헌(Fortin/Dinsdale/Saponaro) |
 | **Handoff state** | `roi_qc/SCRATCHPAD.md` | current status, task ledger, next steps |
@@ -78,6 +85,9 @@ Each folder keeps its `pb_*_input.md` prompt + `run_*/` artifacts for re-generat
 | Harmonization tests | `n4_extract_features.py`, `n4_ws_extract_features.py`, `n4_nyul_extract_features.py`, `blur_reprobe.py` |
 | **N4 production** | `n4_reprocess_full.py`, `n4_reprocess_verify.py`, `n4_prod_reprobe.py` |
 | Manifest enrichment | `extract_acq_voxel.py`, `merge_voxel_into_n4_manifest.py`, `extract_scanner_meta.py`, `backfill_sex.py`, `backfill_clinical.py` |
+| Clinical enrichment | `enrich_amyloid_a4_nacc.py`, `enrich_oasis_data_files.py`, `enrich_aju_adni_clinical_v3.py`, `finalize_real_final_manifest.py` |
+| **raw path build** | `preprocessing/raw_manifest/build.py` (7코호트 resolver, --dry-run/--verify) |
+| **DICOM 변환** | `preprocessing/dicom_to_nifti/{aju,adni,nacc}.py` (dcm2niix 기반, 대량배치) |
 
 All merges enforce row-invariance (13,022), original-column immutability, re-read integrity.
 

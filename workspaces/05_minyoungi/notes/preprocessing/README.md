@@ -1,4 +1,4 @@
-# Korean Multimodal Preprocessing (AJU · KDRC)
+# Multimodal Preprocessing Pipeline
 
 T1w 외 공통 모달리티(**FLAIR · T2 · amyloid PET**)를 기존 official T1w 격자에
 정렬해 멀티모달 학습 입력으로 만드는 **모달리티별 전용 전처리 scaffold**.
@@ -24,16 +24,43 @@ T1w 외 공통 모달리티(**FLAIR · T2 · amyloid PET**)를 기존 official T
 
 ```
 preprocessing/
-  shared/      paths(safety) · nifti_io(crop/pad/resample/zscore) · transform_chain
-               registration · external(dry-run wrappers) · qc · pet_suvr · config
-  configs/     flair.yaml · t2.yaml · pet_amyloid.yaml
-  modalities/  base.py + flair/ t2/ pet_amyloid/  (각 pipeline.py = 전용 driver)
-  docs/        PRIOR_RESEARCH.md · TRANSFORM_CHAIN.md
-  tests/       test_transform_chain.py · test_qc_and_safety.py  (순수 numpy, pytest)
-  run_inventory.py   # read-only readiness audit (지금 바로 안전 실행)
+  ── dicom_to_nifti/        DICOM → NIfTI (AJU · ADNI · NACC)
+  │     aju.py              AJU: 3D_T1 / T2_FLAIR / T2_FSE / DTI / PET
+  │     adni.py             ADNI: T1w (adni_t1w_dicom_list.csv 기반)
+  │     nacc.py             NACC: zip unpack → dcm2niix
+  │     README.md
+  │
+  ── raw_manifest/          raw_*_path 컬럼을 manifest에 부착
+  │     build.py            전체 실행 스크립트 (--dry-run / --verify)
+  │     resolvers/
+  │       aju.py · adni.py · nacc.py  (conversion 후 경로 조회)
+  │       kdrc.py · a4.py · oasis.py · aibl.py  (이미 NIfTI)
+  │     README.md
+  │
+  ── shared/     paths · nifti_io · transform_chain · external · qc · pet_suvr · config
+  ── configs/    flair.yaml · t2.yaml · pet_amyloid.yaml
+  ── modalities/ base.py + flair/ t2/ pet_amyloid/  (각 pipeline.py = 전용 driver)
+  ── docs/       PRIOR_RESEARCH.md · TRANSFORM_CHAIN.md
+  ── tests/      test_transform_chain.py · test_qc_and_safety.py
+  run_inventory.py
 ```
 
-## 사용 순서 (보수적)
+## raw_*_path 컬럼 구축 순서
+
+```bash
+# 1) DICOM → NIfTI (대량 배치, 사전승인 필요)
+uv run python -m preprocessing.dicom_to_nifti.aju   # AJU
+uv run python -m preprocessing.dicom_to_nifti.adni  # ADNI
+uv run python -m preprocessing.dicom_to_nifti.nacc  # NACC
+
+# 2) 경로 확인 (dry-run, manifest 저장 안 함)
+uv run python -m preprocessing.raw_manifest.build --dry-run
+
+# 3) manifest 업데이트 + 경로 존재 검증
+uv run python -m preprocessing.raw_manifest.build --verify
+```
+
+## 모달리티별 전처리 사용 순서 (보수적)
 
 ```bash
 # 0) 환경/도구 확인 (실행 안 함)
