@@ -11,3 +11,6 @@ __pycache__/
 .scheduler.lock
 .synthesize.log
 .blog.log
+.supervisor.log
+.blog_status.md
+.supervisor.lock
