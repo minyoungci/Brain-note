@@ -1,0 +1,809 @@
+# Validation Log
+
+## 2026-05-28 — Gate05b NACC per-target predicted ROI contribution audit v0
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_per_target_roi_contribution_audit_v0.py`
+- Commands:
+  - `CUDA_VISIBLE_DEVICES=1 python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_per_target_roi_contribution_audit_v0.py`
+  - `CUDA_VISIBLE_DEVICES=1 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_per_target_roi_contribution_audit_v0.py --device cuda:0 --batch-size 256 --num-workers 8 --amp`
+- Result: completed, eval-only, no training.
+- Inputs:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0`
+  - `experiments/voxelwise_feature_learning_v1/results/baseline_03_roi_summary_logreg_cn_vs_ad/features.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/nacc_row_level_b0_b1_teacher_baseline06.csv`
+- Validation:
+  - NACC rows `1173`; CN `1004`, AD `169`; ROI targets `35`; AD-relevant name-matched targets `28`.
+  - Leakage audit passed: subject overlap `0`, final tensor path overlap `0`, cohort overlap `[]`.
+  - Eval labels and true ROI z arrays matched the NACC manifest/z-target order.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/summary.json`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/REPORT_KO.md`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/nacc_per_target_predicted_roi_alignment.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/nacc_row_level_ad_relevant_roi_signature.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/top50_b1_minus_b0_negative_cosine_contributions.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/top50_b1_minus_b0_abs_error_increase.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_per_target_roi_contribution_audit_v0/top50_b1_minus_b0_sign_match_loss.csv`
+  - Official note: `/home/vlm/minyoung/Official/sky/2026-05-28_GATE05B_NACC_PER_TARGET_ROI_CONTRIBUTION_AUDIT_V0.md`
+- Key findings:
+  - AD top negative b1-minus-b0 cosine contribution deltas: `roi_std__lateral_ventricle` `-0.0529`, `roi_std__amygdala` `-0.0510`, `roi_std__thalamus` `-0.0449`, `roi_q75__lateral_ventricle` `-0.0397`, `roi_q75__thalamus` `-0.0343`.
+  - Baseline06-correct/b1-wrong top negative deltas repeated the same targets: `roi_std__lateral_ventricle` `-0.0564`, `roi_std__amygdala` `-0.0546`, `roi_std__thalamus` `-0.0466`, `roi_q75__lateral_ventricle` `-0.0402`, `roi_q75__thalamus` `-0.0349`.
+- Interpretation:
+  - b1 global ROI-cos loss damages NACC AD alignment in specific ROI-stat targets, not only in aggregate ROI cosine.
+  - The next valid b2 must monitor lateral ventricle/amygdala/thalamus q75/std target alignment and avoid global row-text alignment.
+- Limitation:
+  - Eval-only diagnostic; it localizes target-level contribution but does not prove anatomical causality or VLM readiness.
+
+## 2026-05-28 — Gate05b NACC ROI distribution/sign-shift audit v0
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_roi_distribution_audit_v0.py`
+- Commands:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_roi_distribution_audit_v0.py`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_roi_distribution_audit_v0.py`
+- Result: completed, CPU-only, no GPU training.
+- Inputs:
+  - `experiments/voxelwise_feature_learning_v1/results/baseline_03_roi_summary_logreg_cn_vs_ad/features.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/nacc_row_level_b0_b1_teacher_baseline06.csv`
+- Validation:
+  - Train rows `5837`; NACC rows `1173`; ROI targets `35`; AD-relevant name-matched targets `28`.
+  - Leakage audit passed: subject overlap `0`, final tensor path overlap `0`, cohort overlap `[]`.
+  - Row-level CSV aligned one-to-one with NACC `final_tensor_path` order.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/summary.json`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/REPORT_KO.md`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/nacc_roi_true_distribution_shift.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/nacc_disagreement_true_roi_group_summary.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/top20_nacc_ad_shift_roi_targets.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/top20_ad_cn_effect_delta_roi_targets.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_roi_distribution_audit_v0/roi_targets_with_ad_cn_direction_flip.csv`
+  - Official note: `/home/vlm/minyoung/Official/sky/2026-05-28_GATE05B_NACC_ROI_DISTRIBUTION_AUDIT_V0.md`
+- Key findings:
+  - AD/CN direction flip targets: `21 / 35`; AD-relevant flips: `15`.
+  - AD-relevant mean absolute NACC AD shift: `1.0625`; max absolute shift: `1.7131`.
+  - AD-relevant mean absolute AD/CN effect delta: `0.3759`.
+  - b1 minus b0 ROI cosine delta: CN `-0.1902`, AD `-0.4666`, b0-correct/b1-wrong direct `-0.3593`, Baseline06-correct/b1-wrong `-0.5575`.
+  - b1 minus b0 ROI MSE delta: CN `+0.9492`, AD `+1.6294`, b0-correct/b1-wrong direct `+1.2721`, Baseline06-correct/b1-wrong `+1.5402`.
+- Interpretation:
+  - NACC failure is consistent with ROI target sign/scale shift plus negative b1 ROI alignment, especially in AD and Baseline06-correct/b1-wrong rows.
+  - Do not proceed to global b2 SigLIP/row-phrase scaling from this evidence.
+  - Next defensible b2 design is `b2_region_prompt_phrase_contrastive`: local ROI mask/prompt feature aligned to diagnosis/PET/cohort/scanner-free ROI phrase; downstream inference remains image-only.
+- Limitation:
+  - This CPU audit uses true per-target ROI z distributions and existing aggregate row-level ROI cosine/MSE. Per-target b0/b1 predicted ROI contribution still requires an additional GPU/eval extraction because the prior row-level CSV did not persist predicted ROI vectors.
+
+## 2026-05-28 — Gate05b NACC failure audit v0
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Source run: `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_failure_audit_v0.py`
+- Command:
+  - `CUDA_VISIBLE_DEVICES=6 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_failure_audit_v0.py --device cuda:0 --batch-size 256 --num-workers 8 --amp`
+- Result: completed, `exit_code=0`.
+- Validation:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_nacc_failure_audit_v0.py` passed.
+  - NACC test rows `1173`; CN `1004`, AD `169`.
+  - Train rows `5837`.
+  - Leakage audit passed: subject overlap `0`, tensor path overlap `0`, cohort overlap `[]`.
+  - Baseline06 predictions joined for `1173 / 1173` rows.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/summary.json`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/REPORT_KO.md`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/nacc_row_level_b0_b1_teacher_baseline06.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/nacc_failure_group_summary.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_nacc_failure_audit_v0/top_*.csv`
+  - `experiments/voxelwise_feature_learning_v1/logs/gate05b_nacc_failure_audit_v0.log`
+  - Official note: `/home/vlm/minyoung/Official/sky/2026-05-28_GATE05B_NACC_FAILURE_AUDIT_V0.md`
+- Recomputed metrics:
+  - Teacher-S AUC `0.8015`, bACC `0.7178`, confusion `[[865, 139], [72, 97]]`.
+  - b0 direct AUC `0.8103`, bACC `0.7164`; frozen AUC `0.7994`, bACC `0.7223`; predROI AUC `0.7984`; ROI cosine mean `0.0158`.
+  - b1 direct AUC `0.7896`, bACC `0.6530`; frozen AUC `0.7526`, bACC `0.6956`; predROI AUC `0.7692`; ROI cosine mean `-0.2143`.
+- Key row-level counts:
+  - b0 correct / b1 wrong direct: `47`.
+  - b0 wrong / b1 correct direct: `53`.
+  - b0 correct / b1 wrong frozen: `69`.
+  - b0 wrong / b1 correct frozen: `45`.
+  - Teacher-confident AD (`p_AD >= 0.8`) where b1 direct is FN: `19`; b0 direct FN in same criterion: `2`.
+  - Baseline06 correct but b1 direct wrong: `63`.
+- Class-specific behavior:
+  - Direct AD correct rate: b0 `0.5444`, b1 `0.3846`, Baseline06 `0.6213`.
+  - Direct CN correct rate: b0 `0.8884`, b1 `0.9213`, Baseline06 `0.8337`.
+  - AD ROI cosine mean: b0 `0.0657`, b1 `-0.4009`.
+  - CN ROI cosine mean: b0 `0.0074`, b1 `-0.1828`.
+- Interpretation:
+  - NACC b1 failure is not only threshold/classifier-head behavior; frozen representation and predicted-ROI probe also regress.
+  - b1 appears to increase CN conservatism while losing AD sensitivity, and held-out NACC ROI alignment becomes negative, especially for AD.
+  - NACC remains a useful stress/failure cohort; do not discard it or proceed to b2/SigLIP before ROI target distribution/objective audit.
+
+## 2026-05-28 — Gate05b primary/stress split summary
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Policy file: `docs/context/GATE05B_PRIMARY_STRESS_SPLIT_POLICY.md`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_primary_stress_split_summary_v0.py`
+- Source metrics:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/selected_fold_variant_metrics.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0/selected_fold_variant_metrics.csv`
+- Validation commands:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_primary_stress_split_summary_v0.py`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_primary_stress_split_summary_v0.py`
+- Result: completed, no GPU required.
+- Output root: `experiments/voxelwise_feature_learning_v1/results/gate05b_primary_stress_split_summary_20260528/`
+- Artifacts:
+  - `combined_gate05b_b0_b1_metrics.csv`
+  - `primary_mean_by_variant.csv`
+  - `stress_nacc_by_variant.csv`
+  - `b1_minus_b0_by_cohort.csv`
+  - `summary.json`
+  - `REPORT.md`
+  - Official note: `/home/vlm/minyoung/Official/sky/2026-05-28_GATE05B_PRIMARY_STRESS_SPLIT_DECISION.md`
+- Policy:
+  - Primary cohorts: `ADNI`, `AIBL`, `KDRC`.
+  - Stress-test / unresolved external cohort: `NACC`.
+  - NACC is not discarded and must be separately reported.
+- Primary mean over ADNI/AIBL/KDRC:
+  - b0 frozen AUC `0.8092`, frozen bACC `0.7409`, direct AUC `0.7752`, predROI AUC `0.8029`, mean ΔBaseline06 `-0.0089`.
+  - b1 frozen AUC `0.8415`, frozen bACC `0.7522`, direct AUC `0.8398`, predROI AUC `0.8415`, mean ΔBaseline06 `+0.0234`.
+- Stress NACC:
+  - b0 frozen AUC `0.7994`, frozen bACC `0.7223`, direct AUC `0.8103`, predROI AUC `0.7984`, ΔBaseline06 `+0.0026`.
+  - b1 frozen AUC `0.7526`, frozen bACC `0.6956`, direct AUC `0.7896`, predROI AUC `0.7692`, ΔBaseline06 `-0.0442`.
+- Interpretation:
+  - b1 is a strong primary-cohort candidate but still not a clean pass because AIBL bACC weakens and NACC fails as a stress cohort.
+  - Current label remains `image-baseline-partial-pass with NACC regression`; not `representation-readiness-pass`; not `vlm-scaling-ready`.
+- Next recommended action:
+  - NACC row-level failure audit before b2 ROI phrase/SigLIP expansion.
+
+## 2026-05-28 — Gate05b b1 ROI-cos/CE sweep on NACC/KDRC
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- GPU: B200 physical GPU0 via `CUDA_VISIBLE_DEVICES=0`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py`
+- Code change:
+  - Added variants `gate05b_b1_roi_cos0.025`, `gate05b_b1_roi_cos0.05`, `gate05b_b1_ce0.15_roi_cos0.05`, `gate05b_b1_ce0.25_roi_cos0.05`.
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py` passed.
+- Command:
+  - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py --heldout-cohorts NACC KDRC --variants gate05b_b0_global_teacher_ce gate05b_b1_global_roi_cos gate05b_b1_roi_cos0.025 gate05b_b1_roi_cos0.05 gate05b_b1_ce0.15_roi_cos0.05 gate05b_b1_ce0.25_roi_cos0.05 --outdir experiments/voxelwise_feature_learning_v1/results/gate05b_b1_roi_ce_sweep_nacc_kdrc_20260528 --device cuda:0 --epochs 6 --batch-size 128 --num-workers 8 --downsample 2 --width 32 --dropout 0.1 --amp`
+- Result: completed, `exit_code=0`.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_b1_roi_ce_sweep_nacc_kdrc_20260528/selected_fold_variant_metrics.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_b1_roi_ce_sweep_nacc_kdrc_20260528/summary_aggregated.json`
+  - `experiments/voxelwise_feature_learning_v1/results/gate05b_b1_roi_ce_sweep_nacc_kdrc_20260528/REPORT.md`
+  - `experiments/voxelwise_feature_learning_v1/logs/gate05b_b1_roi_ce_sweep_nacc_kdrc_20260528.log`
+  - Official note: `/home/vlm/minyoung/Official/sky/2026-05-28_GATE05B_B1_ROI_CE_SWEEP_NACC_KDRC.md`
+- Best by fold:
+  - KDRC: `gate05b_b1_global_roi_cos`, frozen AUC `0.8689`, frozen bACC `0.8103`, direct AUC `0.8618`, ΔBaseline06 `+0.0294`.
+  - NACC: `gate05b_b0_global_teacher_ce`, frozen AUC `0.8041`, frozen bACC `0.7080`, direct AUC `0.8090`, ΔBaseline06 `+0.0073`.
+- Mean over NACC+KDRC:
+  - Best mean frozen AUC: `gate05b_b1_global_roi_cos` with frozen AUC `0.8229`, frozen bACC `0.7547`, direct AUC `0.8208`, mean ΔBaseline06 `+0.0048`.
+  - Best CE-adjusted candidate: `gate05b_b1_ce0.25_roi_cos0.05` with frozen AUC `0.8146`, frozen bACC `0.7390`, direct AUC `0.8054`, mean ΔBaseline06 `-0.0035`.
+- Interpretation:
+  - KDRC strongly benefits from global ROI-cos supervision.
+  - NACC does not recover by simply lowering ROI-cos weight or increasing CE; b0 remains the best NACC frozen representation in this sweep.
+  - The result remains `image-baseline-partial-pass with NACC regression`, not `representation-readiness-pass`, and not `vlm-scaling-ready`.
+- Next recommended action:
+  - NACC row-level b0 vs b1 disagreement / ROI alignment / Baseline06 overlap audit before b2 ROI phrase or SigLIP expansion.
+
+
+## 2026-05-26 — PET amyloid ADNI/OASIS E04 small GPU debug training
+
+- Workspace: `/home/vlm/minyoungi`
+- Input split manifest: `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e02_dataloader_smoke_v0/linked_adni_oasis_within_365d_subject_split_v0.csv`
+- Script: `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e04_gpu_debug_training_v0/e04_gpu_debug_training.py`
+- Command:
+  - `CUDA_VISIBLE_DEVICES=0 python manifests/v2_integrated/audits/pet_amyloid_e04_gpu_debug_training_v0/e04_gpu_debug_training.py --epochs 3 --train-n 256 --val-n 128 --batch-size 16 --num-workers 4 --downsample 64 --lr 1e-3`
+- Resource gate before run:
+  - B200 GPUs mostly free; GPU0 unused, GPU5 had two Python processes, RAM about 230Gi / 2.2Ti used.
+  - `pwd`: `/home/vlm/minyoungi`
+  - branch: `main`
+- Validation result:
+  - Device used: `cuda` / `NVIDIA B200`
+  - Subject split overlaps: train×val `0`, train×test `0`, val×test `0`
+  - Train subset: 256 rows / 220 subjects
+  - Val subset: 128 rows / 98 subjects
+  - Epochs completed: 3
+  - Hard failures: `[]`
+  - Final val MAE: `34.65533740234375` centiloid
+  - Final val RMSE: `43.22714327973162` centiloid
+  - Final val AUC CL>=20: `0.4765625`
+  - Final balanced acc @0.5: `0.5`
+  - Final regression prediction std: `0.7618140503370524`
+  - Final binary probability std: `0.0006944006502064669`
+  - Age+sex+cohort baseline on same sampled rows: MAE `32.5116454208317`, AUC `0.71728515625`
+- Artifacts:
+  - `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e04_gpu_debug_training_v0/summary.json`
+  - `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e04_gpu_debug_training_v0/REPORT.md`
+  - `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e04_gpu_debug_training_v0/metrics.jsonl`
+  - `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e04_gpu_debug_training_v0/val_predictions_final.csv`
+- Interpretation:
+  - E04 clears GPU train-loop plumbing only.
+  - It is not performance evidence; the image model underperforms the simple sampled age+sex+cohort baseline and binary predictions are near-collapsed around 0.5.
+  - Next scientifically meaningful step should be a fixed full validation protocol with train-only baselines and confound controls, not claim-making from this tiny run.
+
+
+## 2026-05-26 — PET amyloid E05 image full-ish vs baseline decision
+
+- Run dir: `/home/vlm/minyoungi/manifests/v2_integrated/audits/pet_amyloid_e05_decision_gate_v0/image_fullish_debug_training_20260526_0934_gpu1_seed20260526`
+- Command: `CUDA_VISIBLE_DEVICES=1 python manifests/v2_integrated/audits/pet_amyloid_e05_decision_gate_v0/e05_image_fullish_debug_training_image_fullish_debug_training_20260526_0934_gpu1_seed20260526.py --epochs 5 --train-n 3032 --val-n 966 --batch-size 16 --num-workers 8 --downsample 64 --lr 1e-3`
+- Device: B200 GPU via `cuda`; physical GPU1 chosen because GPU0 had an unrelated active training process.
+- Completed: yes, `exit_code=0`.
+- Subject overlap: train×val `0`, train×test `0`, val×test `0`.
+- Train rows/subjects: 3,032 / 1,097.
+- Val rows/subjects: 966 / 366.
+- Best image-only val MAE: `33.924150588768114`.
+- Final image-only val MAE: `34.30812129917184`.
+- Best image-only val AUC CL>=20: `0.48495628126026796`.
+- Final image-only val AUC CL>=20: `0.4946652185024278`.
+- Prediction collapse: `pred_positive_rate_at_0p5=0.0`, balanced accuracy `0.5`, regression pred std about `0.5` centiloid vs target std about `43.24`.
+- Baseline comparison: allowed age+sex val MAE `32.79423275169332`, AUC `0.645926125369647`; age+sex+diagnosis proxy val MAE `30.994982865774805`, AUC `0.7019641488080026`.
+- Decision: direct T1w→PET amyloid prediction is not recommended as the headline direction. Shift toward longitudinal MRI SSL/JEPA/progression or PET-validated representation; keep PET as probing/auxiliary unless fusion/residual beats clinical baselines.
+
+## 2026-05-27 — Gate04d KDRC transfer diagnostic partial validation
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script created: `/home/vlm/minyoungi/experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04d_kdrc_transfer_diagnostic_v0.py`
+- Full CPU command attempted:
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04d_kdrc_transfer_diagnostic_v0.py --device cpu --num-workers 0 --batch-size 64 --torch-threads 16`
+  - Result: timed out after 600s during seed 42 image inference; no artifacts written.
+- Second CPU command attempted:
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04d_kdrc_transfer_diagnostic_v0.py --device cpu --num-workers 4 --batch-size 256 --torch-threads 32 --seeds 42`
+  - Result: timed out after 600s.
+- Background full CPU attempt:
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04d_kdrc_transfer_diagnostic_v0.py --device cpu --num-workers 4 --batch-size 256 --torch-threads 32`
+  - Result: still running after about 15 minutes with no artifact, then killed.
+- Fast partial fallback command:
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04d_kdrc_transfer_diagnostic_v0.py --metrics-only`
+  - Result: completed, `exit_code=0`.
+- Partial artifacts:
+  - `/home/vlm/minyoungi/experiments/voxelwise_feature_learning_v1/results/vlm_gate_04d_kdrc_transfer_diagnostic_v0/diagnostic_summary.csv`
+  - `/home/vlm/minyoungi/experiments/voxelwise_feature_learning_v1/results/vlm_gate_04d_kdrc_transfer_diagnostic_v0/diagnostic_summary_mean_by_representation.csv`
+  - `/home/vlm/minyoungi/experiments/voxelwise_feature_learning_v1/results/vlm_gate_04d_kdrc_transfer_diagnostic_v0/REPORT_KO.md`
+  - `/home/vlm/minyoungi/experiments/voxelwise_feature_learning_v1/results/vlm_gate_04d_kdrc_transfer_diagnostic_v0/summary.json`
+- Partial result from existing Gate04c summaries:
+  - Teacher-S loaded model AUC mean `0.8870 ± 0.0018`, bACC `0.8162 ± 0.0055`.
+  - Predicted ROI head probe AUC mean `0.8122 ± 0.0200`, bACC `0.7324 ± 0.0222`.
+  - Global pooled embedding probe AUC mean `0.8080 ± 0.0233`, bACC `0.7386 ± 0.0287`.
+  - Student direct head AUC mean `0.7997 ± 0.0206`, bACC `0.7324 ± 0.0145`.
+- Interpretation:
+  - Partial only. Row-level diagnostics, confidence error profile, class-wise cosine, and projection figures were not produced.
+  - Existing summary metrics do not support a pure Path A/global pooling-only claim. Predicted ROI probe and global pooled embedding probe are both below Baseline06 KDRC AUC `0.8395`, so A/B mixed remains more plausible until full row-level diagnostics run.
+
+## 2026-05-27 — Gate05b NACC Teacher-B seed repeat
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Run root: `/home/vlm/minyoungi/experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_nacc_teacher_b_seed_repeat_v0/`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py`
+- Scope: NACC only, `teacher_b_ce0.1_plus_teacher_kl`, seeds `43`, `44`, `num_workers=0`, AMP on.
+- Commands launched:
+  - `CUDA_VISIBLE_DEVICES=0 ... --heldout-cohorts NACC --variants teacher_b_ce0.1_plus_teacher_kl --outdir .../seed_43 --device cuda:0 --epochs 6 --batch-size 128 --num-workers 0 --seed 43 --amp`
+  - `CUDA_VISIBLE_DEVICES=1 ... --heldout-cohorts NACC --variants teacher_b_ce0.1_plus_teacher_kl --outdir .../seed_44 --device cuda:0 --epochs 6 --batch-size 128 --num-workers 0 --seed 44 --amp`
+- Process result:
+  - Both runs completed model training and wrote CSV/JSON/checkpoint artifacts.
+  - Both hit a final `REPORT.md` generation error: `TypeError: unsupported format string passed to NoneType.__format__` because NACC has no Gate02 reference and `frozen_auc_minus_gate02=None` was formatted with `:.4f`.
+  - This affects only the auto-generated markdown report, not the core metrics CSV/JSON.
+- Core artifacts:
+  - `seed_43/selected_fold_variant_metrics.csv`
+  - `seed_44/selected_fold_variant_metrics.csv`
+  - `seed_43/NACC/teacher_b_ce0.1_plus_teacher_kl/summary.json`
+  - `seed_44/NACC/teacher_b_ce0.1_plus_teacher_kl/summary.json`
+  - `REPORT_KO.md`
+- Result:
+  - Baseline06 NACC AUC: `0.7968`.
+  - Gate04b seed42 Teacher-B reference: teacher AUC `0.8290`, frozen AUC `0.7812`, Δbaseline `-0.0155`.
+  - Seed43: Teacher-B AUC `0.8271`, frozen AUC `0.7577`, Δbaseline `-0.0391`, predROI probe AUC `0.7768`.
+  - Seed44: Teacher-B AUC `0.8310`, frozen AUC `0.7516`, Δbaseline `-0.0452`, predROI probe AUC `0.7588`.
+- Interpretation:
+  - NACC Teacher-B consistently raises teacher ceiling but does not improve T1w image-only student transfer beyond baseline06.
+  - Teacher-B should remain a privileged diagnostic teacher, not a default Path A recipe.
+  - Next priority: KDRC row-level/Grad-CAM diagnostic rather than more NACC Teacher-B repeats.
+
+## 2026-05-27 — Gate04e KDRC Grad-CAM + row-level miss diagnostic
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04e_kdrc_gradcam_row_diagnostic_v0.py`
+- Source checkpoint: `experiments/voxelwise_feature_learning_v1/results/vlm_gate_04c_kdrc_reproducibility_v0/seed_42/KDRC/ce0.1_plus_teacher_kl/best_model.pt`
+- Command:
+  - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04e_kdrc_gradcam_row_diagnostic_v0.py --seed 42 --variant ce0.1_plus_teacher_kl --device cuda:0 --batch-size 256 --teacher-threshold 0.8 --top-k 20 --gradcam-k 12 --amp`
+- Result: completed, `exit_code=0`.
+- Core source metrics:
+  - Teacher-S AUC `0.8856`.
+  - Student direct AUC `0.8210`.
+  - Frozen/global pooled probe AUC `0.8225`.
+  - Predicted ROI probe AUC `0.8265`.
+  - Baseline06 KDRC AUC `0.8395`.
+- Row-level KDRC counts:
+  - Test rows `581`; AD rows `274`.
+  - Teacher-confident true AD rows (`p_AD > 0.8`) `155`.
+  - Student direct CN misses among those `15`; miss rate `0.0968`.
+- Error profile:
+  - FN teacher prob mean `0.8914`; TP teacher prob mean `0.9180`.
+  - FN student prob mean `0.3769`; TP student prob mean `0.8039`.
+  - FN teacher-student probability gap mean `0.5146`; TP gap mean `0.1142`.
+  - FN ROI abs z-error mean `0.6138`; TP ROI abs z-error mean `0.6442`.
+  - age/sex join produced all missing values, so clinical-profile interpretation is blocked until demographics key audit.
+- Grad-CAM proxy:
+  - Generated 12 Grad-CAM figures for teacher-confident AD -> student direct FN rows.
+  - Mean CAM center mass `0.0926`, mean border mass `0.9074`, center mass range `0.0284–0.1531`.
+  - Visual check of rank01 shows heatmap concentrated in lower/right border/background rather than medial temporal/central brain region.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_04e_kdrc_gradcam_row_diagnostic_v0/REPORT_KO.md`
+  - `row_level_direct_teacher_student.csv`
+  - `top_teacher_confident_ad_student_misses.csv`
+  - `gradcam_selected_rows.csv`
+  - `teacher_confident_ad_fn_roi_error_profile.csv`
+  - `gradcam_figures/*.png` (12 files)
+- Interpretation:
+  - Evidence supports ROI-external/border shortcut plus mixed transfer bottleneck, not pure loss/temperature tuning.
+  - Because CAM was not overlapped with voxel-wise ROI masks, final anatomical claim requires ROI-mask overlap quantification.
+
+## 2026-05-27 — Gate04e robust-slice + candidate ROI-overlap follow-up
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Scripts:
+  - `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04e_kdrc_gradcam_robust_slice_figures_v0.py`
+  - `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04e_kdrc_gradcam_roi_overlap_v0.py`
+- Commands:
+  - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04e_kdrc_gradcam_robust_slice_figures_v0.py --device cuda:0 --amp`
+  - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_04e_kdrc_gradcam_roi_overlap_v0.py --device cuda:0 --amp --mask-source option_b_candidate`
+- Input rows: 12 Gate04e KDRC teacher-confident AD rows missed by the student direct head.
+- Brain/tensor QC check:
+  - Representative final tensors have shape `[192, 224, 192]`, affine diagonal `[1, 1, 1, 1]`, nonzero z-score std `1.0`, and nonzero brain fraction about `0.15–0.18`.
+  - The earlier max-projection montage can make the brain look overly bright; robust central slices do not show gross image corruption or saturation.
+- Robust slice artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_04e_kdrc_gradcam_row_diagnostic_v0/gradcam_robust_slice_figures/`
+  - `gradcam_robust_slice_figures.csv`
+  - `gradcam_robust_slice_figures_summary.json`
+- Candidate ROI-overlap mask source:
+  - `roi_transfer_option_b_candidate_v0/roi_masks_final_tensor_grid_option_b_candidate` under each KDRC subject T1w directory.
+  - All 12 selected rows had hippocampus, amygdala, entorhinal, parahippocampal, thalamus, lateral ventricle, and inferior lateral ventricle masks available.
+  - These are candidate masks; final anatomical claims still require readiness/QC approval.
+- ROI-overlap results, option-B candidate masks:
+  - `BRAIN_NONZERO`: mean CAM mass `0.0919`, peak-inside-brain rate `0.0833`.
+  - `COMBINED_TARGET_ROIS`: mean CAM mass `0.000283`, peak-inside rate `0.0`.
+  - `hippocampus`: mean CAM mass `0.00000175`, median `0.0`, peak-inside rate `0.0`.
+  - `amygdala`: mean CAM mass `0.000000514`, median `0.0`, peak-inside rate `0.0`.
+  - `entorhinal_cortex`: mean CAM mass `0.00000213`, median `0.0`, peak-inside rate `0.0`.
+  - `parahippocampal_cortex`: mean CAM mass `0.00000196`, median `0.0`, peak-inside rate `0.0`.
+  - `thalamus`: mean CAM mass approximately `0.0`, peak-inside rate `0.0`.
+  - `lateral_ventricle`: mean CAM mass `0.000276`, peak-inside rate `0.0`.
+- Artifacts:
+  - `gradcam_roi_overlap_option_b_candidate.csv`
+  - `gradcam_roi_overlap_summary_by_roi_option_b_candidate.csv`
+  - `gradcam_roi_overlap_summary_option_b_candidate.json`
+  - `gradcam_roi_overlap_figures/*.png`
+- Interpretation:
+  - The visible brain slices themselves do not look like a gross preprocessing failure.
+  - The direct-head Grad-CAM remains mostly outside nonzero brain and almost entirely outside medial-temporal/target ROI masks.
+  - This strengthens the ROI-external/background shortcut concern.
+  - Because mask source is candidate Option-B, phrase as diagnostic evidence unless ROI mask readiness is formally approved.
+
+## 2026-05-27 — Gate04e official manifest join check
+
+- Official manifest checked: `/home/vlm/data/preprocessed_official/official_manifest.csv`
+- Manifest shape: 13,022 rows; KDRC rows: 909.
+- Columns include: `consortium`, `subject_id`, `session_id`, `qc_t1w_key`, `final_tensor_path`, `final_mask_path`, `final_qc_status`, `fs_qc_status`, `cdr_global`, `cdrsb`.
+- Join results:
+  - 12/12 Gate04e selected Grad-CAM rows matched official manifest by `subject_id + session_id_norm`.
+  - 15/15 teacher-confident AD student-miss rows matched official manifest.
+  - 15/15 final tensor paths matched exactly between Gate04e rows and official manifest.
+  - 15/15 had `final_qc_status=PASS` and `fs_qc_status=PASS`.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_04e_kdrc_gradcam_row_diagnostic_v0/official_manifest_join_check.json`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_04e_kdrc_gradcam_row_diagnostic_v0/official_manifest_join_check.csv`
+- Interpretation:
+  - The official manifest strengthens the conclusion that the problematic Grad-CAM rows are using canonical final tensors with official final/FS QC PASS.
+  - It does not by itself certify voxel-wise ROI mask readiness because it lacks ROI-mask path/readiness columns; ROI-overlap mask claims still need separate candidate/final ROI-mask QC provenance.
+
+## 2026-05-27 — Gate05c KDRC brain/background perturbation diagnostic
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script: `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05c_kdrc_brain_background_perturbation_v0.py`
+- Command:
+  - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05c_kdrc_brain_background_perturbation_v0.py --device cuda:0 --batch-size 256 --amp`
+- Purpose:
+  - 3D Grad-CAM can be coarse/noisy, so this eval-only perturbation tested original vs official-brain-mask-only vs background-only vs zero input on the existing Gate04c seed42 KDRC student.
+- Official manifest join:
+  - Match rate on full KDRC test rows: `0.9811` (`570 PASS`, `11 MISSING` for final/FS QC due to manifest mismatch; hard-miss rows were previously 15/15 PASS).
+- Full KDRC metrics:
+  - Original: AUC `0.8210`, bACC `0.7455`, prob_mean `0.4770`, pred_pos_rate `0.4596`.
+  - Brain-only: AUC `0.8210`, bACC `0.7455`, prob_mean `0.4770`, pred_pos_rate `0.4596`.
+  - Background-only: AUC `0.5000`, bACC `0.5000`, prob_mean `0.1750`, pred_pos_rate `0.0000`.
+  - Zero: AUC `0.5000`, bACC `0.5000`, prob_mean `0.1750`, pred_pos_rate `0.0000`.
+- Teacher-confident true AD original-miss subset (`n=15`):
+  - Original prob_mean `0.3769`, pred_pos_rate `0.0`.
+  - Brain-only prob_mean `0.3769`, pred_pos_rate `0.0`.
+  - Background-only/zero prob_mean `0.1750`, pred_pos_rate `0.0`.
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05c_kdrc_brain_background_perturbation_v0/REPORT_KO.md`
+  - `summary.json`
+  - `perturbation_predictions_long.csv`
+  - `perturbation_predictions_wide.csv`
+  - `teacher_confident_ad_original_misses_perturbation.csv`
+- Interpretation:
+  - This weakens the claim that raw background voxel values alone drive the direct-head prediction. Brain-only equals original because the final tensors are already skull-stripped/zero-background.
+  - It does not rescue the model: hard-miss AD rows remain missed under brain-only.
+  - Combined with ROI-overlap results, the bottleneck is better described as weak/misaligned disease-relevant 3D anatomical feature use inside the brain, not simply nonzero background intensity shortcut.
+  - Next train-side gate should test ROI-aware/ROI-local pooling or ROI-guided supervision, not merely brain masking.
+
+## 2026-05-27 — ROI text v1 artifact generation and leakage/coverage gate
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script created:
+  - `experiments/voxelwise_feature_learning_v1/scripts/build_roi_text_v1_from_roi_captions.py`
+- Input artifacts:
+  - `manifests/v2_integrated/captions/roi_v0/roi_captions_v0.csv`
+  - `manifests/v2_integrated/splits/subject_disjoint_split_v0.csv`
+  - `manifests/v2_integrated/captions/policy/CAPTION_FIELD_POLICY.md`
+- Commands:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/build_roi_text_v1_from_roi_captions.py`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/build_roi_text_v1_from_roi_captions.py --sample-rows 12 --outdir /tmp/roi_text_v1_dryrun`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/build_roi_text_v1_from_roi_captions.py --outdir /home/vlm/minyoungi/manifests/v2_integrated/captions/roi_text_v1`
+- Output directory:
+  - `manifests/v2_integrated/captions/roi_text_v1/`
+- Output artifacts:
+  - `roi_local_text_v1.csv`
+  - `roi_pair_text_v1.csv`
+  - `roi_row_text_v1.csv`
+  - `ROI_QUANT_TO_TEXT_RULES_v1.md`
+  - `roi_text_v1_quality_report.json`
+  - `roi_text_v1_report.md`
+  - `roi_text_v1_text_feature_probe_metrics.csv`
+  - `roi_text_v1_text_feature_probe_predictions.csv`
+- Validation result:
+  - Local ROI text rows: `179,184`
+  - Unique image/session rows: `11,199`
+  - Unique ROIs: `16`
+  - Expected ROI count per row: `16`
+  - ROI coverage: PASS, min `16`, max `16`
+  - Pair/singleton text rows: `100,791`
+  - Row-level text rows: `11,199`
+  - QC status: `pass=179,184`
+  - Forbidden-term hits: `{}`
+  - Forbidden-term check: PASS
+- Severity counts:
+  - `within_reference_range`: `128,206`
+  - `higher_than_reference`: `21,769`
+  - `lower_than_reference`: `20,475`
+  - `much_lower_than_reference`: `4,604`
+  - `much_higher_than_reference`: `4,130`
+- Text-feature probe using ROI text-derived severity one-hot only:
+  - Train rows: `7,838`
+  - Internal-test rows: `1,680`
+  - Accuracy: `0.555952380952381`
+  - Balanced accuracy: `0.5321023965141612`
+  - Macro-F1: `0.5055634909808583`
+  - Confusion matrix labels `[CN, MCI, AD]`: `[[633,204,63],[276,184,116],[40,47,117]]`
+- Official Korean note:
+  - `/home/vlm/minyoung/Official/sky/2026-05-27_ROI_TEXT_V1_EXPERIMENT_NOTE.md`
+- Interpretation:
+  - ROI text v1 passes the caption artifact gate: complete ROI coverage and no forbidden leakage terms.
+  - This is not model performance evidence. The text/status-only probe has weak but nonzero diagnostic signal, so later ROI-text/VLM experiments must beat this baseline to claim learned image representation value.
+  - Keep ROI-derived text separate from global diagnosis captions; do not introduce diagnosis/CDR/PET/biomarker/cohort/scanner terms.
+
+## 2026-05-27 — Official-manifest-linked ROI quality text v0 method gate
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- User-provided official manifest:
+  - `/home/vlm/data/preprocessed_official/official_manifest.csv`
+- Script created:
+  - `experiments/voxelwise_feature_learning_v1/scripts/build_official_roi_quality_text_v0.py`
+- Input artifacts:
+  - Official image/QC source: `/home/vlm/data/preprocessed_official/official_manifest.csv`
+  - ROI final-tensor-grid quality source: `/home/vlm/data/preprocessed_official/v2/_reports/roi_transfer_option_b_full_subjectlocal_20260522T034648Z/voxelwise_roi_readiness_draft_20260523T143000Z/v2-QCpass/visual_qc_policy_v1/final_pass_only_training_manifest_v1/final_labeled_manifest_v1/voxelwise_pass_only_labeled_classifiable_roi_pair_manifest.csv`
+  - Scalar morphology text source: `manifests/v2_integrated/captions/roi_text_v1/roi_local_text_v1.csv`
+- Commands:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/build_official_roi_quality_text_v0.py`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/build_official_roi_quality_text_v0.py --sample-rows 8 --outdir /tmp/official_roi_quality_text_v0_dryrun`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/build_official_roi_quality_text_v0.py --outdir /home/vlm/minyoungi/manifests/v2_integrated/captions/roi_quality_text_v0`
+- Output directory:
+  - `manifests/v2_integrated/captions/roi_quality_text_v0/`
+- Output artifacts:
+  - `official_roi_quality_join_v0.csv`
+  - `official_roi_quality_text_v0.csv`
+  - `official_roi_quality_text_v0_quality_report.json`
+  - `ROI_QUALITY_TEXT_METHOD_v0.md`
+  - `official_roi_quality_text_v0_report.md`
+- Join key:
+  - `cohort/consortium + subject_id + normalized session_id`; trailing `.0` removed only for joining.
+- Quality gate for `roi_quality_gate_v0=PASS`:
+  - official manifest row joined
+  - final tensor path matches official manifest
+  - official `final_qc_status == PASS`
+  - official `fs_qc_status == PASS`
+  - ROI `numeric_qc_pass == True`
+  - ROI `visual_qc_status == PASS`
+  - ROI `roi_candidate_qc_pass == True`
+  - ROI `roi_final_ready == True`
+  - ROI `training_allowed == True`
+- Validation result:
+  - Official rows loaded: `13,022`
+  - ROI pair rows loaded: `53,115`
+  - Quality text rows: `53,115`
+  - Unique official join keys in text: `10,623`
+  - Unique ROIs: `5`
+  - Official join both rows: `51,560`
+  - Official tensor path match rows: `51,560`
+  - Forbidden-term hits: `{}`
+  - Forbidden-term check: PASS
+- Quality gate counts:
+  - PASS: `51,560`
+  - FAIL: `1,555`
+- FAIL rows:
+  - `311` sessions × `5` ROIs.
+  - Cause: `official_join_indicator=left_only`; ROI numeric/visual/final/training flags were otherwise PASS/True.
+  - Fail-closed interpretation: ROI-manifest PASS outside the user-provided official manifest is not allowed for official-linked text.
+- Text mode counts:
+  - `quality_pass_plus_morphology_text_v1`: `41,248`
+  - `localization_only_quality_pass`: `10,312`
+  - `withheld_failed_quality_gate`: `1,555`
+- ROI-specific note:
+  - hippocampus/amygdala/lateral_ventricle/parahippocampal_cortex attach existing `roi_text_v1` scalar morphology sentences when quality PASS.
+  - thalamus is localization-only for `10,312` PASS rows because it is not included in the current 16-ROI scalar morphology text artifact; adding thalamic morphology requires a new quant-to-text rule version.
+- Official Korean note:
+  - `/home/vlm/minyoung/Official/sky/2026-05-27_OFFICIAL_MANIFEST_ROI_QUALITY_TEXT_V0.md`
+- Interpretation:
+  - This is a method gate, not model performance evidence.
+  - It establishes how to generate ROI text only where official image/QC and final-tensor-grid ROI quality both pass.
+  - Later VLM claims must compare against ROI quality/text/status-only baselines; otherwise handcrafted ROI/QC metadata may be mistaken for learned image representation.
+
+## 2026-05-27 — Baseline07 ROI quality/text/status-only shortcut probe
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script created:
+  - `experiments/voxelwise_feature_learning_v1/scripts/baseline_07_roi_quality_text_status_probe_v0.py`
+- Input artifacts:
+  - ROI quality text: `manifests/v2_integrated/captions/roi_quality_text_v0/official_roi_quality_text_v0.csv`
+  - ROI text v1 local rows: `manifests/v2_integrated/captions/roi_text_v1/roi_local_text_v1.csv`
+  - Split manifest: `manifests/v2_integrated/splits/subject_disjoint_split_v0.csv`
+- Commands:
+  - `python experiments/voxelwise_feature_learning_v1/scripts/baseline_07_roi_quality_text_status_probe_v0.py`
+  - First run failed because local sklearn `LogisticRegression` does not accept `multi_class`; script was patched to remove that argument.
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/baseline_07_roi_quality_text_status_probe_v0.py`
+  - Validation summary command checked metrics/features row counts and LOCO fold names.
+- Output directory:
+  - `experiments/voxelwise_feature_learning_v1/results/baseline_07_roi_quality_text_status_probe_v0/`
+- Output artifacts:
+  - `features.csv`
+  - `metrics.csv`
+  - `metrics_full.json`
+  - `predictions.csv`
+  - `loco_mean_by_feature_set.csv`
+  - `summary.json`
+  - `REPORT_KO.md`
+- Contract/check counts:
+  - Split rows used: `11,199`
+  - Train/val/internal_test rows: `7,838 / 1,681 / 1,680`
+  - Unique row IDs in features: `11,199`; duplicate row IDs: `0`
+  - Unique subjects in features: `5,958`
+  - Quality rows loaded: `53,115`; unique quality join keys: `10,623`
+  - ROI text v1 local rows loaded: `179,184`; unique row IDs: `11,199`
+  - Feature sets: dummy, ROI quality/mask status `45`, severity scores `16`, severity one-hot `80`, quality+severity scores `61`, quality+severity one-hot `125`
+- Internal subject-disjoint test result:
+  - Dummy most-frequent: bACC `0.3333`, macro-F1 `0.2326`, macro OvR AUC `0.5000`
+  - ROI quality/mask status: bACC `0.5127`, macro-F1 `0.4469`, macro OvR AUC `0.6933`
+  - ROI text v1 severity scores: bACC `0.5112`, macro-F1 `0.4848`, macro OvR AUC `0.6915`
+  - ROI text v1 severity one-hot: bACC `0.5327`, macro-F1 `0.5064`, macro OvR AUC `0.7034`
+  - Quality + severity scores: bACC `0.5558`, macro-F1 `0.5239`, macro OvR AUC `0.7131`
+  - Quality + severity one-hot: bACC `0.5494`, macro-F1 `0.5257`, macro OvR AUC `0.7212`
+- LOCO result:
+  - Folds: `ADNI`, `AIBL`, `AJU`, `KDRC`, `NACC`, `OASIS`
+  - Best mean bACC: quality + severity one-hot `0.5411 ± 0.0299`, mean macro-F1 `0.4636`, mean macro OvR AUC `0.7027`
+  - Quality + severity scores: mean bACC `0.5374 ± 0.0372`, mean macro OvR AUC `0.7034`
+  - ROI text v1 severity-only variants: mean bACC about `0.526–0.528`, mean macro OvR AUC about `0.688–0.691`
+- Interpretation:
+  - ROI text/status/quality features contain weak-to-moderate diagnosis signal even without images.
+  - This is a shortcut/baseline gate, not image-model or VLM evidence.
+  - Any later ROI-language/VLM claim must beat this baseline on identical splits and should report whether gains survive LOCO. Otherwise the model may only be repackaging deterministic ROI severity/status and ROI quality metadata.
+  - Quality/mask-status features include availability/QC/voxel-count-like information, so treat them as a shortcut audit rather than a biologically clean representation baseline.
+
+
+## 2026-05-28 — Baseline07 registry/comparison registration
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Registered baseline snapshot:
+  - `experiments/voxelwise_feature_learning_v1/baselines/baseline_07_roi_quality_text_status_probe_v0/`
+- Source result directory:
+  - `experiments/voxelwise_feature_learning_v1/results/baseline_07_roi_quality_text_status_probe_v0/`
+- Registry updated:
+  - `experiments/voxelwise_feature_learning_v1/baselines/BASELINE_INDEX.json`
+- Comparison updated:
+  - `experiments/voxelwise_feature_learning_v1/comparisons/baseline_comparison.csv`
+  - `experiments/voxelwise_feature_learning_v1/comparisons/baseline_comparison.md`
+- Snapshot artifacts:
+  - `summary.json`, `REPORT.md`, `REPORT_KO.md`, `loco_mean_by_feature_set.csv`, `metrics.csv`, `metrics_full.json`, `BASELINE_PROTOCOL.md`
+- Not snapshotted because they are large/regenerable result artifacts:
+  - `features.csv`, `predictions.csv`
+- Primary registered row:
+  - feature set: `quality_plus_severity_onehot`
+  - internal macro OvR AUC: `0.7212`
+  - internal balanced accuracy: `0.5494`
+  - LOCO mean balanced accuracy: `0.5411 ± 0.0299`
+  - LOCO mean macro OvR AUC: `0.7027`
+- Interpretation:
+  - This remains a shortcut/baseline gate, not VLM/image-model evidence.
+  - Later ROI-language/VLM claims should beat this baseline on identical splits, especially LOCO.
+
+## 2026-05-28 — Gate05b ROI/structured-language supervision planning gate
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Scope:
+  - Planning only; no GPU training launched.
+  - Gate05b is defined as training-only ROI/structured-language supervision with image-only inference.
+- Documents created:
+  - `docs/context/GATE05B_ROI_LANGUAGE_SUPERVISION_PLAN.md`
+  - `docs/context/CAPTION_FIELD_POLICY.md`
+- Official Korean note:
+  - `/home/vlm/minyoung/Official/sky/2026-05-28_GATE05B_ROI_LANGUAGE_SUPERVISION_PLAN.md`
+- Fixed comparison baselines:
+  - Baseline06 image-only LOCO CN/AD: mean AUC `0.8087`, mean bACC `0.7146`.
+  - Baseline07 ROI quality/text/status-only shortcut: internal macro OvR AUC `0.7212`, internal bACC `0.5494`, LOCO mean bACC `0.5411 ± 0.0299`, LOCO mean macro OvR AUC `0.7027`.
+- Minimal Gate05b variants:
+  - `b0_global_teacher_ce`
+  - `b1_global_roi_cos`
+  - `b2_roi_phrase_siglip`
+  - `b3_roi_dropout_consistency`
+- Required pre-GPU audits:
+  - NACC teacher/data/QC audit.
+  - AIBL regression audit.
+  - KDRC row-level transfer diagnostic completion.
+  - Caption field leakage audit with allowed/forbidden text policy.
+- Interpretation:
+  - Current evidence is not VLM-scaling-ready.
+  - Later ROI-language/VLM claims must beat both Baseline06 image-only and Baseline07 ROI text/status shortcut gates under compatible evaluation.
+  - ROI pseudo-text is controlled structured supervision, not a radiology report.
+
+## 2026-05-28 — Gate05b preflight caption/split audit + CPU manifest dry-run
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Scope:
+  - CPU-only pre-training audit/scaffold.
+  - No GPU training launched.
+- Scripts created:
+  - `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_preflight_caption_split_audit_v0.py`
+  - `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_cpu_manifest_dryrun_v0.py`
+- Commands:
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_preflight_caption_split_audit_v0.py`
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_preflight_caption_split_audit_v0.py`
+  - `python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_cpu_manifest_dryrun_v0.py`
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_05b_cpu_manifest_dryrun_v0.py`
+- Artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_preflight_caption_split_audit_v0/summary.json`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_preflight_caption_split_audit_v0/REPORT_KO.md`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_preflight_caption_split_audit_v0/artifact_audit_summary.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_cpu_manifest_dryrun_v0/summary.json`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_cpu_manifest_dryrun_v0/REPORT_KO.md`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_cpu_manifest_dryrun_v0/dryrun_sample_rows.csv`
+  - `docs/context/GATE05B_PREFLIGHT_DRYRUN_2026-05-28.md`
+- Preflight audit result:
+  - Overall pass: `true`
+  - GPU required: `false`
+  - Forbidden caption term hits: `{}` for `roi_quality_text_v0`, `roi_local_text_v1`, `roi_pair_text_v1`, and `roi_row_text_v1`.
+  - Missing expected columns: `[]` for all checked caption artifacts.
+  - Subject-disjoint gate checked `train`, `val`, `internal_test`; overlaps were all `0`.
+  - `not_core_training` was excluded from the disjoint training/eval gate.
+  - ROI text row-id coverage: artifact-not-in-split `0`, split-label mismatches `0`, split-not-in-artifact `551` matching non-core rows.
+- CPU manifest dry-run result:
+  - Pass: `true`
+  - GPU required: `false`
+  - Training launched: `false`
+  - Core rows: `11,199`
+  - Core unique subjects: `5,958`
+  - Split counts: train `7,838`, val `1,681`, internal_test `1,680`
+  - Label counts: CN `6,000`, MCI `3,841`, AD `1,358`
+  - Row text missing rows: `0`
+  - Sample T1w paths all exist: `true`
+- Limitation:
+  - Official ROI quality summary missing for `576 / 11,199` core rows.
+  - Quality-status variants must either restrict to quality-joined rows or report missingness explicitly; severity-only `roi_text_v1` covers all core rows.
+- Interpretation:
+  - Caption/split/join preflight is cleared for future Gate05b command preparation.
+  - This is not VLM scaling readiness and not model evidence.
+  - A real Gate05b GPU run still requires `nvidia-smi`, repo checks, exact command preview, and Min approval.
+## 2026-05-28 — Gate05b b0/b1 ADNI full GPU probe
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Script modified/reused:
+  - `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py`
+- Change scope:
+  - Added explicit Gate05b variants `gate05b_b0_global_teacher_ce` and `gate05b_b1_global_roi_cos`.
+  - Added train-time ROI cosine loss term and `--roi-cos-weight` argument.
+  - Inference remains T1w image-only; ROI targets are supervision/probe signals only.
+- Pre-run checks:
+  - `pwd`: `/home/vlm/minyoungi`
+  - branch: `main`
+  - `nvidia-smi`: B200 GPUs available; command used physical GPU0 via `CUDA_VISIBLE_DEVICES=0`.
+- Validation commands:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py`
+  - small ADNI sampled GPU probe: `--max-samples 768 --epochs 2` for b0/b1 completed successfully.
+  - full ADNI GPU command:
+    - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py --outdir experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0 --heldout-cohorts ADNI --variants gate05b_b0_global_teacher_ce gate05b_b1_global_roi_cos --device cuda:0 --epochs 6 --batch-size 128 --num-workers 8 --downsample 2 --width 32 --seed 42 --amp`
+- Full ADNI artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/selected_fold_variant_metrics.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/summary_aggregated.json`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/REPORT.md`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/ADNI/*/summary.json`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/ADNI/*/training_history.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_adni_full_v0/ADNI/*/best_model.pt`
+- Artifact check:
+  - Required metrics/summary/report files exist.
+  - Metrics rows: `2`.
+  - Variants: `gate05b_b0_global_teacher_ce`, `gate05b_b1_global_roi_cos`.
+  - Run directory size: about `29M`; model checkpoints are about `15M` each.
+- Result, ADNI heldout only:
+  - Teacher-S AUC: `0.8812`, bACC `0.7941`.
+  - b0 frozen probe: AUC `0.7693`, bACC `0.6985`; direct AUC `0.7312`; predicted-ROI probe AUC `0.7542`.
+  - b1 frozen probe: AUC `0.7981`, bACC `0.7146`; direct AUC `0.8003`; predicted-ROI probe AUC `0.7938`.
+  - ADNI Baseline06 reference: AUC `0.7572`, bACC `0.6952`.
+  - b0 ΔADNI Baseline06 frozen AUC: `+0.0121`; b1 ΔADNI Baseline06 frozen AUC: `+0.0409`.
+  - b0 ΔGate02 ADNI frozen AUC: `+0.0556`; b1 ΔGate02 ADNI frozen AUC: `+0.0844`.
+- Baseline07 comparison caveat:
+  - Baseline07 is CN/MCI/AD multiclass ROI quality/text/status-only shortcut with LOCO mean macro OvR AUC `0.7027` and bACC `0.5411`; Gate05b run here is binary CN/AD ADNI-only.
+  - Numerically, b1 frozen AUC `0.7981` is above Baseline07 LOCO macro OvR AUC, but this is not a directly compatible test. A CN/MCI/AD or identical-split shortcut comparison is still required.
+- Interpretation:
+  - This is a useful positive ADNI-only probe: b1 > b0 and b1 beats the ADNI-specific Baseline06 frozen-AUC reference.
+  - It is not a representation-readiness pass yet because only one heldout cohort was run, Baseline06 LOCO mean AUC is `0.8087`, hard-fold stability is unknown, and Baseline07 comparison is not protocol-compatible.
+  - Label as `image-baseline-partial-signal`, not `vlm-scaling-ready`.
+- Remaining risks:
+  - ADNI is not sufficient; prior failures/regressions were fold-specific.
+  - ROI cosine supervision improved ADNI here but may regress AIBL/NACC/KDRC.
+  - Direct head and frozen probe should both be tracked; single metric cherry-picking is not acceptable.
+## 2026-05-28 — Gate05b b0/b1 hard-fold GPU extension
+
+- Workspace: `/home/vlm/minyoungi`
+- Branch: `main`
+- Scope:
+  - Extended Gate05b b0/b1 from ADNI-only to hard folds `AIBL`, `KDRC`, `NACC`.
+  - Combined analysis with prior ADNI fold.
+- Pre-run checks:
+  - `pwd`: `/home/vlm/minyoungi`
+  - branch: `main`
+  - `nvidia-smi`: all B200 GPUs free at launch; physical GPU0 used through `CUDA_VISIBLE_DEVICES=0`.
+  - Memory/disk: about `2.0Ti` RAM available; `/home/vlm` about `4.0T` free.
+- Patch before launch:
+  - `experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py` report formatting now renders missing Gate02 deltas as `NA` instead of crashing on `None/NaN`.
+- Validation command:
+  - `python -m py_compile experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py`
+- Hard-fold command:
+  - `CUDA_VISIBLE_DEVICES=0 python experiments/voxelwise_feature_learning_v1/scripts/vlm_gate_03_teacher_logit_latent_distillation_v0.py --outdir experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0 --heldout-cohorts AIBL KDRC NACC --variants gate05b_b0_global_teacher_ce gate05b_b1_global_roi_cos --device cuda:0 --epochs 6 --batch-size 128 --num-workers 8 --downsample 2 --width 32 --seed 42 --amp`
+- Hard-fold artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0/selected_fold_variant_metrics.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0/summary_aggregated.json`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_hardfolds_v0/REPORT.md`
+- Combined ADNI+hard-fold artifacts:
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_combined_adni_hardfolds_v0/selected_fold_variant_metrics_combined.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_combined_adni_hardfolds_v0/mean_by_variant_combined.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_combined_adni_hardfolds_v0/b1_minus_b0_by_fold.csv`
+  - `experiments/voxelwise_feature_learning_v1/results/vlm_gate_05b_b0_b1_combined_adni_hardfolds_v0/REPORT_KO.md`
+- Hard-fold results only:
+  - b0 mean frozen AUC `0.8192`, frozen bACC `0.7488`, direct AUC `0.8016`, mean ΔBaseline06 frozen AUC `-0.0120`.
+  - b1 mean frozen AUC `0.8263`, frozen bACC `0.7458`, direct AUC `0.8362`, mean ΔBaseline06 frozen AUC `-0.0049`.
+- Combined ADNI+AIBL+KDRC+NACC results:
+  - b0 mean direct AUC `0.7840`, mean frozen AUC `0.8067`, mean frozen bACC `0.7362`, mean ΔBaseline06 frozen AUC `-0.0060`; below-Baseline06 fold: `KDRC`.
+  - b1 mean direct AUC `0.8272`, mean frozen AUC `0.8193`, mean frozen bACC `0.7380`, mean ΔBaseline06 frozen AUC `+0.0065`; below-Baseline06 fold: `NACC`.
+- Fold-wise b1 minus b0:
+  - ADNI: Δdirect AUC `+0.0691`, Δfrozen AUC `+0.0288`, Δfrozen bACC `+0.0161`.
+  - AIBL: Δdirect AUC `+0.0248`, Δfrozen AUC `+0.0020`, Δfrozen bACC `-0.0372`.
+  - KDRC: Δdirect AUC `+0.0998`, Δfrozen AUC `+0.0662`, Δfrozen bACC `+0.0550`.
+  - NACC: Δdirect AUC `-0.0208`, Δfrozen AUC `-0.0468`, Δfrozen bACC `-0.0267`.
+- Interpretation:
+  - b1 is a real improvement over b0 on mean direct/frozen AUC and fixes the KDRC regression seen in b0.
+  - But b1 introduces a clear NACC regression, so this is not `representation-readiness-pass`.
+  - Baseline07 is still not directly tested because these are binary CN/AD folds while Baseline07 is CN/MCI/AD multiclass shortcut.
+  - Current label: `image-baseline-partial-pass with NACC regression`, not `vlm-scaling-ready`.
+- Next recommended action:
+  - Do not move to b2 SigLIP/phrase yet as a headline. First run NACC-specific failure audit or tune ROI-cos weight/teacher variant on NACC; also attach Baseline07-compatible shortcut comparison.
+
