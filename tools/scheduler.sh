@@ -35,6 +35,10 @@ for i in $(seq "$BACKFILL_DAYS" -1 1); do
   fi
 done
 
+# ── 시작 시 note 미러 1회 (재시작 직후 최신 note 반영) ──
+log "startup mirror_notes"
+DO_PUSH=1 "$TOOLS/mirror_notes.sh" >> "$LOG" 2>&1
+
 # ── 메인 루프: 매일 RUN_HHMM 에 발사 ──
 while true; do
   now=$(date +%s)
@@ -43,7 +47,8 @@ while true; do
   sleep_s=$(( target - now ))
   log "다음 발사까지 ${sleep_s}s — $(date -d "@$target" '+%F %T %Z')"
   sleep "$sleep_s"
-  log "발사: daily_note (오늘)"
+  log "발사: note 미러 + daily_note (오늘)"
+  DO_PUSH=1 "$TOOLS/mirror_notes.sh" >> "$LOG" 2>&1
   DO_PUSH=1 "$TOOLS/daily_note.sh" >> "$LOG" 2>&1
   sleep 70   # 같은 분 재진입 방지
 done

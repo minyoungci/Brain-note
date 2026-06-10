@@ -16,7 +16,8 @@ OS cron(`cron` .deb + `sudo /usr/sbin/cron`)은 **컨테이너 재시작 한 번
 
 | 구성요소 | 역할 |
 |---|---|
-| `tools/scheduler.sh` | sleep-loop 데몬. 기동 시 최근 7일 누락분 **백필**, 이후 매일 23:50 KST 발사. |
+| `tools/scheduler.sh` | sleep-loop 데몬. 기동 시 7일 누락 **백필**+**note 미러**, 이후 매일 23:50 KST에 미러·발사. |
+| `tools/mirror_notes.sh` | 5개 워크스페이스 `*.md` note 를 `workspaces/<ws>/notes/` 로 복사·commit·push(데이터/대형 제외, ≤2MB). |
 | `tools/ensure_scheduler.sh` | 데몬이 없으면 띄움(멱등, flock+pgrep 가드). **재무장 진입점.** |
 | `~/.claude/settings.json` `SessionStart` 훅 | Claude Code 세션 시작 때마다 ensure 호출. |
 | `~/.bashrc` 한 줄 | SSH/셸 로그인 때마다 ensure 호출. |
