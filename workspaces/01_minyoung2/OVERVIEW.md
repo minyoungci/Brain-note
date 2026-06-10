@@ -1,9 +1,3 @@
-주요 오류 두 개 확인:
-1. `SPEC.md §17` — 파일에 §0–§8만 존재, §17 없음
-2. "AJU/KDRC FLAIR 일부 출력 존재(…AJU FLAIR sidecar 다수)" — `data/preprocessed_mm/**/*flair*` 검색 결과 없음. OASIS PET 출력만 실재 확인.
-
----
-
 # minyoung2 — Frozen 3D T1 백본에 모달리티를 끼워넣는 3D Medical Adapter 연구
 
 ## 한눈에
