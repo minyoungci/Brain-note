@@ -47,8 +47,14 @@ while true; do
   sleep_s=$(( target - now ))
   log "다음 발사까지 ${sleep_s}s — $(date -d "@$target" '+%F %T %Z')"
   sleep "$sleep_s"
-  log "발사: note 미러 + daily_note (오늘)"
+  log "발사: note 미러 + daily_note + LLM 종합 (오늘)"
   DO_PUSH=1 "$TOOLS/mirror_notes.sh" >> "$LOG" 2>&1
   DO_PUSH=1 "$TOOLS/daily_note.sh" >> "$LOG" 2>&1
+  DO_PUSH=1 "$TOOLS/synthesize.sh" >> "$LOG" 2>&1
+  # 주간 회고: 일요일(date +%u == 7)에만 추가
+  if [ "$(date +%u)" = "7" ]; then
+    log "주간 회고 발사 (일요일)"
+    DO_PUSH=1 "$TOOLS/weekly_retro.sh" >> "$LOG" 2>&1
+  fi
   sleep 70   # 같은 분 재진입 방지
 done
