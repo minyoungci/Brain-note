@@ -39,7 +39,7 @@ minyoung2의 평가 프로토콜(nuisance 통제 → incremental value → LOCO 
 plant는 시간축, minyoung3는 ROI-evidence QA 생성, minyoung4는 domain-adversarial 표현학습으로 확장한다.
 2.5D MAE SSL 라인은 폐기(2026-06-03). minyoung2·3·4가 N4 보정 manifest를 공유한다.
 
-## 최우선 인지 사항 3건 (상세: `insights/MUST_KNOW.md`)
+## 최우선 인지 사항 3건 (상세: `learn/insights/MUST_KNOW.md`)
 
 1. **deep ≈ regional volumetry.** EXP01에서 deep 2.5D MIL이 5-ROI FreeSurfer 부피 baseline을
    5/5 fold에서 능가하지 못하고 pooled에서만 +0.018 AUROC. 정직한 thesis는 "deep이 가치를 더한다"가

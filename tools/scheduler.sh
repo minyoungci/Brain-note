@@ -29,7 +29,7 @@ log "start (pid $$, 발사시각 ${RUN_HHMM} KST)"
 # ── 시작 백필: 최근 BACKFILL_DAYS 일(과거) 중 노트 없는 날 생성·push ──
 for i in $(seq "$BACKFILL_DAYS" -1 1); do
   d=$(date -d "-$i day" +%F)
-  if [ ! -f "$HUB/daily/$d.md" ]; then
+  if [ ! -f "$HUB/log/daily/$d.md" ]; then
     log "backfill $d (노트 없음 → 생성)"
     DATE="$d" DO_PUSH=1 "$TOOLS/daily_note.sh" >> "$LOG" 2>&1
   fi

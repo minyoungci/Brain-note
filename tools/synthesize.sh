@@ -33,7 +33,7 @@ SYNTH_MODEL="${SYNTH_MODEL:-claude-opus-4-8}"
 CAP_BYTES="${CAP_BYTES:-30000}"     # 워크스페이스당 patch 상한
 CALL_TIMEOUT="${CALL_TIMEOUT:-360}" # claude -p 1회 타임아웃(초)
 
-OUT_DIR="$HUB/synthesis"
+OUT_DIR="$HUB/log/synthesis"
 OUT="$OUT_DIR/${DATE}.md"
 WORK="$(mktemp -d)"
 LOG="$HUB/.synthesize.log"
@@ -156,11 +156,11 @@ log "wrote $OUT"
 
 # ── commit (+push) ──
 cd "$HUB" || exit 1
-git_id add "synthesis/${DATE}.md"
-if git_id diff --cached --quiet -- "synthesis/${DATE}.md"; then
+git_id add "log/synthesis/${DATE}.md"
+if git_id diff --cached --quiet -- "log/synthesis/${DATE}.md"; then
   echo "[synth] 변경 없음 — commit 생략"
 else
-  git_id commit -q -m "chore: 일일 LLM 종합 ${DATE}" -- "synthesis/${DATE}.md"
+  git_id commit -q -m "chore: 일일 LLM 종합 ${DATE}" -- "log/synthesis/${DATE}.md"
   echo "[synth] commit 완료"
   if [ "$DO_PUSH" = "1" ]; then
     git_id push origin HEAD 2>/dev/null && echo "[synth] push 완료" || echo "[synth] push 실패"

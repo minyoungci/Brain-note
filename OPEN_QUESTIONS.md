@@ -8,9 +8,9 @@
 ## 🔴 연구 결론에 영향
 
 - ☐ **KDRC 라벨 권위 모순.** 노트북 01은 diagnosis 전수 보유·CDR 36.9% 결측, master_df join은 정반대
-  (diagnosis 전무·CDR 전수). 학습 라벨로 어느 소스를 쓸지 확정 필요. → `knowledge/data/cohorts/KDRC.md`
+  (diagnosis 전무·CDR 전수). 학습 라벨로 어느 소스를 쓸지 확정 필요. → `learn/knowledge/data/cohorts/KDRC.md`
 - ☐ **OASIS 진단 삼중값 재현 불가.** master_df의 CN1126/MCI42/AD252가 `cdr_global`·raw_input 어느 쪽으로도
-  재현 안 됨. 출처 컬럼/필터 확인. → `knowledge/data/cohorts/OASIS.md`
+  재현 안 됨. 출처 컬럼/필터 확인. → `learn/knowledge/data/cohorts/OASIS.md`
 - ☐ **minyoung2 3D CNN(IMG-020/022) 결과 미생성.** run 디렉토리 비어 있음 → 6-fold LOCO 결과 확인 후
   strong-deep baseline 결론 확정. → `workspaces/01_minyoung2/risks.md`
 - ☐ **F10 +0.018 통계.** pooled exchangeability 가정 과대, equivalence test(TOST)·random-effects meta 미수행
@@ -21,17 +21,17 @@
 
 - ☐ **minyoung3·plant git 부재 + minyoung4 미커밋.** minyoung3·plant는 `.git` 부재(버전 안전망 0). minyoung4는 git 존재하나 HEAD `6f0754d`(05-29) 이후 6/3~6/7 redesign 전부 untracked → `git init`/`git commit` 권장. → `DASHBOARD.md`·`workspaces/02_minyoung4/README.md`
 - ☐ **minyoung4 G0 feature coverage 결정대기.** Stage220 게이트 미통과(기대 3,622 subj 중 1,857 missing). 통과하려면 1,857 subj × 5 ROI mask(~9.4GB I/O) 추출 필요 — **장시간 전처리, Min 승인 게이트**. 통과 전 Stage221 LOCO 모델링·Stage224 shortcut audit 전부 blocked. → `workspaces/02_minyoung4/README.md`
-- ☐ **ROI 전수 BLOCKED_PROVISIONAL.** 사람 visual sign-off 전까지 ROI/부피 정량은 "후보". 게이트 정책 필요. → `knowledge/data/roi_volumes.md`
-- ☐ **ComBat/within-cohort 누수.** 05·06의 AUC≈0.9는 LOCO 미적용(site 누수 포함). train-fit ComBat 미검증. → `knowledge/data/cdr_target_and_harmonization.md`
-- ☐ **NACC 결측코드(88/99/-4).** 정수 저장이라 `isna()` 오판 → 디코딩 전 통계 금지(전수 점검). → `knowledge/data/cohorts/NACC.md`
+- ☐ **ROI 전수 BLOCKED_PROVISIONAL.** 사람 visual sign-off 전까지 ROI/부피 정량은 "후보". 게이트 정책 필요. → `learn/knowledge/data/roi_volumes.md`
+- ☐ **ComBat/within-cohort 누수.** 05·06의 AUC≈0.9는 LOCO 미적용(site 누수 포함). train-fit ComBat 미검증. → `learn/knowledge/data/cdr_target_and_harmonization.md`
+- ☐ **NACC 결측코드(88/99/-4).** 정수 저장이라 `isna()` 오판 → 디코딩 전 통계 금지(전수 점검). → `learn/knowledge/data/cohorts/NACC.md`
 - ☐ **minyoungi 역할 경계.** README는 "실험 코드 없음"이나 `experiments/`에 GPU 산출물 존재. source of truth 명시. → `workspaces/05_minyoungi/risks.md`
 
 ## 🟡 정밀화
 
 - ☐ `cdrsb` 실값 vs placeholder 여부(minyoungi 2026-05-31 daily 숙제). → `workspaces/05_minyoungi/findings.md`
 - ☐ `Official/potato/Reset_Audits/` 부재 — minyoung3 pre-delete inventory 실제 위치 불명. → `workspaces/03_minyoung3/risks.md`
-- ☐ AIBL 세션 카운트 991(per-cohort) vs 987(통합 manifest) 4세션 차이. → `knowledge/data/cohorts/AIBL.md`
-- ☐ 코호트별 sex 코딩(1/2 ↔ M/F) 규약 확인(ADNI·AIBL·KDRC). → `knowledge/data/cohorts/`
+- ☐ AIBL 세션 카운트 991(per-cohort) vs 987(통합 manifest) 4세션 차이. → `learn/knowledge/data/cohorts/AIBL.md`
+- ☐ 코호트별 sex 코딩(1/2 ↔ M/F) 규약 확인(ADNI·AIBL·KDRC). → `learn/knowledge/data/cohorts/`
 
 ## 갱신 방법
 

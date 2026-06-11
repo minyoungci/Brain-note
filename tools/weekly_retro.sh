@@ -25,7 +25,7 @@ GEN_MODEL="${GEN_MODEL:-claude-opus-4-8}"
 CRITIC_MODEL="${CRITIC_MODEL:-claude-sonnet-4-6}"
 CALL_TIMEOUT="${CALL_TIMEOUT:-600}"
 
-OUT_DIR="$HUB/weekly"; OUT="$OUT_DIR/${DATE}.md"
+OUT_DIR="$HUB/log/weekly"; OUT="$OUT_DIR/${DATE}.md"
 LOG="$HUB/.synthesize.log"
 mkdir -p "$OUT_DIR"
 log() { echo "[weekly $(date '+%F %T %Z')] $*" >> "$LOG"; }
@@ -58,7 +58,7 @@ week_syntheses() {
   local d
   for i in $(seq 6 -1 0); do
     d=$(date -d "${DATE} -${i} day" +%F)
-    [ -f "$HUB/synthesis/$d.md" ] && { echo "===== daily synthesis $d ====="; head -c 4000 "$HUB/synthesis/$d.md"; echo; }
+    [ -f "$HUB/log/synthesis/$d.md" ] && { echo "===== daily synthesis $d ====="; head -c 4000 "$HUB/log/synthesis/$d.md"; echo; }
   done
 }
 
@@ -98,11 +98,11 @@ final="$(printf '[주간 git 활동]\n%s\n\n[주간 회고 초안]\n%s' "$ACT" "
 echo "[weekly] 작성: $OUT ($(wc -l < "$OUT")줄)"; log "wrote $OUT"
 
 cd "$HUB" || exit 1
-git_id add "weekly/${DATE}.md"
-if git_id diff --cached --quiet -- "weekly/${DATE}.md"; then
+git_id add "log/weekly/${DATE}.md"
+if git_id diff --cached --quiet -- "log/weekly/${DATE}.md"; then
   echo "[weekly] 변경 없음 — commit 생략"
 else
-  git_id commit -q -m "chore: 주간 회고 ${WSTART}~${DATE}" -- "weekly/${DATE}.md"
+  git_id commit -q -m "chore: 주간 회고 ${WSTART}~${DATE}" -- "log/weekly/${DATE}.md"
   echo "[weekly] commit 완료"
   [ "$DO_PUSH" = "1" ] && { git_id push origin HEAD 2>/dev/null && echo "[weekly] push 완료" || echo "[weekly] push 실패"; }
 fi

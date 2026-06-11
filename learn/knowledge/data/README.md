@@ -2,7 +2,7 @@
 
 > **목적:** minyoungi `Clinical/` 교육용 노트북에서 추출한 데이터의 세밀한 사실을 집약  ·  **출처:** minyoungi `Clinical/notebooks/00~06`, `Clinical/consortiums/<C>/01~03`, `Clinical/VOXEL_ANALYSIS_PLAN.md`, `roi_qc/`  ·  **갱신:** 2026-06-02
 
-본 영역은 `knowledge/00_data_manifest.md`(요약)를 코호트·노트북 단위로 **세밀하게 확장**한 것이다.
+본 영역은 `../00_data_manifest.md`(요약)를 코호트·노트북 단위로 **세밀하게 확장**한 것이다.
 모든 수치는 노트북 헤드리스 실행 출력 또는 manifest 실측이며, 재현 도구는 `OBSERVATORY/tools/nb_text.py`.
 
 ## 문서 목록
