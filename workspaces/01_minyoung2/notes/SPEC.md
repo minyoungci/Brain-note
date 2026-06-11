@@ -210,3 +210,34 @@ task(CDR-SB MAE/corr, amyloid AUROC 상대 lift, age MAE) · 효율(trainable pa
 2. **scout 경고:** vanilla LEACE가 전이까지 고치면 privileged 기여 소멸 → D1b에서 vanilla가 *under-deliver*해야 paper 성립(좁은 창).
 3. **venue:** ACCV-native neuroimaging-harmonization 선례 희박 → 실제 경쟁은 MICCAI/MRM. vision-method 프레이밍 필수.
 4. **보호자 신호 강도:** amyloid AUROC 0.646(moderate) → 보호 부분공간 noisy 가능. Centiloid(강)는 2코호트뿐.
+
+---
+
+## 10. 방향 재전환 (2026-06-11) — ROI dissociation → anatomy-guided representation learning (**현 SSOT 핵심**)
+
+### 10.1 발견 계기 (ROI 자산)
+사용자 질문 "ROI 기반 주제도 같은 문제인가?"에서 DKT+aseg parcellation(96라벨, 100% 커버)으로 regional volume+intensity feature(190d) 추출 후 동일 LOCO 프로브 비교 → **counterintuitive dissociation 발견.**
+
+### 10.2 핵심 발견 = DISSOCIATION (novelty wedge, scout 확정)
+- **ROI(hand-crafted anatomy) feature가 learned deep feature보다 cross-cohort 전이가 좋음 — site bias는 *더 큰데도*.**
+- `roi_probe.py`: ROI vs CNN — site leakage 0.829 vs 0.707(↑), CDR LOCO **0.420 vs 0.292**(↑), amyloid LOCO **0.705 vs 0.615**(↑).
+- **G3 rigor** `g3.py`: 차원 매칭(PCA 50/100/190)+선형/비선형 probe 후에도 견고. d100: ROI site 0.81/0.80 & transfer 0.42/0.72 vs CNN site 0.68/0.67 & transfer 0.30/0.63. → "deep가 site bias 낮은 건 artifact" 공격 차단(kill-shot #1 해소).
+- **함의:** site-invariance와 clinical-transferability는 별개 축. (이것이 §9 debiasing이 무의미했던 근본 이유: site 제거 ≠ 신호 개선.)
+- scout: novelty = **dissociation 발견**(메커니즘 region-pool/distill은 점유). 한줄 thesis: *"LOCO에서 hand-crafted anatomy가 deep보다 전이↑(site bias↑인데도) → 두 축 dissociation → anatomy-guided learning으로 gap을 메운다."* 최대 경쟁자 = DAMT(ACCV2024, 단 pooled eval·age 중심). MUST-CITE: DAMT, Brain Informatics 2024(morphometric vs deep, age서 parity), Swin UNETR(CVPR2022).
+
+### 10.3 GAP 실험 프로그램 (T1-only LOCO CDR corr, 4-fold)
+| 실험 | 표현 (추론 요구) | LOCO CDR | 메모 |
+|---|---|--:|---|
+| **ROI-vol** (hand-crafted) | FreeSurfer 필요 | **0.420** | 전이 상한(anatomy) |
+| G1 `g1.py` e2e global | T1-only | 0.276 | **overfit**(train 0.99/test 0.28) |
+| frozen brain-age | T1-only | 0.292 | |
+| G4 `g4.py` ROI-distill(aux) | T1-only | 0.260 | null(+0.008) |
+| G2 `g2.py` region-pool | parcellation(추론) | 0.321 | +0.075 vs global, 단 ROI-vol에 dominated |
+| **G5 `g5.py` anatomy-pretrain** | **T1-only** | **0.349** | **최고 T1-only**(std-deep +0.07, ROI 격차 ~절반) |
+| G6 `g6.py` richer+combo | — | 진행중 | richer target / feat+ROIvol이 0.42 초과? |
+
+### 10.4 현 판정 (G6 대기)
+- **Diagnosis(G3): 단단.** dissociation rigor 통과.
+- **Fix: anatomy-prediction pretraining(G5)이 작동하는 T1-only fix** — 표준 deep(0.28) → 0.349, FreeSurfer 없이 anatomy 전이 우위의 ~절반 회복. 단 ROI(0.420) 미달.
+- **리스크:** fix가 ROI를 못 넘음 → "그럼 ROI 쓰지" 반박. 방어 = T1-only(FreeSurfer 불필요·실패 scan 견고)·추론 비용. G6가 richer-target/combo로 0.42 근접·초과 가능한지 검증 중.
+- **남은 보강:** anatomy vs 단순 aux-regularization control, multi-seed CI, DAMT 대조.

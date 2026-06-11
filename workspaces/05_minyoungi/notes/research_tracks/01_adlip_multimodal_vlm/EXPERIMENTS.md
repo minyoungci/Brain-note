@@ -151,3 +151,51 @@ MSE 안정 하강: ep00 1.03 → ep10 0.55 → ep20 0.40 → … (random 1.0 대
 **전제 검증 (ComBat fs_vol, train_ready)**: raw cohort 0.761/dx 0.897 → **harmonized cohort 0.618/dx 0.899**. site↓ biology유지 확인.
 
 **진행**: pretrain_morphometry --harmonize (train fs_vol ComBat, dx·age covariate 보호, train만=leakage방지) → distill → eval (cohort·LOCO).
+
+**✅ 결과 (eval_distilled, morpho vs morpho_harm 동일 코드 나란히 평가)**:
+*baseline이 EXP-002 수치(0.931/0.948/0.774/0.724) 정확 재현 → 하네스 신뢰.*
+
+| frozen→probe | morpho (baseline) | **morpho_harm** | Δ |
+|---|--:|--:|--:|
+| dx CNvsDem (random) | 0.931 | 0.899 | −0.032 |
+| **cohort (random)** | **0.948** | **0.921** | **−0.027** |
+| LOCO-kdrc dx | 0.774 | **0.784** | **+0.010** |
+| LOCO-aju dx | 0.724 | **0.736** | **+0.012** |
+| amyloid (random) | 0.918* | 0.917* | ~0 |
+
+\*amyloid는 PET 입력채널이라 trivial(honest 아님).
+
+**💡 인사이트 (정직)**: 가설 방향대로 작동하나 **부분적**. cohort shortcut 의존이 줄며(random dx 0.93→0.90 de-inflate, cohort 0.948→0.921) **honest LOCO dx가 양방향 +0.01 개선** — 정렬된 신호가 더 전이됨. **단 핵심 한계**: cohort가 여전히 **0.921(거의 완전 분리)**. ComBat이 fs_vol을 0.618로 낮췄지만 픽셀 인코더는 site를 0.921로 재학습 → **confound가 distill 타겟이 아니라 입력 픽셀(스캐너/프로토콜)에 있어, 타겟만 harmonize로는 불충분**.
+
+**다음 (EXP-004)**: confound가 입력 레벨 → 타겟-harmonize를 넘어 **표현 레벨 de-siting** 필요 (adversarial cohort head / GRL, 또는 입력·feature harmonization). 검증기준: cohort AUC를 0.92→<0.8로 낮추며 LOCO dx ≥0.78 유지.
+
+**✅ EXP-003 결과 (harmonized distill 다각 검증)**:
+| frozen probe | raw distill | harmonized distill |
+|---|---|---|
+| dx random | 0.931 | 0.899 |
+| cohort | 0.948 | 0.921 |
+| LOCO-kdrc | 0.774 | 0.784 |
+| LOCO-aju | 0.724 | 0.736 |
+→ harmonization 방향은 맞으나 **효과 미미**(cohort 0.95→0.92, LOCO 소폭↑). fs_vol 타겟 자체는 cohort 0.76→0.62였으나 distilled encoder는 0.92로 강누설 유지.
+💡 **인사이트**: 픽셀 영상이 cohort(스캐너 appearance)를 직접 담고 있어, distill *타겟*만 harmonize해선 *encoder*의 cohort 누설을 못 막는다. → 다음(EXP-004): encoder feature에 직접 작용하는 **adversarial cohort removal**(gradient reversal). 단 cohort=population+traveling0이므로 "cohort 제거 = biology 일부 손실"의 식별성 trade-off가 핵심 측정 대상.
+
+**⚠️ 평가 관점 정정(중요)**: random-split AUC(0.93)는 cohort shortcut 부풀림. **진짜 성능 지표 = LOCO(0.72~0.77)**. 이후 "성능 향상"은 LOCO 기준으로만 주장.
+
+---
+
+## EXP-004 (2026-06-10) — Adversarial cohort-invariant distillation (LOCO 향상 시도)
+**가설**: morphometry distill + gradient-reversal로 encoder에서 cohort를 직접 제거하면 LOCO(cross-cohort) dx가 향상된다.
+
+**셋업**: ImageEncoder→{morpho head(fs_vol MSE), cohort head(GRL, CE)}. λ_adv ramp(0→λ over 8ep). λ sweep {0,0.5,1,2,5}.
+
+**결과 (λ sweep)**:
+| λ | dx-random | cohort | LOCO-kdrc | LOCO-aju | mean LOCO |
+|---|---|---|---|---|---|
+| 0.0 raw | 0.931 | 0.948 | 0.774 | 0.724 | 0.749 |
+| 0.5 | 0.908 | 0.849 | 0.726 | 0.777 | 0.752 |
+| **1.0** | 0.900 | 0.894 | 0.736 | **0.886** | **0.811** |
+| 2.0 | 0.912 | 0.895 | 0.731 | 0.889 | 0.810 |
+| 5.0 | 0.759 | 0.941 | 0.520 | 0.477 | 0.50(붕괴) |
+
+**발견**: λ=1~2가 **mean LOCO 0.749→0.81 (+0.06)** — 특히 LOCO-aju 0.724→0.89(KDRC-학습 dx가 AJU로 전이). λ=5 붕괴 = 식별성 tension(과debiasing=biology 제거) 실증.
+**⚠️ 검증 진행중**: LOCO-aju train=KDRC 379로 작아 noise 가능 → λ∈{0,1} × seed{1,2,3} 재현으로 error bar 확인.
