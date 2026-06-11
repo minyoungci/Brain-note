@@ -27,6 +27,7 @@ SCRATCHPAD이며, 모든 문서는 출처를 명시해 추적 가능하다.
 | `learn/knowledge/` | 연구 개념·데이터·방법론 학습 자료 | 수동 |
 | `learn/insights/` | 5개 연구를 관통하는 횡단 인사이트 | 수동 |
 | `learn/curriculum.md` | 학습 커리큘럼(읽는 순서) | 수동 |
+| `learn/workspaces_data_task.md` | 디렉토리별 데이터·task 매트릭스 | 수동 |
 | `log/synthesis/` | 일일 종합 — 진행 추적·코드 리뷰·결정 필요·미해결 질문 | 자동(LLM) |
 | `log/weekly/` | 주간 회고 — 디렉토리별 실험 종합 | 자동(LLM) |
 | `log/daily/` | 일일 git 활동 집계 | 자동 |
