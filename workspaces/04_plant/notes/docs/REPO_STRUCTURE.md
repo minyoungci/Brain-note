@@ -9,11 +9,16 @@ plant/
 ├── CLAUDE.md                  # 운영 규칙
 ├── SCRATCHPAD.md              # live 상태 / 핸드오프
 ├── docs/
-│   ├── P0_bias_audit_plan.md  # 단계 설계서(승인 게이트). P1_*, P2_* 동일 위치
-│   ├── multisite_RL_strategy.md   # 다기관 RL 전략(가설·pre-P0)
-│   ├── REPO_STRUCTURE.md       # 이 파일
-│   ├── DECISION_LOG.md         # 피벗·NO-GO·롤백 (되돌리기 근거)
-│   └── ledgers/                # 음성 결과 상세 ledger (실험별 NO-GO 기록)
+│   ├── README.md              # ★ 문서 인덱스 — 여기부터 읽는다(읽는 순서·상태)
+│   ├── RESEARCH_PROPOSAL.md   # ★ 현재 연구 방향 + 근거
+│   ├── DECISION_LOG.md        # 피벗·NO-GO·롤백 (되돌리기 근거)
+│   ├── REPO_STRUCTURE.md      # 이 파일 (디렉토리 규약)
+│   ├── P0_bias_audit_plan.md  # 단계 설계서(승인 게이트). P1_*, P2_* 동일 위치(root)
+│   ├── investigations/        # 탐색·근거 문서(참조용; 결론은 PROPOSAL/DECISION_LOG에)
+│   │   ├── novelty_deep_research.md
+│   │   ├── harmonization_scout_review.md
+│   │   └── multisite_RL_strategy.md   # 부분 superseded
+│   └── ledgers/               # 음성 결과 상세 ledger (실험별 NO-GO 기록)
 ├── src/microbrain/            # 재사용 라이브러리 (테스트됨, 실험이 import). ★코드는 P0 승인 후
 │   ├── io.py                  #   텐서/마스크 로더 (minyoungi mri_io 재사용)
 │   ├── manifest.py            #   canonical manifest 접근 + 컬럼 계약(contract)

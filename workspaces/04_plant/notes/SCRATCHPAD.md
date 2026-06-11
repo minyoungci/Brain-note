@@ -2,6 +2,24 @@
 
 > 현재 상태·가설·결과를 여기에 누적. 핸드오프 시 이 파일로 상태 전달. 최신이 위.
 
+## 2026-06-11 — P2 진입: amyloid texture/biomarker CPU + GPU Stage-0 smoke
+- **biomarker (amyloid, n~750):** morph+age 0.755 · +regional texture +0.002 · +global texture −0.003 (이미지 texture 무) ·
+  **+APOE4 +0.023** · +APOE+cognition +0.026. → amyloid 레버는 이미지 아닌 **APOE/임상 biomarker**. 바 상향: morph+APOE ~0.78.
+  centroid std 0.9~2.2vox(뇌 박스 정렬 양호 → native-space regional 우려 일부 완화, 그래도 texture 0).
+- **GPU Stage-0 smoke PASS** (`experiments/P2/stage0_smoke.py`, GPU5, resnet10, 2mm, OASIS held-out, 1 seed, 10ep):
+  loss 0.726→0.452 하강(학습 정상), held-OASIS AUROC last-3 **0.583** (morph 바 0.72 ↓). 입력=이미지만(누수 0). 파이프라인 검증 완료.
+  단 smoke=crude(1 fold·1 seed·minimal aug·no SSL) → 결정 아님. overfit/no-transport 징후(train loss↓ held flat)=minyoung 패턴.
+  IO 느림(preload 1000=13분) → Stage1 npy 캐시 필요.
+- **다음:** Stage-1 결정 run(full LOCO amyloid·multi-seed·proper train·kill-criteria) — git checkpoint + 확인 후. 설계=`docs/P2_plan.md`.
+
+## 2026-06-11 — rich-data 종단/멀티모달 가능성 점검 (음성)
+- 혈액 morph 대비 Δ: dementia +0.005·MCI +0.000·amyloid +0.007 → 어떤 task도 기여 없음.
+- 종단 궤적: ADNI만 849 subjects(5.7y, 진행자 246). Korean(rich)은 cross-sectional(1.15 sess/subj, CDR변화 35명).
+- **세 어긋남:** feature↔label / rich↔longitudinal(ADNI vs Korean disjoint) / rich↔transport(CN-poor Korean).
+- 판정: rich-data 엔진의 별도 flashy win 불가. rich = cross-site benchmark testbed. 연구는 PROPOSAL(morph-weak)로 수렴.
+  문서: docs/ledgers/2026-06-11_longitudinal_richdata_negative.md
+- 디렉토리 정리: docs/README 인덱스 + investigations/ 분리(commit bf9e7a3).
+
 ## 2026-06-11 — 멀티모달/clinical 인벤토리 + novelty deep-research
 - **이미징:** T1w 전수(processed). raw_{flair,t2,dwi,pet}_path 컬럼 존재하나 대부분 raw·부분(minyoungi: flair 26%/dwi 13%/pet 7%). amyloid 라벨은 7코호트 광범위(A4 1811·AJU 1286·OASIS 1048·KDRC 534·NACC 515, +ADNI raw). tracer 이질(PiB/AV45/FBB/FMM).
 - **★ Korean(AJU/KDRC) 고유 richness (공개셋엔 없음):** korean_multimodal_manifest(2196×89)에 processed flair_final_path·pet_suvr_path + **혈액검사**(hba1c·tsh·ft4·**vitb12·folate**·lipid·CBC·간/신장) + 동반질환(dm/htn/dyslipidemia) + vitals/bmi + GDS + WMH/Fazekas. → "MRI + 혈액바이오마커 치매표현"은 공개 MRI-only 셋이 못 하는 각도.

@@ -89,3 +89,17 @@ Stop optimizing the conditioning/routing axis (diminishing returns; data has ans
 Two honest paths: (A) package the current work as a benchmark + empirical-study paper
 (medical-imaging/workshop tier), or (B) re-scope to a task with genuine vision headroom.
 Next step: detailed data exploration for a vision-headroom ACCV topic (see SPEC open items).
+
+## Grounding result (2026-06-11) — REFRAME: contribution axis = grounding, not accuracy
+
+Reference check (M3D, AutoRG-Brain) showed oracle-accuracy is the WRONG bar; 3D medical VQA
+contributes via dataset/grounding/generalization. FreeSurfer-percentile = legitimate pseudo-label.
+
+B_loc (localization variant), AJU LOCO, 3 seeds:
+- answering macro AUC: loc-sup 0.827+-0.012 vs no-loc-sup 0.823+-0.014 (SAME -> grounding is free)
+- grounding mass-in-ROI: loc-sup 0.778+-0.011 (x26 over uniform 0.030) vs no-loc-sup 0.245+-0.11
+- pointing-game: loc-sup 0.953 vs no-loc-sup 0.295
+Findings: (1) loc-sup necessary for reliable grounding (no-sup weak + unstable, seed collapses);
+(2) grounding costs nothing in answering; (3) weak emergent grounding without sup (x8) but unreliable.
+This axis (localize the evidence ROI under cross-cohort LOCO) is something morphometry CANNOT do
+-> NOT capped by the 0.91 accuracy ceiling. See ACCV/POSITIONING.md.

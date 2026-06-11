@@ -261,3 +261,15 @@ MSE 안정 하강: ep00 1.03 → ep10 0.55 → ep20 0.40 → … (random 1.0 대
 **amyloid LOCO**: T1/T1+FLAIR 0.47(chance), +PET 0.905 — 단 **PET=amyloid 직접측정(순환)**, 구조 예측 아님.
 💡 **기전**: 치매신호=위축=T1에 이미 존재. FLAIR/PET는 새 질병신호 거의 0인데 각자 scanner/tracer confound(shortcut)를 추가 → 작은 N에서 학습 → cross-cohort 악화. "정보↑"는 추가모달이 신호일 때만 참; nuisance/confound면 해. 모달이 타깃 직접측정(PET→amyloid)일 때만 도움=순환.
 **모든 비순환 deep(0.66~0.74) < morphometry(0.87).** → reviewer가 원하는 핵심 ablation. modality-count vs LOCO 그림 1장.
+
+---
+
+## EXP-010 (2026-06-11) — deep brain-age (morphometry 약한 첫 task)
+**동기**: AD분류·amyloid 다 실패 → morphometry가 약한 task 탐색. brain-age morphometry LOCO MAE 5.06yr(CN n7580, 7코호트) → deep 기회.
+**결과 (deep T1 96³, 7-cohort LOCO MAE)**:
+| | mean-LOCO MAE | vs morph 5.06 |
+|---|---|---|
+| vanilla deep | 4.98yr | +0.08 (무의미) |
+| site-invariant(λ=1) | 5.00yr | +0.06 |
+→ ⚠️ **사실상 무승부**. deep 4/6 fold 승이나 평균차 무의미. 단 site-inv가 작은코호트 KDRC 6.08→5.06 크게 개선(adversarial 과적합억제).
+💡 **레버 발견**: 비교가 불공정 — deep 96³(8배 다운샘플) vs morphometry 풀해상도(1mm) 부피. brain-age는 미세구조가 핵심이라 96³가 deep 핸디캡. → 다음: deep을 고해상(128~192³)으로 재학습이 결정적 fair 테스트.

@@ -1,62 +1,46 @@
-# SPEC — Foundation-model site-generalization audit (minyoung4)
+# SPEC — Adaptation of 3D brain-MRI foundation models under site shift (minyoung4, Direction 2)
 
-> Living spec. 목적·task·데이터·목표 단일 관리. 직전 closure: `docs/context/FAILED_DECONFOUNDING_EXPLORATION_CLOSURE_20260611_KO.md`.
-> 1순위 제약: **leakage(train-eval) 금지 + honest metric(morphometry BAR 대비)**.
+> Living spec. 이전 closure들: `docs/context/FAILED_*_CLOSURE_20260611_KO.md`.
+> 1순위 제약: leakage(train-eval) 금지 + honest eval. **morphometry는 yardstick 아님 — 여러 baseline 중 하나.**
 
-## 0. 목적 / Thesis (2026-06-11 확정)
+## 0. 목적 / Thesis (2026-06-11 확정, 사용자 선택 = "adaptation 방법론 연구")
+사전학습된 3D 뇌-MRI foundation(BrainIAC 등)을 **어떻게 적응(adapt)시켜야 site-shift에 강건한가**를
+우리 7코호트 leakage-통제 벤치로 체계적으로 측정한다.
+> **질문**: frozen이 (이미 측정상) 단순 baseline에 지고 site를 더 싣는다. **fine-tuning regime이 이를 escape하는가?
+> 어떤 적응 전략(linear / LoRA / partial / full FT)이 transfer↑·site-loading↓를 best로 주는가?**
 
-3D T1w MRI 파운데이션 모델(**BrainIAC** 등 공개 SSL)이 **site=population shift에서 정말 일반화하는가**를
-우리 7코호트 controlled 벤치로 *엄밀·비순환*으로 측정한다.
-> **주장(예상)**: 파운데이션 feature도 site를 강하게 인코딩하며, dementia 같은 morphometry-ceiling task에선
-> 단순 FreeSurfer 부피(morphometry)를 넘지 못한다. 단 **brain-age처럼 헤드룸 있는 task**에선 transfer 이점이
-> 있을 수 있다 — 이를 분리해 보고한다.
+## 1. Task / 평가 (morphometry-yardstick 아님)
+- **adaptation ladder**: ① frozen-probe ② linear-probe ③ LoRA/partial-FT ④ full-FT. (+ baseline: from-scratch 동일 backbone)
+- **endpoint**: (A) CN/AD 분류 (B) brain-age 회귀. 둘 다 **leakage-clean**(AJU+KDRC) + 가능시 다코호트.
+- **평가 축**:
+  1. **LOCO transfer** (미관측 cohort 일반화) — 핵심.
+  2. **site-loading** (표현→cohort AUC, 적응이 줄이나).
+  3. baseline 대비(from-scratch·frozen·morphometry는 *참조*, 천장 아님).
+- 모든 수치 다seed mean±std. ΔAUC/Δsite over from-scratch & frozen.
 
-→ contribution: (audit) "foundation models이 multi-site에서 일반화한다"는 통념의 reality-check + (positive 후보)
-brain-age transfer. 교란을 *제거*하지 않고(불가, closure 확인) *측정·통제*한다.
+## 2. Data
+- `official_manifest_full_n4_real_final.csv` 7코호트. leakage-map: AJU·KDRC=CLEAN(공개 foundation 미포함), ADNI/OASIS/AIBL=likely 누수, NACC/A4 uncertain.
+- foundation transfer 평가의 task-probe(B,C)는 **clean(AJU+KDRC)**; site-probe(A)는 전 코호트.
+- 입력: v2 T1w final_tensor_n4 → 96³ resize + normalize (BrainIAC transform 매칭).
 
-## 1. Task / 평가
+## 3. Win / 판정
+- **(positive)** 어떤 적응 전략이 frozen·from-scratch 대비 LOCO transfer를 유의 개선 AND/OR site-loading 감소 → "foundation 적응이 site-shift에 도움" 입증.
+- **(negative-but-real)** full-FT조차 from-scratch와 동등·site 안 줄면 → "이 regime에선 대규모 pretrain이 이점 없다"는 강한 audit 결론(우리 BrainIAC frozen audit의 fine-tune 확장).
 
-- **(A) site-probe**: 표현 → cohort(7-way macro AUC). 파운데이션 feature가 얼마나 site-loaded인가. **전 코호트** 사용(라벨 누수 무관).
-- **(B) brain-age**: 표현 → age 회귀(MAE). **leakage-clean(AJU+KDRC)**. 헤드룸-positive 후보.
-- **(C) CN/AD**: 표현 → CN vs AD(+Dementia). **leakage-clean**(KDRC 내 CV + AJU↔KDRC cross). morphometry-ceiling 확인용.
-- 모든 imaging 수치 = **morphometry BAR(fs_vol logistic/ridge) 대비 Δ**. BAR 못 넘으면 그게 audit 발견.
+## 4. 선결 (setup gate)
+1. **모델 재취득**: BrainIAC(GitHub AIM-KannLab, CC-BY-NC, ViT 7GB) 또는 brain2vec(HF, Apache-2.0, VAE). 직전 리셋서 삭제 → 재다운로드.
+2. env: monai 호환(이전 monai-1.3.2 격리 env). 입력 전처리 공정성 재확인.
+3. frozen baseline 재현(이전 audit: site 0.842 / brain-age 5.73 / CN-AD 0.735)으로 setup 검증.
 
-## 2. Data (확정 — `official_manifest_full_n4_real_final.csv`)
-
-- 13,022 QC-PASS T1w / 7,231 subj / 7 코호트. fs_vol·clinical(age/sex/dx/cdr) 내장. longitudinal 2,830명(≤16세션) → **split은 subject 단위**.
-- **누수 지도 (공개 파운데이션 기준)**: AJU·KDRC=**CLEAN**(한국 비공개); ADNI·OASIS·AIBL=**LIKELY 누수**; NACC=possible; A4=uncertain·CN-only.
-- leakage-clean(AJU+KDRC): CN 305 / AD 487 / MCI 1219 / age 42–91 / 1,910 subj.
-
-## 3. Goal / Win condition
-
-- **site-probe**: 파운데이션 feature → cohort AUC를 morphometry(≈0.9)와 비교. (높으면 "여전히 site-loaded".)
-- **CN/AD (clean)**: 파운데이션 frozen-probe가 morphometry BAR를 넘나? (예상: no → ceiling 확인).
-- **brain-age (clean)**: 파운데이션이 morphometry MAE를 **유의하게 낮추나**? (예상: 여기엔 헤드룸 — positive 후보).
-- 결론은 세 축의 *분리*로 honest하게: "site는 못 줄이고, dementia는 못 넘고, brain-age는 개선" 식.
-
-## 4. BrainIAC 사용 게이트 (선결)
-1. **누수 게이트**: BrainIAC 사전학습 데이터셋 목록 확인(논문/supp) → clean 코호트 확정(거의 AJU/KDRC). ⚠️ AMAES와 동일 원칙(closure 참조).
-2. **헤드룸 게이트**: clean 코호트에서 BrainIAC frozen-probe가 morphometry BAR(아래 EXP-F0)를 넘는 기미. 없으면 dementia 베팅 비합리.
-3. 전처리 매칭: BrainIAC quickstart 사양(우리 v2 192³ 아닐 수 있음).
-
-## 5. 외부 사실 (재논쟁 금지)
-- BrainIAC: SimCLR 3D, ~35 데이터셋·10질환, downstream brain-age·IDH·tumor survival. site-invariance 주장 *없음*. (Nature Neurosci 2026; AIM-KannLab/BrainIAC, CC BY-NC.)
-- FOMO25 주최: "model/data scaling reliable benefit 없음" → "더 키운다" 축은 약함.
-- morphometry LOCO 바 ≈ 0.90–0.92 (선행).
-
-## 6. 실험 로그
+## 5. 실험 로그
 | EXP | 내용 | 결과 |
 |---|---|---|
-| EXP-F0 | **morphometry BAR** (fs_vol): site-probe(7way) + brain-age MAE(clean) + CN/AD(clean) | ✅ site-probe **0.770** / brain-age **5.56yr**(clean; per-cohort 4.5–5.6) / CN-AD **0.911**(clean KDRC-CV, cross 0.87) |
+| (이전 audit, archived) | BrainIAC **frozen** vs morphometry | site 0.842>0.770 / brain-age 5.73>5.56 / CN-AD 0.735≪0.911 (frozen 열세) |
+| K0/K1 (archived→closure) | KDRC 멀티모달 WMH headroom | morphometry ceiling (Δ≈0) |
+| D2-S0 | BrainIAC 재취득(repo+가중치+monai1.3.2 env) + frozen 재현 | ✅ site **0.842**/brain-age **5.73**/CN-AD **0.735** = 이전 audit 완전 일치 (셋업 검증) |
+| D2-S1 | adaptation ladder (frozen/partial/full/scratch), brain-age, **held-out=KDRC** LOCO | _running GPU1/2/4/6_ — trainable 0/28.3/88.3/88.3M. 측정: held-out MAE(transfer) + site-loading |
 
-**EXP-F0 인사이트**: CN/AD=ceiling(0.91, 넘기 어려움) / **brain-age=헤드룸 bar(5.56yr → BrainIAC이 이길 수 있는 positive 축)** / site-probe 0.77=reference. → audit 골격 확정: "파운데이션도 site-loaded·dementia 못 넘음, but brain-age 개선" 가설.
-| EXP-F1 | BrainIAC 셋업 (가중치 7GB·monai1.3.2 env·전처리 공정성) | ✅ 로드 768-d. 전처리 공정(둘 다 brain-extracted→z-norm→96³) |
-| EXP-F2 | BrainIAC frozen-probe vs BAR (3축) | ✅ site **0.842**>0.770(더 site-loaded) / brain-age **5.73**>5.56 / CN-AD **0.735**≪0.911 → **전 축 morphometry 우세** |
-| EXP-F3 | few-shot (BrainIAC 주장 강점) | ✅ CN/AD·brain-age **모든 train-N에서 morphometry 우세** (N=20도). few-shot도 패배 |
+판정(D2-S1): full/partial이 frozen·scratch 대비 held-out MAE↓ AND site-loading↓이면 "foundation 적응이 site-shift에 도움" 입증. 
 
-## 🟢 Audit 결론 (data-confirmed, 2026-06-11)
-**대규모 SSL 파운데이션(BrainIAC)이 우리 leakage-clean 코호트의 dementia·brain-age에서, frozen-probe·few-shot 전구간에 걸쳐 단순 FastSurfer morphometry(30-d)를 *못 넘고*, site는 *더* 인코딩(0.842>0.770).** = "파운데이션이 multi-site 일반화·site-invariance를 준다"는 통념의 **엄밀한 반례** (leakage-통제 7코호트). 미검증 모드=full fine-tuning(86M ViT, 소규모 한국 코호트엔 overfit 위험; frozen 열세상 escape 가능성 낮음).
-→ contribution: 이 reality-check가 기술적으로 입증 가능한 핵심. 우리 데이터 규모·다코호트·누수통제가 그대로 근거.
-
-## 7. Artifact policy
-`experiments/foundation_audit/` 1디렉토리, timestamp 없음, ckpt 이름고정, 캐시 gitignore, 리포트=작은 md/csv. 매 실험 SPEC 갱신.
+## 6. Artifact policy
+`experiments/foundation_adapt/` 1디렉토리, 가중치·캐시 gitignore, 리포트 작은 md/csv. 매 실험 SPEC 갱신.
