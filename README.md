@@ -30,6 +30,7 @@ SCRATCHPAD이며, 모든 문서는 출처를 명시해 추적 가능하다.
 | `log/synthesis/` | 일일 종합 — 진행 추적·코드 리뷰·결정 필요·미해결 질문 | 자동(LLM) |
 | `log/weekly/` | 주간 회고 — 디렉토리별 실험 종합 | 자동(LLM) |
 | `log/daily/` | 일일 git 활동 집계 | 자동 |
+| `log/changelog/` | 허브 구조·도구·설정 변경 노트(블로그형) | 자동(LLM) |
 | `workspaces/<NN_ws>/` | `OVERVIEW.md` 기술 블로그 + 카드(요약·결과·리스크·출처) + `notes/` 원본 미러 | 자동·수동 |
 | `tools/` | 자동화 스크립트(스케줄러·노트 미러·LLM 파이프라인) | — |
 

@@ -20,6 +20,7 @@ OS cron(`cron` .deb + `sudo /usr/sbin/cron`)은 **컨테이너 재시작 한 번
 | `tools/mirror_notes.sh` | 5개 워크스페이스 `*.md` note 를 `workspaces/<ws>/notes/` 로 복사·commit·push(데이터/대형 제외, ≤2MB). |
 | `tools/synthesize.sh` | **매일 LLM 종합** — headless `claude -p`로 gen→critic→synth. 워크스페이스별 diff 검증 분석 → cross-workspace 종합 → `log/synthesis/<date>.md`. |
 | `tools/weekly_retro.sh` | **주 1회(일) 주간 회고** — 지난 7일 일일 종합+git 활동 → 디렉토리별 실험 종합 → `log/weekly/<date>.md`. |
+| `tools/changelog.sh` | **허브 변경 노트** — 허브 자체(구조·도구·문서·지식·설정) 변경을 블로그형으로 → `log/changelog/<date>.md`. 자동 콘텐츠(log·notes·OVERVIEW) 제외, 변경 없으면 LLM 호출 0. |
 | `tools/ensure_scheduler.sh` | 데몬이 없으면 띄움(멱등, flock+pgrep 가드). **재무장 진입점.** |
 | `~/.claude/settings.json` `SessionStart` 훅 | Claude Code 세션 시작 때마다 ensure 호출. |
 | `~/.bashrc` 한 줄 | SSH/셸 로그인 때마다 ensure 호출. |
