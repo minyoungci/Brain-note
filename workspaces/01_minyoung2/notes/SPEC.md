@@ -236,8 +236,45 @@ task(CDR-SB MAE/corr, amyloid AUROC 상대 lift, age MAE) · 효율(trainable pa
 | **G5 `g5.py` anatomy-pretrain** | **T1-only** | **0.349** | **최고 T1-only**(std-deep +0.07, ROI 격차 ~절반) |
 | G6 `g6.py` richer+combo | — | 진행중 | richer target / feat+ROIvol이 0.42 초과? |
 
-### 10.4 현 판정 (G6 대기)
-- **Diagnosis(G3): 단단.** dissociation rigor 통과.
-- **Fix: anatomy-prediction pretraining(G5)이 작동하는 T1-only fix** — 표준 deep(0.28) → 0.349, FreeSurfer 없이 anatomy 전이 우위의 ~절반 회복. 단 ROI(0.420) 미달.
-- **리스크:** fix가 ROI를 못 넘음 → "그럼 ROI 쓰지" 반박. 방어 = T1-only(FreeSurfer 불필요·실패 scan 견고)·추론 비용. G6가 richer-target/combo로 0.42 근접·초과 가능한지 검증 중.
-- **남은 보강:** anatomy vs 단순 aux-regularization control, multi-seed CI, DAMT 대조.
+### 10.4 최종 판정 (GAP 프로그램 G1–G7 완료 + code-auditor 감사, 2026-06-11)
+**Diagnosis + Fix 양쪽 성립. 모두 leakage-free 감사 통과.**
+- **Diagnosis(G3, honest inductive PCA): 단단.** 차원 매칭(50/100/190)+선형/비선형 probe+train-only PCA 전부에서 ROI가 site-leak↑(0.77~0.83) AND transfer↑(CDR 0.39~0.42, amy 0.69~0.71) vs CNN(site 0.64~0.70, CDR 0.29~0.31, amy 0.62~0.64). site-invariance ⊥ clinical-transferability.
+- **왜(G1):** e2e deep는 source cohort 암기(train 0.99/test 0.28) → 전이 실패.
+- **Fix(G5): anatomy-prediction pretraining = 최고 T1-only(0.349)**, 표준 deep(0.28~0.29) +0.06~0.07.
+- **anatomy-specific(G7 control): real 0.349 ≫ shuffled 0.250 ≈ random 0.271** → 이득은 *해부 내용* 때문(일반 pretrain 아님). "그냥 pretraining" 반박 차단.
+- **method가 hand-crafted 초과(G6): anatomy-pretrain feat + ROI-vol = 0.440 > ROI-vol 0.420**(양 seed 0.438/0.442) → deep가 anatomy에 보완적 texture 추가(이전 ROI+brain-age-CNN은 0.381로 해쳤음 — anatomy-pretrain이 deep를 transfer-robust 보완재로 전환).
+- **감사(code-auditor): label leakage 없음.** C1(캐시 정렬) 실측 일치+assert 추가, C2(transductive PCA) train-only로 수정(수치 거의 불변, 결론 견고).
+
+### 10.5 표준 표 (T1-only LOCO CDR corr, 4-fold cross-cohort)
+| 표현 | LOCO CDR | 추론 |
+|---|--:|---|
+| ROI-vol(hand-crafted) | 0.420 | FreeSurfer 필요 |
+| **combo: anat-pretrain + ROI-vol** | **0.440** | FreeSurfer+T1 |
+| **anat-pretrain(G5)** | **0.349** | **T1-only** |
+| frozen brain-age | 0.292 | T1-only |
+| e2e global(G1) | 0.276 | T1-only |
+| random-target pretrain(control) | 0.271 | T1-only |
+| distill aux(G4) | 0.260 | T1-only |
+| shuffled-anat pretrain(control) | 0.250 | T1-only |
+
+### 10.6 남은 보강 (논문 전)
+- multi-seed CI 전 headline(현 G6만 2seed) · DAMT(ACCV2024) 대조 baseline · 더 강한 backbone(사용자 리소스 가용)로 gain 확대 가능성 · amyloid 전이(ROI 0.705)도 동일 분석 확장.
+
+### 10.7 research-critic 검증 + REFRAME (2026-06-11) — **현 포지셔닝**
+**critic 평결: 현 "dissociation primary" 포지셔닝은 ACCV reject(MICCAI-better/workshop). 핵심 이유:**
+- **F1**: "hand-crafted>deep cross-cohort"은 radiomics folklore(Currin/PMC10606594) + **반대 논문 존재**(Lu et al./SciRep2022: 3D CNN>ROI on external NACC). 둘 다 미인용 → 최유력 reject.
+- **F2**: DAMT(ACCV2024)가 우리 메커니즘(anatomy/morphology/radiomics 예측 pretrain)을 이미 함; 우리는 strict subset. **DAMT/강한 SSL을 LOCO로 안 돌리면** fix도 dissociation 절반도 방어 불가(weak-baseline strawman).
+- **F3**: n=4, CI 없음. (→ stats_hard로 대응 완료)
+- **M1**: fix(0.349)<FreeSurfer(0.420). combo(0.440)는 FreeSurfer 입력 필요+고작 +0.02. "hand-crafted 이긴다" 주장 금지.
+- **M3(핵심)**: **debiasing 반증(site-invariance≠transferability, crossed-design D3)이 dissociation보다 더 novel** → 헤드라인 뒤집어야.
+
+**REFRAME (채택):**
+- **PRIMARY 주장**: *"site-invariance ⇏ cross-cohort clinical transferability"* — (a) debiasing이 전이 개선 못 함(D1b confounded + **D3 crossed-design**, confound 깨도 死) + (b) dissociation(anatomy가 site-bias↑인데 transfer↑)으로 경험적 반증. harmonization 통념 직접 반례.
+- **SUPPORTING**: dissociation(특히 **amyloid 4/4 견고**, stats_hard) · **G7 content-specificity**(real 0.349≫shuffled 0.25, vision-legible 최강 ablation).
+- **fix = existence proof**(method 주장 아님): anatomy-pretrain, 강한 SSL/DAMT 대비 위치 확인 중.
+
+**진행 중 보강(사용자 승인 "강한 baseline+반증 reframe+stats"):**
+- ✅ stats_hard: per-cohort CI+leave-one-cohort. **amyloid 4/4 ROI>CNN 견고**, CDR 3/4(ADNI 예외, CI 겹침).
+- 🔄 강한 SSL(SimCLR/ResNet18, ext 4664) LOCO — dissociation 생사 판정(ROI 따라잡으면 붕괴).
+- ⬜ DAMT 공개코드 재현(출판 필수) · Lu/Currin 인용·반박 · amyloid를 2nd axis로.
+- **honest 확률**: 현재 MICCAI>ACCV. 강한 SSL 생존+반증 reframe+DAMT면 ACCV 경합.

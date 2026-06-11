@@ -216,3 +216,48 @@ MSE 안정 하강: ep00 1.03 → ep10 0.55 → ep20 0.40 → … (random 1.0 대
 2. (EXP-004) gradient-reversal cohort-adversarial로 **cross-cohort 일반화 +0.09 mean-LOCO (검증됨)**.
 3. λ-sweep로 site==population의 **식별성 trade-off 곡선** 제시(λ=5 붕괴) — dossier ⭐audit과 결합.
 → "정확도 SOTA"가 아니라 "confounded regime에서 cross-cohort 일반화를 얻는 method + 그 한계의 정량화".
+
+---
+
+## EXP-005 (2026-06-11) — Task pivot: 구조MRI(T1+FLAIR)→amyloid, morphometry 넘기 시도
+**동기**: CN-vs-Dem은 morphometry 포화(LOCO 0.869)라 deep 틈 없음. amyloid는 morphometry 약함(LOCO 0.676) → deep texture 기회. PET 채널 입력제외(순환방지).
+**oracle**: fs_vol+PET-SUVR = 0.864(<0.869) → tabular PET도 직교신호 없음. fs_vol→amyloid LOCO=0.676(약함, headroom 있음).
+
+**source-only deep (morpho-distill init, T1+FLAIR, strict LOCO)**:
+| 방향 | source AUC | target AUC | morphometry |
+|---|---|---|---|
+| AJU→KDRC | 0.986(overfit) | **0.581** | 0.688 |
+| KDRC→AJU | 0.969 | **0.543** | 0.665 |
+→ ❌ deep source-overfit하나 cross-cohort 전이실패. **morphometry에 짐.**
+💡 **근본 통찰**: morphometry(FreeSurfer seg)는 scanner-불변→LOCO강. deep 무기(texture)는 scanner-의존→LOCO약. 이 비대칭이 "왜 LOCO에서 image<morphometry"의 기전. → 다음: ① adversarial UDA(타겟영상 정렬)로 cohort-texture 제거시 타겟↑? ② within-cohort(단일site)면 deep 이기나?
+
+---
+
+## EXP-006 (2026-06-11) — within-cohort amyloid (단일 site, deep 마지막 시도)
+**결과 (OOF 5-fold)**: AJU morph 0.691/deep 0.647/fusion 0.697 | KDRC morph 0.707/deep 0.625/fusion 0.701.
+→ ❌ 단일 site에서도 deep<morphometry, fusion 무이득. **Korean에서 deep>morphometry 지점 없음 (6실험 종결)**.
+
+## EXP-007 (2026-06-11) — 데이터 확장 결정 + 7-cohort baseline
+**진단**: Korean 1,408 한계는 ① N 과소 ② 2-cohort 식별성붕괴 ③ amyloid tracer 이질. 멀티모달 VLM 명분(text)은 이미 실패 → Korean 제약은 순수 핸디캡.
+**가용 자산**: canonical manifest 13,022×138, **final_tensor_path(T1 192³)·fs_vol 전 13k 100%**. 멀티모달(FLAIR/PET) 텐서는 Korean만(비-Korean 전처리=대량 GPU작업).
+**새 baseline (7-cohort Leave-One-Cohort-Out, morphometry)**:
+| task | LOCO AUC | n |
+|---|---|---|
+| CN-vs-Dementia | **0.883** | 8549 (포화, deep 어려움) |
+| amyloid positive | **~0.61** | AJU 0.606/NACC 0.614 (약함=deep 기회) |
+**계획**: Stage1=T1 96³(N4) 캐시 전체 → deep T1+cohort-adversarial → 7-site LOCO로 amyloid 0.61 도전. Stage2(조건부)=멀티모달 전처리. user 결정=확장+멀티모달 유지(멀티모달은 Stage2).
+
+---
+
+## EXP-009 (2026-06-11) — 모달리티 ablation: 멀티모달이 정말 T1-only보다 낮나 (측정)
+**동기**: "멀티모달<T1-only deep"은 추측이었음 → 같은 Korean split·LOCO로 직접 측정.
+**결과 (CN-vs-Dementia LOCO mean)**:
+| 입력 | AJU→KDRC | KDRC→AJU | mean |
+|---|---|---|---|
+| T1만 | 0.864 | 0.611 | **0.738** |
+| T1+FLAIR | 0.705 | 0.720 | 0.712 |
+| T1+FLAIR+PET | 0.678 | 0.641 | **0.660** |
+→ **모달 추가가 LOCO 단조 악화 (0.738→0.660).** 멀티모달<T1-only deep 측정 확정.
+**amyloid LOCO**: T1/T1+FLAIR 0.47(chance), +PET 0.905 — 단 **PET=amyloid 직접측정(순환)**, 구조 예측 아님.
+💡 **기전**: 치매신호=위축=T1에 이미 존재. FLAIR/PET는 새 질병신호 거의 0인데 각자 scanner/tracer confound(shortcut)를 추가 → 작은 N에서 학습 → cross-cohort 악화. "정보↑"는 추가모달이 신호일 때만 참; nuisance/confound면 해. 모달이 타깃 직접측정(PET→amyloid)일 때만 도움=순환.
+**모든 비순환 deep(0.66~0.74) < morphometry(0.87).** → reviewer가 원하는 핵심 ablation. modality-count vs LOCO 그림 1장.
