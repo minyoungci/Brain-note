@@ -199,3 +199,20 @@ MSE 안정 하강: ep00 1.03 → ep10 0.55 → ep20 0.40 → … (random 1.0 대
 
 **발견**: λ=1~2가 **mean LOCO 0.749→0.81 (+0.06)** — 특히 LOCO-aju 0.724→0.89(KDRC-학습 dx가 AJU로 전이). λ=5 붕괴 = 식별성 tension(과debiasing=biology 제거) 실증.
 **⚠️ 검증 진행중**: LOCO-aju train=KDRC 379로 작아 noise 가능 → λ∈{0,1} × seed{1,2,3} 재현으로 error bar 확인.
+
+**✅ EXP-004 검증 (3 seed, error bar)**:
+| λ | dx-random | cohort | LOCO-kdrc | LOCO-aju | mean-LOCO |
+|---|---|---|---|---|---|
+| 0.0 raw | 0.907±0.013 | 0.945±0.009 | 0.750±0.001 | 0.690±0.010 | 0.720 |
+| **1.0 adv** | 0.911±0.004 | 0.876±0.040 | 0.747±0.024 | **0.866±0.018** | **0.807** |
+
+**💡 검증된 결론 (성능 향상 확정)**: adversarial cohort-invariant morphometry distillation이 **cross-cohort(LOCO) 일반화를 개선** — LOCO-aju +0.18(error bar 비겹침), mean-LOCO +0.09, within-dist·random 불변. λ=5 붕괴는 식별성 한계(과debiasing=biology 손실).
+**비대칭 인사이트**: LOCO-aju(train KDRC 379 dementia편중→test AJU MCI편중)가 크게↑ = adversarial이 KDRC-특이 cohort 방향을 제거해 dx 경계가 AJU로 전이. LOCO-kdrc(train AJU 큰셋)는 이미 전이돼 불변.
+**한계(정직)**: cohort 0.945→0.876로 완전제거 아님(부분 debias인데도 LOCO↑). text/VLM 동질성은 별개 미해결(이건 image-side 기여).
+
+## 🎯 Track 01 novelty 종합 (EXP-002+004)
+**Morphometry-Distilled + Adversarially-Cohort-Invariant Pixel Encoder for small-N site==population medical imaging**:
+1. (EXP-002) 픽셀→fs_vol distill로 작은-N from-scratch 불안정 해결 + morphometry 강신호 증류.
+2. (EXP-004) gradient-reversal cohort-adversarial로 **cross-cohort 일반화 +0.09 mean-LOCO (검증됨)**.
+3. λ-sweep로 site==population의 **식별성 trade-off 곡선** 제시(λ=5 붕괴) — dossier ⭐audit과 결합.
+→ "정확도 SOTA"가 아니라 "confounded regime에서 cross-cohort 일반화를 얻는 method + 그 한계의 정량화".
