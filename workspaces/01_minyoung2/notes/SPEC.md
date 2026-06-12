@@ -67,7 +67,16 @@ within-cohort amyloid: overall은 AJU/KDRC서 imaging>COV이나 **CN-stratified(
 - **R2 ✅** `roitoken.py`: ROI-token transformer + masked-region SSL. pretrain(3180) recon L1 roi 0.467 / whole 0.716. 정상 학습.
 - **R3 ✅** downstream CDR-SB(frozen embed→Ridge): ROI-token AJU **0.478**/KDRC **0.415**/ADNI **0.533** > hand-crafted ROI(0.433/0.394/0.482) > covariate(0.05~0.19).
 - **R4 ✅ 핵심 ablation**: **ROI-token > whole-volume 전 코호트**(+0.10~0.15) → region-token이 이득 원인 **입증**.
-- **남은 것**: ① generic-SSL(Models Genesis/Swin-UNETR)·**DAMT** 직접 baseline ② multi-seed CI ③ SSL을 13K로 확장 ④ fine-tune ⑤ masked/contrastive 항 ablation ⑥ AD/age 보조 downstream.
+- **R5 ✅ 13K 확장 + multi-seed**(2026-06-11): SSL을 13,022(7코호트)로 pretrain. downstream 5-seed CDR corr: ROI-token AJU **0.521±0.006**/KDRC 0.400±0.027/ADNI **0.525±0.009** vs whole 0.420/0.336/0.452(ablation gap +0.06~0.10 ≫ std=유의) vs hand-crafted 0.433/0.394/0.482(AJU +0.088/ADNI +0.043/KDRC +0.006). 13K로 AJU +0.043 향상.
+- **R6 ✅ baseline 직접 비교**(matched-backbone, 13K, multi-seed): ROI-token이 **모든 baseline 능가** — vs DAMT-style(whole anatomy) +0.06~0.10, vs Models-Genesis(generic) +0.067~0.078, vs hand-crafted(AJU+0.088/ADNI+0.043/KDRC marginal), vs covariate 압도. 핵심: whole-vol선 anatomy≈generic → **ROI-tokenization이 이득 원인**(인과 분리).
+- **R7 ✅ ablation**(2026-06-11): ① **positional 필수** — no-pos시 CDR −0.05~−0.10(AJU 0.478→0.424, KDRC 0.415→0.336, ADNI 0.533→0.435) + recon 0.467→0.705 → 해부 *정체성*이 이득 원인(단순 pooling 아님), region-token 설계 정당화. ② **fine-tune < frozen-probe**(AJU 0.482/KDRC 0.374 < 0.521/0.400) → frozen SSL 표현이 더 강함, linear-probe를 main protocol로.
+- **R8 ✅ code-auditor 감사 + 수정**(2026-06-11) — **이전 R3/R5/R6/R7 transductive 수치 정정:**
+  - 감사 통과: CDR leakage 없음·probe 누수 없음·데이터정렬·roi_pool·SSL mask·비교공정 전부 정확.
+  - **C1 수정(transductive→inductive)**: downstream subject(모든 시점) 제외 재pretrain(13K→5956). **honest CDR: ROI-token AJU 0.471±0.018/KDRC 0.378±0.012/ADNI 0.492±0.001**(transductive 0.521/0.400/0.525서 하락).
+  - **C3 수정(no_pos 버그)**: downstream이 no_pos 미전달 → positional ablation 무효였음. 수정·동일 5-seed 재측정: with-pos 0.494/0.422/0.532 vs no-pos 0.423/0.336/0.434, **drop −0.07~−0.10 유의(positional 필수 *재검증*)**.
+  - **핵심 ablation 유지(inductive)**: ROI-token > whole +0.06~0.09 유의 → **region-token이 원인(견고)**.
+  - **주장 정정**: "모든 baseline 압도" → **"학습 SSL baseline(generic/whole-vol anatomy) 능가, hand-crafted와는 comparable"**(inductive vs hand-crafted: AJU +0.038/ADNI tie/KDRC −0.016).
+- **남은 것**: ① MG baseline도 inductive 재측정 ② masked/contrastive 항 ablation ③ AD/age 보조 task ④ KDRC 보강 ⑤ (optional) 실제 DAMT Swin ⑥ 논문 작성.
 
 ## 6. Must-beat baselines (scout, 우선순위)
 1. **covariate LR(age+APOE4+sex)** — 생사. 못 이기면 중단.
