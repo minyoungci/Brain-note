@@ -1,6 +1,16 @@
 # SPEC
 
-## ★ CURRENT DIRECTION (2026-06-11): E — Site-Population Separability Diagnostic
+## ★★ CONFIRMED DIRECTION (2026-06-13, lit-validated): Transferable scanner/population decomposition
+`experiments/PROPOSAL_technical.md` (+ `RETROSPECTIVE.md`). 문헌 검증 통과: deep-research(98 agents, ②③ survive) + G1(literature-scout, 핵심 method 미점령).
+- **기술 헤드라인**: 공개 traveling-subject(ON-Harmony/SRPBS)로 *순수 scanner 효과* 모델 학습 → *전이*해 우리 코호트의 cohort-distance를 **scanner vs population 성분으로 cross-sectional 분해** (Yamashita 2019의 TS-필수 분해를 전이로 해소 = novelty 핵심).
+- **② 법칙**: *분해된 population 잔차*가 deflation 예측 (관찰이 아니라 *분해*가 기여; Li 2022 cross-ethnicity와 차별).
+- **③ 예측타당성**: 사전 잔차 → 사후 ComBat disease-AUC 손실의 정량 예측력(r/AUC). (가장 약한 축 — 실증 필요.)
+- baseline: ComBat-Predict(HBM 2026)·Radua 2020·Yamashita 2019. venue NeuroImage/MELBA.
+- **다음 게이트**: G2(ON-Harmony/SRPBS DUA·다운로드 + IPMI/MICCAI 최신 정밀 재확인) → G3(scanner모델 전이 검증 R1) → 통과 시 본실험.
+- 자산: 우리 excess-alignment E-result(`separability_diagnostic/`)가 ②의 deflation 측정에 직접 재사용.
+
+---
+## (이전) E — Site-Population Separability Diagnostic
 foundation-adaptation(아래 Direction 2)은 research-critic 검증서 "novel core 얇음+메트릭 교란+mitigation 무효"로 NeuroImage급 미달 판정 → **E로 전환**.
 **E = harmonize 전에 site가 population과 분리 가능한지 측정하는 calibrated diagnostic.** `experiments/separability_diagnostic/STUDY_PROTOCOL_E.md`.
 - **검증된 메트릭 = excess subspace-alignment** ‖P_cohort·w_disease‖ − chance (dim-matched·chance-corrected). naive deflation은 calibration 실패(디코딩/차원 교란)→폐기.

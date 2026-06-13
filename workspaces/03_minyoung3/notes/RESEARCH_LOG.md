@@ -103,3 +103,41 @@ Findings: (1) loc-sup necessary for reliable grounding (no-sup weak + unstable, 
 (2) grounding costs nothing in answering; (3) weak emergent grounding without sup (x8) but unreliable.
 This axis (localize the evidence ROI under cross-cohort LOCO) is something morphometry CANNOT do
 -> NOT capped by the 0.91 accuracy ceiling. See ACCV/POSITIONING.md.
+
+## CIRCULARITY CONTROL (2026-06-13) — GROUNDING CLAIM REFUTED
+
+Reviewer-2 (research-critic) flagged the grounding result as a possible registration
+artifact: attention is supervised toward a FIXED population prior (2 maps only), evaluated
+vs the same FreeSurfer mask family on registered brains. Ran the decisive CPU control
+(scripts/control_circularity.py; saved test_attn.npz + saved prior; no retraining).
+
+PAIRED mass-in-ROI (same subject×question pairs), STATIC prior vs LEARNED loc-sup attn:
+- AJU   static 0.807 vs learned 0.790 (delta -0.016)
+- OASIS static 0.836 vs learned 0.830 (delta -0.006)
+- NACC  static 0.736 vs learned 0.748 (delta +0.012)
+=> learned attention does NOT beat a non-learned constant prior (within noise; worse on 2/3).
+
+Mechanism (AJU): cos(learned_attn, prior)=0.95-0.97 (it IS the prior); per-subject
+per_cell_std=0.0005 (nearly constant); 4-9 distinct peak cells over ~100 subjects.
+
+CONSEQUENCE: C2 (grounding) as written is WITHDRAWN. The "supervised 0.78 vs no-sup 0.20 vs
+Grad-CAM 0.14" table omits the dominant baseline (static prior 0.80); cross-cohort "x27 flat"
+is the signature of a constant prior on registered brains. C1 (benchmark) unaffected; answer-
+accuracy/efficiency axis pending its own re-audit. See ACCV/results/CONTROL_FINDING.md.
+
+## RESOLUTION SWEEP (2026-06-13) — finer-res grounding salvage REFUTED
+
+Space is conformed NATIVE (t1w_brain_1mm_RAS_192x224x192, identical affine all subjects),
+NOT template-registered. But static-prior mass-in-ROI stays high at every grid:
+  hippo 0.80/0.84/0.73 | mtl 0.92/0.89/0.80 | vent 0.84/0.84/0.74 | ratio 0.88/0.85/0.76
+  (grids 8^3/16^3/32^3 = 24/12/6 mm cells)
+Per-subject ROI centroid scatter = 3.3-3.9 mm (smaller than the structures). Brain-extraction
++ fixed-FOV conform co-locates deep structures to a few mm => a CONSTANT wins spatial grounding
+at ALL resolutions. Finer-resolution grounding has no image-conditioned headroom. Script:
+scripts/resolution_sweep.py; raw ACCV/results/CONTROL_resolution_sweep.txt.
+
+ROOT CAUSE (generalized): every supervision signal here is FreeSurfer-derived (answer labels =
+threshold(morphometry); grounding GT = FS masks) AND anatomy is spatially trivial after conform.
+=> accuracy axis = tool mimicry (oracle-bounded); grounding axis = constant-prior trivial.
+No top-tier novelty in THIS task/data. Novelty needs a non-FreeSurfer label source (clinical
+outcome/genetics, currently data-starved) or a different task. See report.
