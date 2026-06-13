@@ -2,6 +2,13 @@
 
 > 현재 상태·가설·결과를 여기에 누적. 핸드오프 시 이 파일로 상태 전달. 최신이 위.
 
+## 2026-06-11 — P2 진단: 이미지→FastSurfer 부피 재현 (b vs c 판별)
+- Stage-1 재해석: image<morph가 (b)천장 증명 아님(약백본/2mm/site-shortcut 혼재). → 진단 실행(image 2mm→fs_vol 회귀, R²).
+- **결과(held-out R², subject-disjoint):** subcortical/ventricle **mean 0.67**(ventricle 0.91/0.94·hippo 0.68/0.54·amyg 0.63/0.72) — **모델 정상, 부피 추출 가능**.
+  cortical ribbon **mean −0.50**(entorhinal/fusiform/precuneus 음수) — **2mm가 thin cortex 못 잡음 = 해상도 병목**. (자동 verdict "못뽑음"은 mean이 극단음수에 끌린 오판; median 0.41 + 패턴이 진실.)
+- **판정:** (b)도 (c)도 아님 → **모델은 subcortical 부피 OK, cortical은 1mm 필요(해상도)**. Stage-1 amyloid 0.63은 ①2mm로 cortical 소실 ②site-shortcut(0.81) 핸디캡. **Min 지적(2mm)이 정확.**
+- **다음:** disease (a)/(b) 검정을 **1mm + site-invariance**로 공정하게 재실행. 산출=`results/P2/diag_morph_regress.{json,log}`·`diag_morph_regress_perROI.png`·`diag_morph_encoder.pt`.
+
 ## 2026-06-11 — P2 진입: amyloid texture/biomarker CPU + GPU Stage-0 smoke
 - **biomarker (amyloid, n~750):** morph+age 0.755 · +regional texture +0.002 · +global texture −0.003 (이미지 texture 무) ·
   **+APOE4 +0.023** · +APOE+cognition +0.026. → amyloid 레버는 이미지 아닌 **APOE/임상 biomarker**. 바 상향: morph+APOE ~0.78.

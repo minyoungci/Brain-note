@@ -48,5 +48,36 @@ framing (MICCAI/NeuroImage), reversing Couvy-Duchesne's "stacking>averaging".
 Directories with a genuinely novel / strong verified result are marked with ⭐ in
 their name. This experiment is unmarked until a result is verified novel.
 
-## Results
-(pending — filled after waves complete + audit + fusion_lab Mode B)
+## Results — λ=0 (vanilla deep), 5 seed × 18 ep, 96³, 6-cohort LOCO
+Analysis: `analysis/fusion_lab_l0_96.csv` / `.log`. deep_std(test) mean = 2.09yr.
+
+### Sanity (vs morphometry): mean fusion reproduces the prior win
+- mean(arith) vs morph: mean-LOCO 4.805→4.479, overall 4.523→4.201, p=1.4e-50,
+  5 WIN / 1 tie / 0 loss. (Consistent with EXP-011e at 96³.)
+
+### Novelty bar (vs simple mean): NO combiner beats the mean — clean NEGATIVE
+| combiner | overall Δ vs mean | overall p | per-cohort |
+|---|---|---|---|
+| precision_subj (uncertainty-weighted, **no label fit**) | −0.016 | **0.93** | 0 win / 5 tie / 1 loss |
+| geometric / harmonic (parameter-free) | ≈−0.001 | — | ≈ mean (noise) |
+| BLUE_global (inverse-variance) | −0.207 | 1.3e-21 | 0 win / 2 tie / **4 loss** |
+| ridge_stack_nn | −0.109 | 7.2e-5 | 3 win / 3 loss (A4 −0.75 = overfit) |
+| age_cond_BLUE | −0.207 | 1.5e-21 | **4 loss** |
+| biascorr_mean | −1.520 | 3.1e-185 | catastrophic loss |
+
+**Conclusion (honest):** The cross-cohort fusion gain is **pure ensemble variance
+reduction**, not a learnable/adaptive combiner. Even the unbiased adaptive combiner
+(precision_subj, no label fit) is statistically indistinguishable from the simple
+mean. Every label-fitted/adaptive combiner OVERFITS the source cohorts and loses
+under LOCO. This is a NEGATIVE for method-novelty (the "uncertainty-weighted
+fusion" hook is dead), but a real empirical fact: under domain shift, the within-
+cohort wisdom "stacking > averaging" (Couvy-Duchesne) REVERSES.
+
+**Caveats (no overselling):** (1) fitted combiners carry the in-sample-train
+handicap (audit Q3) — their losses are partly self-inflicted; the decisive clean
+evidence is precision_subj's TIE. (2) cudnn nondeterminism in deep_std (audit H-1)
+— exploration-grade, not reproducible-grade. (3) NOT yet repeated with OOF train
+preds for the fitted combiners.
+
+### Verdict for this experiment: ❌ no method novelty. → pivot (see below).
+λ=1 (GRL ablation) wave running; biomarker-gap direction scoped separately.

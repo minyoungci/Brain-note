@@ -358,3 +358,20 @@ deep이 5-seed 앙상블로 강해지자(A4 deep 3.24<morph) 변형 차이가 **
 **왜 단순평균 채택**: 144³에선 deep 단독(4.247)·meta-LR(4.233)이 mean-LOCO 0.05yr 더 낮으나 각각 A4/ADNI를 tie로 남김. 단순평균만 **6/6 전승 + overall p=8e-98**로 비교 불가하게 강건. 튜닝 파라미터 0개.
 **3중 확증**: ① 96³ fusion(저해상도, deep이 morph와 비기는 조건)도 mean으로 4승2무0패 p=1.4e-42 ② 144³ deep 단독도 morph 압도(4.25<4.81) ③ meta-LR fragility(5-seed서 A4 유의 LOSS) → 단순평균이 정답. **모든 경로가 동일 결론.**
 **상태**: 두 백그라운드 실험(96³ 5-seed GPU5, 144³ capstone GPU2) 모두 완료. 다음 = ACCV/RESULTS.md를 이 헤드라인으로 재작성 + per-cohort 그림(144³ mean fusion 6/6) + modality-ablation 그림(EXP-009).
+
+---
+
+## EXP-012 (2026-06-13) — combiner search: 단순평균을 넘는 fusion 함수 탐색 → **clean NEGATIVE**
+**동기**: 단순평균은 method novelty 0(Mouches 2022·Lombardi 2021 기출판). literature-scout 확인 → 유일한 method hook = "label-fit 없이 adaptive한 combiner가 단순평균을 leakage-safe하게 이긴다". 이를 사전등록 함수族으로 검증. **결과·코드 `experiments/2026-06-13_combiner_search/`**.
+**세팅**: 96³ 5-seed×18ep rich dump(per-seed deep + morph bootstrap std + train/test preds), fold별 GPU 병렬. `fusion_lab.py` Mode B — 모든 fitted 파라미터는 fold 내 train만, held-out test 평가. **code-auditor 독립 감사 통과(leakage 없음)** + 결함 5건(C-4 위치매칭·C-3 미초기화·C-5 다중비교·deep_std·merge중복) 수정.
+**결과 (vs 단순평균 = novelty bar, 6-cohort LOCO)**:
+| combiner | overall Δ vs mean | p | 판정 |
+|---|---|---|---|
+| **precision_subj** (불확실성 가중, **label-fit 0**) | −0.016 | **0.93** | 0승5무1패 = **무승부** |
+| geometric/harmonic (param-free) | ≈0 | — | ≈mean (노이즈) |
+| BLUE_global·age_cond (inverse-var) | −0.207 | 1e-21 | **4패** |
+| ridge_stack_nn | −0.109 | 7e-5 | 3승3패(A4 −0.75=과적합) |
+| biascorr_mean | −1.52 | 3e-185 | 참패 |
+**결론(정직)**: **cross-cohort fusion 이득 = 순수 ensemble 분산감소이지 학습/적응 combiner가 아니다.** 핸디캡 없는 무편향 combiner(precision_subj)조차 단순평균과 통계적 동일(p=0.93). 모든 적응형은 source 코호트 과적합으로 LOCO서 패. **method novelty 사망.** 단 *새 사실*: domain shift(LOCO)에서 Couvy-Duchesne "stacking>averaging" 통념이 **역전**(benchmark/empirical novelty, ACCV-method 아님 → MICCAI/NeuroImage 적합).
+**caveat(과대포장 방지)**: fitted combiner 패배엔 in-sample-train 핸디캡 섞임 → precision_subj 무승부가 결정적 증거. cudnn 비결정성·OOF 미적용은 탐색용 한계(`AUDIT.md`).
+**다음**: λ=1(GRL) ablation 진행 중 + **BAG-biomarker pivot**(EXP-013) — fused-BAG가 단일 BAG보다 cross-cohort 임상예측 우월한지(literature 미개척 gap).

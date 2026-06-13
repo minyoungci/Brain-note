@@ -1,6 +1,11 @@
 # SPEC
 
-## ★★ CONFIRMED DIRECTION (2026-06-13, lit-validated): Transferable scanner/population decomposition
+## ❌ 20260613 scanner/population decomposition — VERIFIED NEGATIVE (no ⭐)
+E1: align(PRE)→ComBat deflation(POST) rho=+0.90 *겉보기*. → code-auditor가 disease-imbalance confound 지적 → **E2(disease-matched, leakage 수정): rho 붕괴(+0.90→−0.20, AJU제외 −0.14), cross-ancestry deflation +0.05→−0.001=same-pop.** = **E1은 disease-prevalence imbalance artifact. ②③ FALSE in our data → 분해 방향 기각.**
+**genuine new fact**: 겉보기 cohort-disease 얽힘·ComBat deflation은 전부 disease-prevalence 불균형 탓(scanner/ancestry 아님); disease-matched면 ComBat은 cross-ancestry서도 신호-중립. (단 "confound 통제" 일반원칙의 특수사례, novelty 제한적.) 기록: `experiments/20260613_scanner_pop_decomp/reports/SUMMARY.md`.
+
+---
+## (기각됨) CONFIRMED DIRECTION (2026-06-13, lit-validated): Transferable scanner/population decomposition
 `experiments/PROPOSAL_technical.md` (+ `RETROSPECTIVE.md`). 문헌 검증 통과: deep-research(98 agents, ②③ survive) + G1(literature-scout, 핵심 method 미점령).
 - **기술 헤드라인**: 공개 traveling-subject(ON-Harmony/SRPBS)로 *순수 scanner 효과* 모델 학습 → *전이*해 우리 코호트의 cohort-distance를 **scanner vs population 성분으로 cross-sectional 분해** (Yamashita 2019의 TS-필수 분해를 전이로 해소 = novelty 핵심).
 - **② 법칙**: *분해된 population 잔차*가 deflation 예측 (관찰이 아니라 *분해*가 기여; Li 2022 cross-ethnicity와 차별).
