@@ -1,98 +1,98 @@
-# minyoung3 — 3D 뇌 MRI ROI-grounded VQA와 질문조건부 라우팅 (Q-ROUTE)
+# minyoung3 — 질문-조건부 ROI 라우팅 기반 3D 뇌 MRI VQA (Q-ROUTE) 연구 워크스페이스
 
 ## 한눈에
 
-- 이 워크스페이스는 한 줄로 "**이미지+질문 ID만 입력**하는 shortcut-내성 3D T1w MRI ROI-근거 VQA(4개 해부 질문)를 만들고, 어떤 형태의 ROI 조건화가 실제로 도움이 되는지를 LOCO·다중시드로 가린다"는 방향으로 수렴했다 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md`).
-- 처음 선언했던 "2.5D 마스킹 center-slice SSL + ROI 보조경로 → CDR 분류" 계획은 실험을 거치며 두 번 전환됐다: 2.5D→3D, 그리고 질병분류→VQA 과제/벤치마크. `README.md`와 `docs/context/WORKSPACE_STATE.md`의 2.5D·F05 ROI 프레이밍은 이 전환 이전의 오래된 문서로, 현재 방향과 불일치한다 (출처: `reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md`, `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md`).
-- 지금 확정된 사실은 "**3D가 2.5D보다 미세 내측측두 질문에서 크게 우월**"(2.5D pooled AUC 0.732 vs 3D 0.835~0.912)과 "**고해상도 전용 ROI crop이 도움**"이라는 두 가지다. 나머지 다수 방법(DSBN·2D SSL·BN-TTA·style consistency·스칼라 오버레이 등)은 baseline을 부트스트랩으로 못 이긴 음성 결과로 정리됐다 (출처: `reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md`, `reports/F04_ACTIVE_ARTIFACT_REGISTRY.md`).
-- 현재 잠정 리드는 "**질문→해부 ROI 전문가로의 학습형 라우터**(anatomy-prior, λ=0.3)"이며 fine-tuned 3D-SSL base에서 macro AUC 0.882로 concat baseline을 +0.070 앞선다 — 단, 작성 중 초안이고 단일 SSL 시드·3개 코호트 한정이며 초안 자체에 내부 모순이 있다(아래 [VERIFY]) (출처: `reports/F04_QROUTE_ACCV_DRAFT.md`).
-- 목표 발표처는 ACCV(tier-2 CV)로, SOTA 질병분류가 아니라 "VQA 과제·벤치마크 + 어떤 조건화가 전이되는가"를 기여로 잡는다 (출처: `reports/F04_QROUTE_ACCV_PAPER_PLAN.md`).
+- **무엇을:** T1w 뇌 MRI에서 임상·코호트·ROI 메타데이터를 전부 배제하고 "이미지 텐서 + 질문 ID"만으로 해부학적 위축 증거(해마 부피, 내측측두엽 위축, 뇌실 확장, 해마-뇌실 비율)를 답하는 **image-only ROI-grounded 3D VQA** 벤치마크와 방법을 만든다 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md).
+- **왜:** 임상 컨텍스트만으로는 AUC가 우연 수준(0.50–0.55)이 되도록 매칭한 shortcut-통제 벤치마크를 깔고, "어떤 형태의 ROI 조건화가 코호트 간 LOCO에서 실제로 전이되는가"를 분리 검증하기 위함 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md).
+- **지금 어디까지:** 2026-06-10 기준 ACCV 타깃 논문 초안 단계. 핵심 주장은 "고해상도 전용 ROI expert로의 질문-조건부 라우팅"이 단일뷰·다중crop concat보다 낫다는 것이나, 이 우위는 **표현(인코더) 품질에 강하게 종속**되며 백본을 키우면 사라진다 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md).
+- **주의:** 루트의 README.md / docs/STUDY_DECISION.md는 "2.5D + ROI SSL"을 단일 방향으로 못박은 2026-05-27 문서로, 실제 진행된 3D VQA·라우팅 방향과 더 이상 일치하지 않는다(아래 "폐기·전환" 참조).
 
 ## 배경·문제 정의
 
-워크스페이스의 명시적 경계는 보수적이다. `README.md`와 `docs/STUDY_DECISION.md`는 "재현 손실이 임상 표현 품질을 증명한다", "Visual-QC PASS가 ROI 해부학적 완벽성을 증명한다", "MRI가 PET amyloid를 robust하게 예측한다", "3D 볼륨 분류기" 같은 헤드라인 주장을 **금지**한다 (출처: `docs/STUDY_DECISION.md`, `README.md`). 2026-05-27에 과거 PET/종단/3D voxel 방향은 코드·결과·노트에서 삭제됐다. README와 WORKSPACE_STATE.md는 삭제 전 인벤토리가 `Official/potato/Reset_Audits/`에 보존됐다고 명시하나, 해당 디렉토리는 디스크에서 확인되지 않는다 [근거부족] (출처: `README.md`, `docs/context/WORKSPACE_STATE.md`).
+이 워크스페이스의 **문서상 선언(README)**과 **실제 실험 궤적(Archive/reports + results)** 사이에는 분명한 간극이 있다. 두 층위를 분리해 읽어야 한다.
 
-핵심 문제는 두 단계로 좁혀졌다. (1) T1w MRI에서 **shortcut에 강인한** 해부 근거 추출 — 임상/코호트/CDR/나이/성별/ROI 값을 입력에서 모두 제외하고 이미지+질문 ID만으로 답하게 한다. (2) 그 위에서 **어떤 ROI 조건화가 코호트 간 전이되는가**를 LOCO로 가린다 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md`). 외부 모델링 기준선이 엄격하게 걸려 있다: 형태계측(morphometry)+단순정규화의 CN/AD LOCO RF 평균 AUC 약 0.91(train-z 0.910, ICV 0.909)이 "이미지 방법이 질병분류 헤드라인을 주장하려면 넘어야 할 바"로 설정돼, 이미지 방법을 "2.5D보다 낫다"만으로 승격하지 못하게 한다 (출처: `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md`). 이 바를 못 넘는다는 판단이 질병분류에서 VQA 과제 설계로의 전환을 강제했다.
+**문서상 선언(2026-05-27):** 워크스페이스를 "2.5D axial T1w 마스킹 center-slice 표현학습 + ROI 보조경로" 단일 논문 방향으로 한정하고, 과거 3D voxel/PET-transfer 방향은 코드·결과·노트에서 삭제, 사전 인벤토리는 `Official/potato/Reset_Audits/`에 보존한다고 명시 (출처: README.md, docs/PATH_CONVENTIONS.md). 금지 헤드라인으로 "MRI→PET amyloid 직접예측", "full 3D volumetric classifier", "Visual-QC PASS = 해부학적 완벽 정합 주장"을 못박았다 (출처: docs/STUDY_DECISION.md).
+
+**실제 진행 방향:** 2.5D 표현학습은 **성능 병목으로 조기 강등**되고, 연구는 (1) 3D ROI-grounded VQID 벤치마크, (2) 질문-조건부 ROI 라우팅 방법(Q-ROUTE), (3) 표현 품질·백본 스케일 분석으로 재편되었다 (출처: Archive/reports/F04_QROUTE_ACCV_PAPER_PLAN.md, Archive/reports/F04_QROUTE_ACCV_DRAFT.md).
+
+문제 정의의 핵심은 "shortcut 저항성"이다. 모델 입력은 **3D 이미지 텐서 + 질문 ID뿐**이며, consortium/진단/CDR/나이/성별/ROI 수치/percentile은 입력에서 제외된다. `cohort_dx_cdr_age_sex` 매칭 하에서 임상 컨텍스트만으로는 AUC ≈ 우연(0.50–0.55), ROI-oracle은 1.0이 되도록 설계해 "임상 메타로 푸는 지름길"을 차단했다 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md). 질문은 4개(저해마부피 / MTL 위축 / 뇌실 확장 / 저 해마-뇌실 비율), 1:1 균형 (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md).
 
 ## 데이터
 
-- **라벨 권위**: `/home/vlm/data/preprocessed_official/official_manifest.csv`(읽기 전용)을 CDR global/CDR-SB/provenance의 단일 출처로 사용 (출처: `docs/context/WORKSPACE_STATE.md`). `/home/vlm/data`는 쓰기 금지 canonical 데이터.
-- **벤치마크 규모**: official N4 manifest 13,022 세션 / 7,231 피험자(전부 QC PASS)에서 파생한 matched ROI-VQA 벤치마크 19,236 QA행 / 9,278 세션 / 5,601 피험자, 4개 세션 질문, 1:1 균형 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md`). 별개로 source-linked guideline QA 데이터셋은 96,376행 규모이며 임계값은 `threshold_validity = research_proxy_not_clinical`로 표시된 train-reference 백분위 프록시다(임상 검증 임계값 아님) (출처: `reports/F04_GUIDELINE_GROUNDED_QA_EVIDENCE.md`).
-- **4개 질문**: 낮은 해마 부피 / 내측측두엽(MTL) 위축 / 뇌실 확장 / 낮은 해마-뇌실 비율 (출처: `reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md`). 표준화/진단/amyloid·tau/치료권고 질문은 명시적으로 금지 (출처: `reports/F04_GUIDELINE_GROUNDED_QA_EVIDENCE.md`).
-- **코호트 / 프로토콜**: AJU·OASIS·NACC·ADNI·A4·AIBL·KDRC가 등장하며 평가는 **subject-level leave-one-cohort-out(LOCO)**. AJU LOCO 테스트는 340 QA행 / 124 피험자, subject·session 누출 0 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md`). 현재 held-out 완료는 AJU/OASIS/NACC, ADNI/A4/AIBL/KDRC는 미실시 (출처: 동일 §6).
-- **3D 전문가 캐시**(전부 100% 커버리지): global 64³, bilateral MTL crop 80³, ROI-union(MTL+뇌실) 80³ (출처: `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md`).
-- **shortcut 통제**: `cohort_dx_cdr_age_sex` 매칭 하에서 임상-맥락만으로의 AUC가 우연(0.50–0.55) 수준이고 ROI-oracle은 1.0 — 즉 라벨이 이미지 근거를 강제한다 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md`).
+- **라벨 권위:** `/home/vlm/data/preprocessed_official/official_manifest.csv`를 CDR global/CDR-SB/source provenance의 단일 권위로 사용 (출처: docs/context/WORKSPACE_STATE.md). `/home/vlm/data`는 읽기 전용 canonical 데이터로 못박음 (출처: docs/PATH_CONVENTIONS.md).
+- **벤치마크 규모(최신 초안 기준):** official N4 manifest 13,022 sessions / 7,231 subjects(전부 QC PASS)에서 매칭 ROI-VQA 벤치마크 19,236 QA rows / 9,278 sessions / 5,601 subjects, 1:1 균형, train-only normative reference + percentile-cutoff 라벨 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md).
+- **LOCO 프로토콜:** AJU leave-one-cohort-out — train/val에서 AJU 제외, test = AJU 340 rows / 124 subjects, subject+session 누수 0. 1차 지표는 **macro AUC**(질문별 AUC 평균); pooled AUC는 4개 이질적 질문이 섞여 epoch 간 불안정해 부차 지표로 강등 (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md).
+- **Expert 캐시(100% QA 커버리지):** global 64³, bilateral MTL crop 80³, ROI-union(MTL+ventricle) 80³ (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md).
+- **외부 모델링 bar:** 같은 데이터 계열의 형태계측(morphometry+simple-norm) CN/AD LOCO RF AUC가 train-z 0.910 / ICV 0.909로 측정되어 "이미지 방법은 fixed 2.5D를 이겼다는 것만으로는 승격 불가, 0.91 형태계측 bar에 근접/초과하거나 다른 기여(VQA 과제설계)로 프레이밍해야 한다"는 hard reference로 설정됨 (출처: Archive/reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md).
+
+벤치마크 규모는 문서 간 차이가 있다. 스파이크 노트의 LOCO split은 train/val/test = 11,528 / 2,454 / 340(124 AJU subjects)으로, 초안의 전체 19,236행과 다르다 — 스파이크는 부분집합 기반 (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md vs F04_QROUTE_ACCV_DRAFT.md). [VERIFY] 두 수치의 정확한 포함/제외 기준 차이는 매니페스트 원본 미열람으로 미확인.
 
 ## 접근·방법
 
-모든 변형은 view당 동일한 소형 3D conv encoder(Conv3d×4)와 공유 answer head를 쓰고, **ROI 정보를 어떻게 조건화하는가만** 다르다 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md` §3).
+조건화 변형들은 동일한 소형 3D conv 인코더(Conv3d×4, view별)와 공유 answer head를 쓰고 **ROI 정보를 어떻게 조건화하는지만** 다르다 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md):
 
-- **B1 single-view**: global + MTL pooled late-fusion.
-- **B2 multi-crop concat**(앵커): global + MTL + ROI-union pooled concat, 라우팅 없음.
-- **B_loc localization**: 질문조건부 soft 3D attention(8³ global grid), 인구 ROI-occupancy prior(등록된 FreeSurfer mask, train-only)로 약지도. 테스트 시 attention은 완전 학습.
-- **B2rel relational**: hippo(MTL)·ventricle(ROI) 전문가에 대한 학습형 관계 임베딩(비율 질문 가설).
-- **Routing(oracle/learned)**: 질문 ID가 해부적으로 관련된 고해상도 ROI 전문가로 라우팅(해마/MTL→MTL crop, 비율/뇌실→ROI-union). 라우팅된 근거는 concat에 residual로 더해진다. 게이트가 허용 입력인 질문 ID만의 결정적 함수이므로 누출이 아니다 (출처: `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md`).
-- **Encoder 레짐**: from-scratch / frozen-contrastive(SimCLR, LOCO-safe, AJU 제외) / contrastive-init fine-tuned. 이 레짐 축이 결과 해석의 핵심이다(아래 representation-gating).
+- **B1 single-view fusion:** global + MTL pooled late fusion.
+- **B2 multi-crop concat:** global + MTL + ROI-union pooled concat(라우팅 없음) — 핵심 anchor.
+- **B_loc localization:** 질문-조건부 soft 3D attention(global feature map 8³ 그리드), FreeSurfer ROI-occupancy prior로 약지도(λ). test 시 attention은 완전히 학습됨(prior 입력 없음).
+- **B2rel relational:** hippo(MTL)·ventricle(ROI) expert 위 학습된 관계 임베딩(비율 질문 동기).
+- **Routing(oracle, hard):** 질문 ID가 결정적으로 해당 해부 expert로 라우팅(hippo/MTL→MTL crop, ratio/vent→ROI-union), 라우팅된 증거를 concat에 residual로 더함. 질문 ID는 허용 입력이므로 누수가 아님 (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md).
+- **Learned router(anatomy-prior):** 학습 게이트 + 약한 anatomy-prior CE(λ=0.3) — 초안이 내세우는 최종 방법.
+- **인코더 레짐:** from-scratch / frozen-contrastive(SimCLR, LOCO-safe) / contrastive-init fine-tuned. SSL은 held-out 코호트를 SSL·downstream·val 전부에서 제외 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md).
 
-평가는 macro AUC(질문별 평균)를 1차 지표로 쓴다 — pooled AUC는 4개 이질 질문을 섞어 epoch마다 불안정하기 때문 (출처: `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md`). 유의성은 subject-level 부트스트랩.
+운영 규율은 강하게 문서화돼 있다: slab-row 랜덤 split 금지, subject/session 누수 0, reconstruction loss로 임상 가치 주장 금지, 새 adapter/loss는 cheap gate 통과 후에만 스케일, run 디렉토리마다 immutable config·manifest hash·command·checkpoint·metrics·RUN_NOTE 보존 (출처: docs/F04_F05_ARTIFACT_AND_AGENT_WORKFLOW.md, docs/plans/2026-05-27_F04_F05_auto_research_master_plan.md).
 
 ## 현재 상태와 결과
 
-**✅ 확정 — 3D ≫ 2.5D (미세 해부 질문)**
-같은 matched 벤치마크·동일 금지입력 정책에서, 단일 시드 진단(2026-06-03): 2.5D pooled AUC 0.732 → global 3D 0.835 → fixed MTL-crop 3D pooled 0.881(평균 질문 AUC 0.903) → pretrained frozen multi-view 3D pooled 0.912(bacc 0.824). MTL-crop은 해마/MTL 질문에서 특히 강하고(MTL 0.633→0.878, 해마 0.658→0.866), frozen-fusion은 3시드에서 pooled AUC 0.9113±0.0006로 안정적이며, MTL feature 제거 시 해마/MTL AUC가 −0.591/−0.558 붕괴해 해부적 라우팅을 지지한다 (출처: `reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md`). 주요 코호트 LOCO도 in-split과 근접(ADNI 0.922 vs 0.918, A4 0.939 vs 0.944, NACC 0.909 vs 0.903, OASIS 0.920 vs 0.924, AJU 0.848 vs 0.851)해 단순 코호트 암기 설명을 약화시킨다 (출처: 동일).
+**확정 ✅** (여러 문서에서 일관되게 재현된 사실)
 
-**✅ 확정 — 고해상도 전용 ROI crop이 도움 (조건화의 실효 성분)**
-from-scratch 3시드에서 ROI-union 80³ crop 전문가 추가만으로 B1 0.766 → B2 약 0.815(약 +0.05 macro). 라우팅 deflation 이후에도 이 효과는 "robust한 양성 발견"으로 남았다 (출처: `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md` §Stage 2).
+- **2.5D는 fine 해부 증거에서 병목.** 동일 shortcut-통제 벤치마크에서 2.5D pooled AUC 0.732 vs global 3D 0.835 vs fixed MTL-crop 3D pooled 0.881 vs pretrained frozen multi-view pooled 0.912. 특히 해마(0.658→0.866)·MTL(0.633→0.878)에서 3D crop이 급격히 개선 (출처: Archive/reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md). frozen-fusion pooled AUC는 3 seeds에서 mean 0.9113 / std 0.0006로 안정 (출처: 동 파일).
+- **고해상도 전용 ROI crop 추가가 견고한 양의 효과.** B1 0.766 → B2 ~0.815(약 +0.05 macro). 라우팅 우위가 무너진 뒤에도 이 효과는 "토대"로 남음 (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md).
+- **조건화 이득은 표현 품질에 종속(representation-gating).** from-scratch(노이즈 바닥) / frozen-contrastive(전부 ~0.73대 붕괴, 실측값 B1 0.736·B2 0.737·oracle 0.727) / fine-tuned에서만 라우팅 우위가 유의해짐. SimCLR augmentation(scale ±10%, cutout 18%)이 위축 단서에 대한 불변성을 학습시켜 frozen feature가 위축에 부분적으로 둔감 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md §4.3).
 
-**❌ 반증/음성 — 라우팅 단일시드 우위는 재현 실패, 다수 표현·정규화 기법은 baseline 미달**
-- Stage-1 단일시드의 oracle routing +0.038(macro 0.859)는 **재현 실패**. macro 선택으로 같은 시드를 다시 보면 0.823이고, 3시드 평균 oracle 우위는 +0.019, 부트스트랩 유의는 3시드 중 1시드뿐. 라우팅의 robust한 효과는 평균 정확도가 아니라 분산 감소(oracle std 0.008 vs B2 0.020)로 재해석됐다 (출처: `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md`).
-- 외부 형태계측 바(0.91) 미달 및 primary 3D 대비 부트스트랩 실패로 정리된 음성 시도들: style consistency+boundary rank(pooled AUC 0.853), DSBN vendor/vendor+field(pooled AUC 0.848/0.820, primary 대비 부트스트랩 유의하게 나쁨), DINOv2 2D SSL shallow probe(AJU macro 0.616, MTL 0.366), BN-TTA(AUC·far-boundary 개선 없음) (출처: `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md`).
-- 뇌실 단일-ROI 라인의 다수 스칼라 오버레이/브리지/신뢰도 게이트/보정 시도는 대부분 `ACTIVE_NEGATIVE`로, validation에서 고른 정책이 AJU 테스트에서 no-op이 되거나 재발 위양성(`AJU:ABD-AJ-0089`)을 못 막는 패턴이 반복됐다 (출처: `reports/F04_ACTIVE_ARTIFACT_REGISTRY.md`).
-- B_loc(soft localization)·B2rel(relational)도 fine-tuned base에서 single-view B1(0.837)을 못 넘어 음성 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md` §4.4).
+**잠정 🟡** (최신 초안 수준 주장, run 원본 artifact는 미열람)
 
-**🟡 잠정 — fine-tuned base에서 학습형 anatomy-prior 라우터가 현재 리드**
-fine-tuned 3D-SSL base, AJU LOCO, 3시드 macro AUC: B1 0.837±0.009, B2 0.812±0.032, B_loc 0.827±0.010, B2rel 0.832±0.004, oracle(hard) 0.871±0.014, **learned router(λ=0.3) 0.882±0.012**(B1 대비 +0.045, B2 대비 +0.070, 모든 시드 양성, 모든 질문 개선: MTL +0.120, 해마 +0.095). 학습 게이트가 올바른 해부 라우팅으로 수렴(질문별 게이트 질량 >0.999)해 "수작업 라우팅" 반론을 제거한다고 주장 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md` §4.1).
-다중코호트 LOCO(각 코호트를 SSL 포함 전 단계에서 제외)에서 learned router는 AJU/OASIS/NACC 모두에서 B2를 모든 시드에서 이기고(부트스트랩 95% CI가 6셀 중 5셀에서 엄격히 양수; NACC만 경계 P=0.965) (출처: 동일 §4.2).
-**representation-gating**(왜 base가 중요한가): from-scratch는 노이즈 바닥(std 0.02–0.03)이 모듈 효과보다 커서 분리 불가, frozen-contrastive는 모두 ~0.73으로 붕괴(SimCLR scale±10%/cutout 18% 증강이 위축 단서를 지움), fine-tuned에서만 라우팅 우위가 유의해진다 (출처: 동일 §4.3).
+- **Fine-tuned 3D-SSL base에서 라우팅이 baseline 초과(초안 메인 표).** learned router(λ=0.3) macro AUC 0.882±0.012 > oracle 0.871±0.014 > B1 0.837±0.009 > B2 0.812±0.032. 3 코호트 LOCO에서 B2 대비 6개 cohort-router cell 중 5개가 bootstrap 유의(95% CI strictly positive); NACC×learned-router만 경계(CI 하한 −0.001, P=0.965) (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md §4.1–4.2). [VERIFY] 이 수치들은 리포트 본문 기준이며, results/ 하위 run JSON은 지시에 따라 미열람.
+- **백본을 키우면 라우팅 이득이 사라짐.** router vs B2 = +0.070(0.35M compact) → +0.006(ResNet-10 14M) → −0.005(ResNet-18 33M). 그러나 compact 0.35M routed(0.882)가 ResNet-18 최고값(B1 0.869)보다 높음 → 기여는 "보편적 정확도 향상"이 아니라 **파라미터 효율적 해부 조건화**(작은 인코더가 40–90배 큰 백본을 능가) (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md §4.6, ResNet 행은 AJU-only 2 seeds).
 
-이 두 그룹([Q-ROUTE_SPIKE]의 deflation과 [ACCV_DRAFT]의 부활)은 모순이 아니라 **레짐 차이**다 — deflation은 from-scratch 인코더, 부활은 fine-tuned base. 다만 초안 검증 상태에 주의가 필요하다(아래).
+**반증 ❌** (가설이 깨졌거나 method-ready 아님으로 종결)
 
-[VERIFY] `reports/F04_QROUTE_ACCV_DRAFT.md` 머리말은 "모든 주장은 OASIS/NACC 재현 전까지 AJU-LOCO 한정"이라 적으면서도 §4.2에 OASIS/NACC LOCO 수치와 부트스트랩을 이미 채워 두고 abstract는 "세 코호트 모두 모든 시드 양성"을 단언한다. 머리말 캐비엇이 stale인지, OASIS/NACC 수치가 잠정인지가 문서 내에서 불일치하므로 별도 확인 필요.
+- **From-scratch 인코더에서 hard 라우팅은 concat을 견고하게 못 이김.** 다중 seed(20260610/11/12) macro-AUC 선택 시 oracle mean +0.019, bootstrap 유의 1/3 seeds뿐. 스파이크 1단계의 단일-seed +0.038(oracle 0.859)은 변동성 큰 pooled-val checkpoint의 운빨로 판명(macro 선택 시 동일 seed oracle 0.823). 실재하는 견고한 효과는 정확도가 아니라 **분산 감소**(oracle std 0.008 vs B2 0.020) (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md "Stage 2").
+- **가설했던 두 novelty 모듈은 음성.** (1) localization: 약지도가 MTL 0.733→0.761로 약간 올리지만 single-view B1(0.837) 미달 — 거친 8³ global attention이 전용 80³ MTL crop의 fine 신호를 회복 못함. (2) relational: 비율 질문 특이 이득 없고 B1 미달 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md §4.4).
+- **이미지-측 일반화 levers 대거 음성.** DSBN(vendor / vendor+field), DINOv2 shallow probe(AJU macro AUC 0.616), BN-reset/momentum TTA, style-consistency+boundary-rank — 전부 fixed 2.5D보다는 위지만 primary 3D(pooled AUC 0.879)와 0.91 형태계측 bar 미달. 공통 실패기제: uncertain row를 회복하는 대가로 primary가 맞히던 far-boundary row를 희생 (출처: Archive/reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md).
+- **신뢰도/보정 기반 정책·재라벨 분기(2026-06-08) 다수 method-ready 실패.** ventricle 다중-score stacking, baseline-positive veto, ventcrop rescue, answer-weight 재라벨, teacher-localreadout consistency, margin-gated overlay 등은 점추정에서 baseline 3D를 일부 넘어도 subject-level bootstrap이 혼합이거나 코호트 전이(특히 NACC↔AJU)에서 깨짐. 재발 hard case `AJU:ABD-AJ-0089:V1`(뇌실 enlargement false positive), `AJU:ABD-AJ-0237:V2`(ventricle target-space discordance)가 반복적으로 정책을 무너뜨림 (출처: Archive/reports/F04_ACTIVE_ARTIFACT_REGISTRY.md).
 
-[VERIFY] `docs/figures/` 디렉토리가 디스크에 존재하지 않는다. `reports/F04_QROUTE_ACCV_DRAFT.md`에 "생성된 Fig."로 나열된 `qroute_architecture.png`, `qroute_multicohort.png`, `qroute_repr_gating.png` 세 파일 모두 디스크에서 확인되지 않음 — 초안에 경로만 명시돼 있고 실제 생성은 미완료 상태다.
+**비판적 관찰:** 스파이크 노트의 "deflation"(from-scratch에서 라우팅 비-견고)과 초안의 "robust win"(fine-tuned base에서 견고)은 **서로 모순이 아니라** representation-gating으로 봉합된다 — 같은 모듈이 약한 base에선 노이즈에 묻히고 강한 base에서만 드러난다. 다만 초안의 메인 수치(특히 multi-cohort·backbone)는 리포트 본문 주장 수준이며, 본 분석에서는 results/ 하위 run artifact를 직접 검증하지 않았다.
 
 ## 폐기·전환된 시도
 
-- **삭제(2026-05-27)**: 과거 PET/종단/3D voxel 방향 일체. `README.md`와 `WORKSPACE_STATE.md`는 인벤토리가 `Official/potato/Reset_Audits/`에 보존됐다고 명시하나, 해당 디렉토리는 디스크에서 확인되지 않는다 [근거부족] (출처: `README.md`).
-- **2.5D → 3D 전환**: 초기 핵심 SSL(5-slice slab → 마스킹 center-slice 재구성)은 3D 진단에서 미세 해마/MTL 신호가 부족함이 드러나 "더 낮은 참조 바"로 강등. `README.md`와 `docs/STUDY_DECISION.md`의 2.5D·F05 ROI 프레이밍은 현재 방향보다 오래된 문서다 (출처: `reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md`).
-- **질병분류 → VQA 전환**: 이미지 분류기가 형태계측 0.91 바를 못 넘어, 헤드라인을 ROI-grounded three-zone VQA/과제/평가로 재구성 (출처: `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md`).
-- **결과 디렉토리 정리 정책**: Active Artifact Registry는 "이전 `results/` 산출물은 사용자 요청으로 제거, `20260531_235859_roi_evidence_dataset`만 활성 데이터셋으로 취급"이라 명시. 단 디스크에는 다수 `results/f04_roi_evidence_encoder/2026060*` 실행 디렉토리가 여전히 존재하므로, 이 정책 문구와 실제 잔존 파일 범위는 일치하지 않는다 (출처: `reports/F04_ACTIVE_ARTIFACT_REGISTRY.md`).
+- **2026-05-27 리셋:** 과거 3D voxel/PET-transfer/longitudinal 방향을 코드·결과·리포트·노트에서 삭제, 사전 인벤토리만 `Official/potato/Reset_Audits/`에 보존. 명시적 번복 전 재생성 금지 (출처: README.md, docs/PATH_CONVENTIONS.md).
+- **2.5D center-slice SSL → 3D ROI VQA로 전환:** README/STUDY_DECISION이 단일 방향으로 못박은 2.5D SSL은 fine 해부 병목으로 조기 강등(2.5D pooled AUC 0.732 vs global 3D 0.835+)되고, 연구는 3D ROI-grounded VQA로 이동 (출처: Archive/reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md). **루트 README.md·docs/STUDY_DECISION.md·docs/context/*는 이 전환을 반영하지 않은 stale 문서**로, 현재 상태는 Archive/reports의 QROUTE 문서를 정본으로 봐야 한다.
+- **하드 라우팅을 "the method"에서 강등:** from-scratch 다중-seed deflation 이후 라우팅은 "방법"에서 "안정성/분석 결과"로 강등되었다가, fine-tuned base에서 learned router로 재승격(아직 잠정) (출처: Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md).
+- **disease-classification 헤드라인 포기:** 0.91 형태계측 bar를 이미지 분류로 넘지 못해, 발표 경로를 "ROI-grounded three-zone VQA 과제·평가 설계 + 3D-over-2.5D 증거"로 좁힘 (출처: Archive/reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md).
 
 ## 남은 과제·다음 단계
 
-1. **잠정 리드의 독립 검증**: learned router(0.882) 결과를 초안 머리말 캐비엇과 정합하게 확정 — OASIS/NACC LOCO 수치의 검증 상태 확정, 단일 SSL pretrain 시드 의존 제거 (출처: `reports/F04_QROUTE_ACCV_DRAFT.md` §6).
-2. **코호트 확장**: ADNI/A4/AIBL/KDRC를 held-out에 추가해 일반화 주장 강화 (출처: 동일 §6).
-3. **질문/ROI 분류체계 확장**: 현재 anatomical prior는 4질문/2–3 ROI에 한정 — 라우터가 "hand-specified"가 아니라 확장 가능함을 보이려면 더 풍부한 taxonomy 필요. 완전 비지도 라우터는 붕괴하므로 prior 의존이 현재 한계 (출처: 동일 §6).
-4. **체크포인트 선택·지표 위생**: pooled val AUC가 너무 불안정 → macro(또는 질문별) val AUC로 1차 선택 전환 (출처: `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md` §Forward plan).
-5. **임상 과대주장 회피**: 라벨이 임상 컷오프가 아닌 정규 백분위이므로 three-zone 프레이밍 유지 (출처: `reports/F04_QROUTE_ACCV_PAPER_PLAN.md` R4).
-6. **폴백 시나리오**: pretrained base에서도 어떤 모듈도 concat을 못 이기면 "벤치마크+조건화 ablation+분석" 논문으로 재프레이밍(C1/C2/C4) (출처: `reports/F04_QROUTE_ACCV_PAPER_PLAN.md` R1).
+- **인코더 레짐 결정:** LOCO-safe contrastive pretrain(global64/mtl80/roi80) 후 frozen·fine-tuned에서 전 변형 3-seed 재평가로 논문 spine 확정 — 모듈이 견고히 이기면 method paper(C3), 아니면 benchmark+ablation+analysis paper로 reframe (출처: Archive/reports/F04_QROUTE_ACCV_PAPER_PLAN.md).
+- **다중 코호트 확장:** 현재 AJU/OASIS/NACC 3개 LOCO. 잔여 consortium(ADNI/A4/AIBL/KDRC)은 아직 held-out 미적용; NACC에서 B1 baseline 자체가 강해(0.891) 마진이 작음 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md §6).
+- **라우터 일반화:** anatomy-prior 없는 fully-unsupervised router는 붕괴 — prior 의존을 줄이고 질문/ROI taxonomy를 늘려 "hand-specified" 비판을 약화 (출처: Archive/reports/F04_QROUTE_ACCV_DRAFT.md §6).
+- **미해결 데이터 계약 질문:** A4 AMYLCENT의 centiloid 동등성, OASIS3 canonical centiloid 컬럼, OASIS3 positivity threshold, KDRC tracer/전처리·BCODE↔official-v2 path 연결 (출처: docs/context/OPEN_QUESTIONS.md).
+- **검증 권고:** 초안의 메인/멀티코호트/백본 표 수치는 results/ run 원본(summary.json, bootstrap audit)으로 독립 재확인 필요. 본 OVERVIEW는 리포트 본문만 근거로 했다.
 
 ## 출처 맵
 
-- `README.md` — 워크스페이스 목적·경계·삭제 이력 (2.5D 방향으로 미업데이트 상태)
-- `docs/STUDY_DECISION.md` — 선택 연구·금지 헤드라인·필수 baseline (2.5D 방향으로 미업데이트 상태)
-- `docs/context/WORKSPACE_STATE.md` — 라벨 권위·코퍼스 정책 (2.5D 방향으로 미업데이트 상태)
-- `docs/context/OPEN_QUESTIONS.md` — 미해결 데이터 정렬 질문(centiloid/KDRC 등)
-- `docs/F04_F05_ARTIFACT_AND_AGENT_WORKFLOW.md` — 실행/결과 디렉토리 계약, 누출 통제, 에이전트 워크플로
-- `reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md` — 2.5D vs 3D 핵심 진단(0.732→0.912)
-- `reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md` — 형태계측 0.91 바, DSBN/DINOv2/BN-TTA/style 음성 결과
-- `reports/F04_GUIDELINE_GROUNDED_QA_EVIDENCE.md` — guideline-grounded QA 스키마·출처·임계값 상태
-- `reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md` — 라우팅 spike와 다중시드 deflation
-- `reports/F04_QROUTE_ACCV_PAPER_PLAN.md` — ACCV 기여·실험 매트릭스·리스크 레지스터
-- `reports/F04_QROUTE_ACCV_DRAFT.md` — 최신 작성 중 초안(fine-tuned base 결과·다중코호트 LOCO)
-- `reports/F04_ACTIVE_ARTIFACT_REGISTRY.md` — 활성 산출물·다수 음성 정책 실험 레지스트리
-- `scripts/run_f04_v6_qroute_spike.py` — Q-ROUTE 실행 스크립트 (존재 확인)
-- `docs/figures/qroute_multicohort.png`, `docs/figures/qroute_repr_gating.png` — 초안에 Fig.2/Fig.3으로 기재됐으나 `docs/figures/` 디렉토리가 존재하지 않아 미생성 상태
+- README.md — 워크스페이스 선언(2.5D+ROI SSL, 현재 stale)
+- docs/STUDY_DECISION.md — study 계약, 허용/금지 헤드라인
+- docs/context/WORKSPACE_STATE.md — 라벨 권위·금지 헤드라인
+- docs/context/OPEN_QUESTIONS.md — 미해결 데이터 계약 질문
+- docs/PATH_CONVENTIONS.md — 디렉토리·삭제·GPU 게이트 정책
+- docs/F04_F05_ARTIFACT_AND_AGENT_WORKFLOW.md — run/result 계약, 에이전트 워크플로우
+- docs/plans/2026-05-27_F04_F05_auto_research_master_plan.md — 데이터/모델/loss/probe ladder, 승격·kill 규칙
+- Archive/reports/F04_QROUTE_ACCV_DRAFT.md — 최신 논문 초안(메인 결과·representation-gating·backbone)
+- Archive/reports/F04_QROUTE_ACCV_PAPER_PLAN.md — ACCV 계획·contribution·risk register
+- Archive/reports/F04_QROUTE_QUESTION_ROUTING_SPIKE_20260610.md — 라우팅 스파이크·from-scratch deflation
+- Archive/reports/F04_3D_VS_2P5D_VQA_DIAGNOSTIC_NOTE.md — 2.5D vs 3D 병목 진단
+- Archive/reports/F04_IMAGE_REPRESENTATION_VS_MORPHOMETRY_BAR_20260606.md — 형태계측 0.91 bar, 음성 levers(DSBN/DINOv2/BN-TTA)
+- Archive/reports/F04_ACTIVE_ARTIFACT_REGISTRY.md — 2026-06-08 신뢰도/보정/재라벨 분기 다수(대부분 음성/진단)
 
 ---
-> 자동 생성: LLM 에이전트가 `minyoung3` 를 탐색해 작성·검증. **검토용**이며 [VERIFY]·[근거부족] 표시 항목은 미확인. 모델 gen=`claude-opus-4-8` critic=`claude-sonnet-4-6` · 갱신 2026-06-10.
+> 자동 생성: LLM 에이전트가 `minyoung3` 를 탐색해 작성·검증. **검토용**이며 [VERIFY]·[근거부족] 표시 항목은 미확인. 모델 gen=`claude-opus-4-8` critic=`claude-sonnet-4-6` · 갱신 2026-06-13.

@@ -1,129 +1,106 @@
-# minyoungi — 언어지도 멀티모달 뇌 MRI 표현학습: 정확도 경쟁을 접고 shortcut-audit으로 좁혀간 기록
+# minyoungi — 언어지도 3D 뇌 MRI 치매 표현학습의 게이트 통과 기록
 
 ## 한눈에
 
-- 목표는 처음부터 "CN/MCI/AD 분류기"가 아니라 **구조화 임상정보를 자연어 supervision으로 바꿔 학습한 3D T1 MRI 표현이 코호트 간 일반화되고 PET/ATN과 정렬되는가**였다 (출처: notes/context/PROJECT_GOAL.md).
-- 7개 컨소시엄(KDRC·A4·OASIS·AIBL·AJU·ADNI·NACC) 통합 manifest를 13,022행 × 138컬럼까지 키우고 raw NIfTI 경로 11,947건을 전수 검증했다 (출처: research_notes/daily/2026-06-10.md).
-- 그러나 harmonization 실험 01~09가 "이미지 정확도 경쟁"과 "harmonization으로 일반화 향상" 경로를 **반증**했고, 연구 적부 dossier는 정확도 SOTA·MCI 전환예측·CDR staging을 "죽음"으로 판정했다 (출처: roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md, research_topic/README.md).
-- 현재 살아있는 방향은 두 줄기다. **(a) cross-population shortcut-audit(한국 vs 서구 confounded regime의 undecidability 명제, CPU·즉시), (b) biology-guided foundation feature linear-probe(GPU·조건부)** (출처: research_topic/README.md).
-- 주의: 워크스페이스 governance 문서(AGENTS.md, WORKSPACE_STATE.md)는 이곳을 "실험 코드를 두지 않는 문헌/노트 전용 공간"으로 규정하지만, 실제로는 GPU 실험·전처리 파이프라인·매니페스트 빌드가 모두 들어와 있어 문서가 현재 상태를 따라오지 못한다.
-
----
+- **무엇**: 3D T1 뇌 MRI에 구조화 임상정보를 자연어 supervision으로 입혀 치매(CN/MCI/AD) 표현을 학습하는 VLM/MLLM 연구. CN/MCI/AD 분류나 PET amyloid 예측 자체가 목표가 아니라, cohort 간 일반화되고 shortcut에 무너지지 않는 representation이 목표다 (출처: notes/context/PROJECT_GOAL.md).
+- **왜**: 데이터는 진짜 판독문이 아니라 structured clinical table + imaging이므로 "radiology report VLM"으로 부르면 공격받는다. 더 안전한 framing은 "언어지도 멀티모달 뇌영상 표현학습 + PET/ATN 검증"이다 (출처: literature/notes/2026-05-18_vlm_research_feasibility.md).
+- **지금 어디까지**: VLM 본학습 전 게이트 단계에 머물러 있다. ROI-volume scalar teacher distillation은 main route로는 **약하다고 반증**됐고(80/class frozen bal\_acc ≈0.48), 구현/최적화 버그는 대부분 해결됐다. 연구 방향은 (1) PASS-only voxel-wise baseline, (2) harmonization/shortcut-audit 쪽으로 이동 중이다 (출처: notes/context/REPRESENTATION\_LEARNING\_EXPERIMENT\_BLOG.md).
+- **주의**: 이 워크스페이스는 *문헌·task설계·컨텍스트·초기 실험·매니페스트* 전용이다. 실제 대형 모델링/전처리는 별도 워크스페이스(`/home/vlm/minyoung4`)에서 돌고, 5~6월 일일 노트만 `research_notes/daily/`로 미러된다 (출처: notes/context/WORKSPACE\_STATE.md).
 
 ## 배경·문제 정의
 
-연구의 중심 질문은 명시적으로 정의돼 있다.
+핵심 연구 질문은 하나로 고정돼 있다.
 
 > 구조화 임상 정보를 자연어 supervision으로 바꿔 학습한 3D MRI 표현이, 치매 cohort 간 일반화되고 PET/ATN 또는 longitudinal endpoint와 정렬되는가? (출처: notes/context/PROJECT_GOAL.md)
 
-권장 framing은 "Language-supervised multimodal neuroimaging representation learning for dementia progression and PET/ATN-aware validation"이고, PET/ATN은 main task가 아니라 **privileged validation/supervision branch**로 격하돼 있다 (출처: notes/context/WORKSPACE_STATE.md, notes/context/PROJECT_GOAL.md).
+이 질문을 지키기 위해 task 위계를 명시적으로 나눠 둔다. Task A(ROI-grounded MRI + 구조화 임상언어 표현학습)가 main, Task B(longitudinal progression), Task C(PET/ATN privileged validation branch)는 검증축이다. PET/ATN은 main prediction task로 격하하지 않고 supervision/validation branch로만 둔다 (출처: notes/context/PROJECT_GOAL.md).
 
-명시적으로 **피하기로 한 것**도 분명하다: PET amyloid 이진 예측을 main으로 축소하지 않기, AD/CN/MCI 단순 분류를 novelty로 두지 않기, "radiology report VLM"이라 부르지 않기(실제 판독문이 없으므로), caption에 target label을 넣고 같은 target을 예측하는 leakage 설계 금지 (출처: notes/context/PROJECT_GOAL.md).
+VLM claim을 인정하기 위한 baseline gate도 사전에 박아 뒀다: text-only/clinical-only/ROI-only/image-only baseline을 모두 이겨야 하고, subject-disjoint split + cohort-held-out 평가, target field leakage 제거, scanner/cohort shortcut audit이 전부 통과돼야 한다 (출처: notes/context/PROJECT_GOAL.md).
 
-VLM 가능성 자체는 2026-05-18에 "가능하다. 단, 이름은 조심해야 한다"로 정리됐다. 진짜 radiology report pair가 없고, 데이터는 "imaging + structured clinical table"이므로 "tabular-to-text neuroimaging VLM" 또는 "language-supervised 3D MRI representation learning"이 안전한 표현이라는 결론이다 (출처: literature/notes/2026-05-18_vlm_research_feasibility.md).
-
----
+작업 규율도 강하다. AGENTS.md는 Karpathy식 원칙(코딩 전 생각, 최소 코드, 외과적 변경, 생성과 검증 분리)과 GPU/장시간 작업 사전승인 게이트를 강제한다 (출처: AGENTS.md).
 
 ## 데이터
 
-**Canonical manifest** (워크스페이스 외부 `/home/vlm/data/`에 존재, 이 워크스페이스가 빌드·검증):
-- `official_manifest_full_n4_real_final.parquet` — 13,022행 × **138컬럼** (출처: research_notes/daily/2026-06-10.md).
-- 컬럼 계보: official_manifest.csv(12) → _full(75, FastSurfer ROI/QC) → _n4(101, N4 텐서·voxel·scanner) → KDRC/AJU/ADNI 임상 보강(117, MMSE·APOE·amyloid·sex·age·dx) → real_final 06-05(122, OASIS MMSE/CDR/amyloid) → A4/NACC amyloid(127) → OASIS3_data_files 보강(133) → raw_*_path(138) (출처: research_notes/daily/2026-06-10.md).
-- 7코호트 멀티모달 가용성은 코호트별로 매우 비대칭하다. NIfTI 즉시 사용 가능(T1 기준): KDRC·A4·OASIS·AIBL. DICOM/zip 변환 필요: AJU·ADNI·NACC (출처: research_notes/daily/2026-06-10.md).
-- raw 경로 커버리지(전수 검증, 0 missing): raw_t1 5,127(39.4%), raw_flair 3,379(25.9%), raw_t2 816(6.3%), raw_dwi 1,722(13.2%), raw_pet 903(6.9%) — 총 11,947 경로 (출처: research_notes/daily/2026-06-10.md).
+7개 컨소시엄(ADNI/NACC/AIBL/OASIS/A4/AJU/KDRC) 기반이다.
 
-**학습용 voxel-wise PASS-only labeled subset** (visual QC 통과분만):
-- classifiable MRI 10,623행 (CN 5,716 / MCI 3,613 / AD 1,294), ROI-pair 53,115행(MRI당 정확히 5 ROI: hippocampus·amygdala·thalamus·lateral_ventricle·parahippocampal_cortex), label join 100% (출처: notes/context/VOXELWISE_PASS_ONLY_LABELED_MANIFEST_HANDOFF_20260525.md).
+- **v2_integrated canonical manifest** (이 워크스페이스 기준): CN/MCI/AD classifiable + image-ready 행 **11,199**. cohort별 ADNI 4,849 / OASIS 1,609 / NACC 1,592 / AJU 1,241 / AIBL 988 / KDRC 920 (출처: notes/context/REPRESENTATION\_LEARNING\_NEXT\_EXPERIMENT\_PLAN.md). A4는 이 manifest에 포함되지 않으며 13,022행 확장 manifest에 합류됨.
+- **final_tensor 규격**: 192×224×192, identity affine RAS, z-score (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **voxel-wise PASS-only labeled manifest** (2026-05-25): QC PASS만 남긴 classifiable MRI **10,623행** (CN 5,716 / MCI 3,613 / AD 1,294), 각 MRI당 정확히 5개 ROI-pair(hippocampus, amygdala, thalamus, lateral\_ventricle, parahippocampal\_cortex), label join 100%, validation\_pass=True (출처: notes/context/VOXELWISE\_PASS\_ONLY\_LABELED\_MANIFEST\_HANDOFF\_20260525.md).
+- **2026-06 manifest 진화** (미러된 메인 워크스페이스 작업): `official_manifest_full_n4_real_final.parquet`이 13,022 × **138 컬럼**으로 완성. 12→75(FastSurfer vol/ROI/QC)→101(N4 텐서/voxel/scanner)→…→138(raw\_\*\_path) 계보. 임상 커버리지 보강(예: ADNI MMSE 0%→99%, OASIS APOE 0%→100%, A4 amyloid SUVR 100%) (출처: research\_notes/daily/2026-06-10.md).
+- **CSF 바이오마커**: 7코호트 전무(연속 농도값 없음)로 확정. NACC/OASIS는 0/1 지표만 존재, ADNI는 미download (출처: research\_notes/daily/2026-06-10.md).
 
-**Korean 정본**(AJU·KDRC, 모든 수치 2026-06-10 manifest 재계산·assertion 검증):
-- subject-level 1,898 × 51, session-level 2,196 × 76 (출처: research_topic/03_processed_data_spec.md).
-- dx_3class·APOE 100%, MMSE 97%, CDR 99% 커버리지. 단 **라벨 체계가 코호트마다 다름**: AJU{CN,MCI,AD,OtherDementia} vs KDRC{CN,MCI,Dementia} — "AD"≠"Dementia", pooled 라벨 정의가 선결 과제 (출처: research_topic/03_processed_data_spec.md).
-- v2 영상 텐서 사양: 192×224×192, identity affine, z-score, N4 보정. 단 **N4 후에도 site shortcut 잔존(appearance probe 0.565)** (출처: research_topic/03_processed_data_spec.md).
-
-**검증된 데이터 한계**(활용 전 필수): CN 부족(Korean subject CN 268 = AJU 206 + KDRC 62), CSF 7코호트 전무(amyloid PET로 대체), manifest dx가 subject당 정적이라 종단 전환 연구 불가 (출처: research_topic/03_processed_data_spec.md, research_notes/daily/2026-06-04.md, research_notes/daily/2026-06-10.md).
-
----
+**Caption 누설 정책**이 데이터의 핵심 제약이다. 진단 caption은 `age bucket + sex`만 허용하고 diagnosis/CDR/CDRSB/cohort/scanner/field\_strength/biomarker/ROI는 전부 금지다. PET/ATN/biomarker branch는 `NOT_READY`, ROI-caption은 FastSurfer aseg+DKT Volume\_mm3 한정으로 `CONDITIONALLY_READY_FOR_ROI_CAPTION_V0_DESIGN` (출처: manifests/v2\_integrated/captions/policy/CAPTION\_FIELD\_POLICY.md).
 
 ## 접근·방법
 
-작업은 네 갈래로 진행됐다.
-
-1. **문헌·task 설계**: VLM-ready manifest schema, caption field policy(task별 allowed/forbidden field로 leakage 통제), PAPER_READING_MATRIX(ADLIP/NeuroVLM/Natural Text Supervision MRI/M3D/CT-CLIP 계열) (출처: notes/context/PROJECT_GOAL.md, literature/notes/2026-05-18_vlm_research_feasibility.md).
-
-2. **Harmonization/site-bias audit (roi_qc/experiments/harmonization/ 01~09)**: 7코호트 scanner/site 식별 가능성을 3축(metadata·appearance·biology)으로 정량화, ComBat·ComBat-GAM·N4 변형·MixStyle을 morphometry baseline과 비교, 전부 RF+LogReg 교차검증·null control로 검증 (출처: research_notes/daily/2026-06-04.md, roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-
-3. **표현학습 실험 (experiments/)**: image_only_smoke_v0(tiny 3D CNN smoke) → roi_to_image_distill_v0(ROI scalar/latent teacher distillation) → voxelwise_feature_learning_v1(PASS-only labeled baseline ladder) (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md, experiments/voxelwise_feature_learning_v1/README.md).
-
-4. **연구 적부 판정 (research_topic/)**: 독립 2-에이전트(literature-scout + research-advisor)가 보유 데이터로 가능/불가능한 주제를 F×N×R 랭킹으로 판정 (출처: research_topic/README.md).
-
-평가 원칙은 일관된다: random split 금지(코호트를 외움) → **leave-one-consortium-out(LOCO), subject-disjoint** 필수, 검증은 site-probe↓ + biology-probe 보존 + null control **3종 동시** (출처: roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-
----
+- **ROI scalar teacher → image student distillation**: 16개 AD-관련 FastSurfer volume ROI를 teacher로, T1 image-only student에 distill. teacher는 두 갈래로 유지 — Teacher-S(`cn_age_sex_residual_z`, signal-preserving) vs Teacher-B(`combat_then_cn_age_sex_residual_z`, bias-reduced) (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **student objective ladder**: teacher CE → +KL → +embedding → +ROI auxiliary. 평가는 학습 head 정확도가 아니라 **frozen embedding probe**가 1차 metric (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **voxel-wise feature learning v1 baselines**: PASS-only manifest 위에서 ROI mean/summary feature logistic regression부터 단계적으로 실행(baseline\_02 mean logreg → baseline\_03 summary logreg → baseline\_04 ablation). GPU 스크립트(CNN/voxel-wise encoder)는 gate 대기 중 (출처: experiments/voxelwise\_feature\_learning\_v1/baselines/baseline\_02…/REPORT.md, baseline\_03…/REPORT.md, baseline\_04…/REPORT.md).
+- **shortcut audit**: 이미지 없이 cohort/clinical/missingness/acquisition metadata만으로 CN/MCI/AD를 얼마나 맞히는지 정량화해 caption 정책을 결정 (출처: manifests/v2\_integrated/audits/shortcut\_audit\_v0/shortcut\_audit\_v0\_report.md).
+- **harmonization 실험군** (6월, 미러): ComBat / ComBat-GAM / N4 / WhiteStripe / Nyúl / blur / MixStyle를 site-probe + biology-probe + null control 이중·삼중 검증으로 비교 (출처: research\_notes/daily/2026-06-04.md, research\_notes/daily/2026-06-02.md).
 
 ## 현재 상태와 결과
 
-### 확정
+수치는 모두 단일/소표본 controlled run 기준이며, "성능 주장"이 아니라 게이트 통과 여부 판정용이다.
 
-- **morphometry(FastSurfer ROI 부피)는 cross-cohort site-robust**. CN/AD를 held-cohort로 LOCO AUC ~0.90, site-shift 비용 ~0.001~0.004(한국 코호트 포함), RF+LogReg 교차 재현 (출처: research_notes/daily/2026-06-04.md, roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-- **site는 픽셀보다 acquisition metadata에 더 강하게 박힌다**: metadata(vendor+field+voxel) balanced acc 0.761 > appearance 0.556 > N4후 0.517, biology(brain_vox) 대조 0.151≈chance(0.143) (출처: research_notes/daily/2026-06-04.md).
-- **이미지 end-to-end는 morphometry를 못 이긴다**: 3D CNN held-AUC 0.88~0.90 < morphometry 0.93~0.95, 6 run 전부 Δ<0(−0.03~−0.08) (출처: research_notes/daily/2026-06-04.md, roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-- **ROI mean intensity logistic regression CN vs AD: ROC-AUC 0.7018**, balanced acc 0.6806 (subject-disjoint GroupShuffleSplit, MCI 제외, test 1,436행). 단 이는 representation learning이 아니라 5차원 sanity-check 하한선이다 (출처: experiments/voxelwise_feature_learning_v1/baselines/baseline_02_roi_mean_logreg_cn_vs_ad/REPORT.md).
-- **voxel-wise ROI mask를 final_tensor(192×224×192) 공간으로 affine-only 이전하면 신뢰 불가**: 54케이스 상대 부피 오차 median −0.89(대부분 ROI가 크게 줄거나 소실) → voxel-wise ROI crop/attention/loss 금지, scalar ROI teacher만 허용 (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md).
-- **이전 CNN collapse의 원인은 label/data가 아니라 architecture/optimization**: row-id one-hot head와 raw image random projection head가 balanced acc 1.0으로 완벽 overfit → label/CE/metric loop 정상. 원인은 GAP bottleneck + 과한 lr(GAP CNN lr=1e-3 실패, lr=1e-4·flatpool은 거의/완전 overfit) (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md).
+**✅ 확정**
 
-### 반증
+- **label/CE/data plumbing은 정상**. row-id one-hot head와 raw-image random-projection head가 12/class를 bal\_acc 1.0으로 완전 암기 (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **과거 CNN collapse의 원인은 GAP bottleneck + lr**. GAP CNN lr=1e-3은 tiny overfit 실패, lr=1e-4는 거의 성공(0.972), flatpool CNN은 lr=1e-3/3e-3에서 완벽 overfit(1.0) (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **ROI directionality 16/16** 기대 AD 방향 보존(해마/내후각피질 ↓, 뇌실 ↑) (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **shortcut audit (internal\_test, n=1,680)**: `cdr_only` bal\_acc 0.883, `age_sex_cdr` 0.893, upper-risk `nonimage_risky_all` 0.947 → CDR류는 진단의 사실상 동의어이므로 caption 금지. `cohort_only` 0.500, `scanner_field_strength_only` 0.452, `missingness_only` 0.472로 modest (출처: manifests/v2\_integrated/audits/shortcut\_audit\_v0/shortcut\_audit\_v0\_report.md).
+- **handcrafted ROI baseline (CN vs AD, voxel-wise PASS-only)**: mean-only(baseline\_02) ROC-AUC 0.7018; summary 40-feature(baseline\_03) random ROC-AUC **0.9004**, leave-one-cohort-out mean **0.8732**(min 0.8139). ablation(baseline\_04): voxel\_count(부피)만으로 0.8913 ≈ full, 최강 단일 ROI는 amygdala(random split) / hippocampus(LOCO) (출처: experiments/voxelwise\_feature\_learning\_v1/baselines/baseline\_02…/REPORT.md, baseline\_03…/REPORT.md, baseline\_04…/REPORT.md).
+- **(6월) morphometry는 이미 site-robust**: fs\_vol CN/AD LOCO held-cohort AUC raw 0.916/icv 0.923, site-shift 비용 0.001~0.004 ≈ 0. ComBat/GAM/MixStyle 어느 것도 morphometry baseline을 못 이김 (출처: research\_notes/daily/2026-06-04.md).
+- **(6월) N4가 유일하게 효과 있는 intensity 레버**: population을 고정한 within-ADNI 순수 스캐너 probe 0.84→0.66(전체 13,022 재처리 후 2,800표본 reprobe 기준), 모집단 생물학 보존. WhiteStripe/Nyúl/blur는 N4 대비 무이득 또는 역효과 (출처: research\_notes/daily/2026-06-10.md, research\_notes/daily/2026-06-02.md).
+- **(6월) site는 픽셀(0.556)보다 acquisition metadata(0.761)·voxel 해상도에 더 강하게 박혀 있다** (출처: research\_notes/daily/2026-06-04.md).
 
-- **"ComBat이 cross-cohort 일반화를 향상시킨다"** → 효과 작고 분류기 의존. held-cohort에서 RF −0.014 / LogReg +0.022로 **부호가 뒤집힘**. 생성/검증 분리의 대표 사례 (출처: research_notes/daily/2026-06-04.md §09, roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-- **"강한 image harmonization(MixStyle)이 site shortcut을 줄인다"** → site-probe가 오히려 +0.026~0.027 상승(양 seed 재현). N4·ComBat·MixStyle = 정규화·특징·스타일 3축 전부 morphometry를 못 이김 (출처: research_notes/daily/2026-06-04.md §07).
-- **"image-only tiny CNN을 성능/VLM 비교 기준으로 쓸 수 있다"** → 부적절. seed 3개 모두 MCI 과예측(balanced acc 0.4028±0.0146), repeat seed 2개에서 CN 예측이 완전 소멸(pred_CN=0). 파이프라인 smoke/하한선으로만 사용 (출처: experiments/image_only_smoke_v0/runs/image_only_smoke_v0_20260521T072243Z/diagnostic_audit_v0/DIAGNOSTIC_SUMMARY_KO.md).
-- **정확도 SOTA / harmonization 일반화↑ / image>morphometry / MCI 전환예측 / CDR staging** → 보유 데이터로는 "죽음"으로 판정. 정확도 경쟁 논문은 닫혔고, headroom이 거의 없다(LOCO site-shift 비용 ~0) (출처: research_topic/README.md).
-- **종단 MCI→AD 전환 연구** → manifest dx가 정적이라 불가(2+세션 2,830명 중 dx 변화 58명·2%, ADNI 0명). per-visit dx 재추출은 별도 데이터엔지니어링 과제 (출처: research_notes/daily/2026-06-04.md).
+**❌ 반증**
 
-### 잠정
+- **ROI-volume scalar teacher distillation을 main route로 쓰는 것은 약하다**. flatpool 80/class에서 best frozen internal\_test bal\_acc ≈0.479, teacher 자체 internal\_test도 ≈0.517로 ceiling이 낮다. 12/class overfit과 class collapse는 해결됐지만 80/class 일반화·teacher-transfer gap이 병목 (출처: notes/context/REPRESENTATION\_LEARNING\_EXPERIMENT\_BLOG.md).
+- **voxel-wise ROI mask를 final\_tensor 공간으로 affine-only 전송하는 경로는 무효**. 54케이스 median relative volume error −0.892(잔존 부피 약 11%) → voxel-wise ROI crop/mask/supervision 금지 (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **(6월) manifest만으로는 longitudinal conversion 연구 불가**: dx가 subject당 정적이고(2+세션 2,830명 중 변화 58명), ADNI 전환 0명 (출처: research\_notes/daily/2026-06-04.md).
 
-- **ROI scalar teacher에는 신호가 있으나 ceiling이 낮다**: directionality 16/16 유지, ROI-only probe ~0.50(실측 0.52 전후), 그러나 80/class에서 teacher 자체 internal_test balanced acc ~0.517, student frozen ~0.479. 구현 blocker는 해결됐고 병목이 "teacher ceiling + teacher-student transfer gap + 80/class generalization"으로 이동 (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md).
-- **VLM main route(언어지도 표현학습)는 아직 미실행·aspirational**. 설계·feasibility는 정리됐으나 실제 image-text contrastive/fusion run은 돌리지 않았다 (출처: literature/notes/2026-05-18_vlm_research_feasibility.md, notes/context/PROJECT_GOAL.md).
-- **biology-guided foundation feature linear-probe** → "가능·조건부(GPU·사전승인)". 순수 SSL은 site-robust 아님(인용 travelling-heads ICC 0.25–0.45 [VERIFY: 원논문 미검증]), biology-guided만 FreeSurfer 바(0.91)를 넘는다는 가설 (출처: research_topic/README.md).
+**🟡 잠정**
 
----
+- **image-only tiny 3D CNN은 하한선/스모크 용도로만**. 3-seed internal\_test bal\_acc **0.4028 ± 0.0146**, MCI 과예측이 3seed 반복(pred\_rate\_MCI 0.51~0.68), repeat seed에서 CN 예측 소멸(CN recall 0). 같은 sample에서 ROI+age/sex probe는 acc 0.575로 CN/AD를 더 잘 잡음 → MRI signal 부재보다 현재 CNN/학습 설정 한계가 큼 (출처: experiments/image\_only\_smoke\_v0/runs/…/diagnostic\_audit\_v0/DIAGNOSTIC\_SUMMARY\_KO.md).
+- **(6월) 연구 framing verdict**: image-level "정확도 SOTA 향상" claim 가능성 매우 낮음. 현실적 publishable은 **shortcut-audit / representation-validity 프로토콜**, 특히 "site==population에서 site-down과 biology-제거는 단일 probe로 결정 불가(undecidable)"라는 명제가 novelty. research-critic 독립 감사 CONDITIONAL PASS (출처: research\_notes/daily/2026-06-04.md).
 
 ## 폐기·전환된 시도
 
-- **voxel-wise ROI supervision (option_b voxel ROI)**: final_tensor 공간 resampling QC 실패(median 부피오차 −0.89)로 금지. scalar ROI teacher로 후퇴 (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md, research_topic/README.md).
-- **GAP CNN lr=1e-3 teacher-latent 경로**: tiny overfit조차 불안정 → flatpool CNN으로 전환 (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md).
-- **ROI-volume scalar teacher distillation을 단독 main objective로 쓰기**: ceiling 낮음 → auxiliary/diagnostic branch로 격하, 더 강한 anatomical teacher 또는 self-supervised/multi-task 표현으로 재정렬 (출처: notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md).
-- **이미지 harmonization으로 site 제거**: ComBat/ComBat-GAM/N4/MixStyle 전부 무이득~역효과 → "지우지 말고 조건화하라(condition, not erase)" 원리로 전환(acquisition 축만 nuisance 입력, population은 보존) (출처: roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-- **연구 framing 자체**: "정확도/일반화 향상" → "무엇이 결정 가능한가/어디서 깨지는가를 측정하는 audit". 핵심 novelty는 site==population confounded regime에서 shortcut 제거 성공/실패가 단일 probe로 **판정 불가(undecidable)**라는 명제 (출처: research_topic/README.md).
-
----
+- **voxel-wise ROI supervision**: transform QC 실패로 보류(scalar ROI만 허용) (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **ROI-volume distillation as sole main objective**: main에서 내려 auxiliary/diagnostic branch로 강등 (출처: notes/context/REPRESENTATION\_LEARNING\_EXPERIMENT\_BLOG.md).
+- **GAP CNN lr=1e-3 teacher-latent path**: collapse로 폐기, flatpool로 전환 (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+- **WhiteStripe/Nyúl/blur-to-floor harmonization**: N4 대비 무이득 → 탐색 종료, N4 단독 확정 (출처: research\_notes/daily/2026-06-02.md).
+- **positive harmonization 논문 방향**: CN/AD는 비용~0이라 headroom 없고, CN/MCI는 unmask 안 되고, conversion은 데이터 불가 → audit/boundary 논문으로 pivot (출처: research\_notes/daily/2026-06-04.md).
+- **워크스페이스 정체성 자체의 전환**: WORKSPACE\_STATE.md(2026-05-19)는 "실험 코드는 여기 두지 않는다"고 적었으나, 이후 `experiments/`에 image\_only\_smoke / roi\_to\_image\_distill / voxelwise\_feature\_learning 실험이 실제로 실행됨. 문서와 현재 상태 간 괴리 존재 [근거부족: WORKSPACE\_STATE.md 갱신 필요] (출처: notes/context/WORKSPACE\_STATE.md vs experiments/).
 
 ## 남은 과제·다음 단계
 
-- **T-1 (CPU·즉시·승인 불필요)**: cross-population shortcut-audit 착수. 입력 img_features(site-leaky) vs fs_vol morphometry(site-robust), LOCO held-KDRC/AIBL, AJU는 CN n=23로 held 불가하여 site-probe 전용. 성공기준 = dual-probe(site↓ + biology 0.91 보존 + null) (출처: research_topic/README.md).
-- **T-3 (GPU·사전승인)**: biology-guided foundation feature linear-probe. backbone 입력 호환성(192³ z-score identity-affine) 선확인 후, LOCO로 0.91 바를 넘어야 채택 (출처: research_topic/README.md, roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md).
-- **DICOM→NIfTI 대량 변환 (사전승인 필요)**: AJU 1,287세션×5모달, ADNI 4,742세션, NACC 4,922 zip. 완료 후 raw_*_path 100% 복원 → 멀티모달 VLM 입력 확보 (출처: research_notes/daily/2026-06-10.md).
-- **알려진 gaps**: NACC ses-1 274세션 매핑 테이블, AIBL raw_t1이 skull-stripped라 truly-raw 아님, A4 DWI/PET·ADNI FLAIR/DWI는 local raw store 부재 (출처: research_notes/daily/2026-06-10.md).
-- **거버넌스 정합성 [VERIFY]**: AGENTS.md(§0: "최소 구조와 데이터 링크만 둔다")와 WORKSPACE_STATE.md(2026-05-19: "실험 코드는 이 workspace에 두지 않는다")가 현재 실태(experiments/·preprocessing/·roi_qc/experiments/harmonization/의 GPU MixStyle run·Clinical/ 노트북)와 어긋난다. 두 문서는 갱신되거나, 실험 호스팅 정책이 명문화될 필요가 있다 (출처: AGENTS.md, notes/context/WORKSPACE_STATE.md vs README.md, research_notes/daily/2026-06-10.md).
+- **teacher 정보량 병목 검증**: 16-dim ROI에서 ~100-region DKT volume teacher(E3)로 확장 smoke. true cortical thickness는 surface output 부재로 미가능 (출처: notes/context/REPRESENTATION\_LEARNING\_NEXT\_EXPERIMENT\_PLAN.md).
+- **외부 SSL baseline**: 3D-Neuro-SimCLR frozen probe(E4)로 ROI distillation 우회 경로 비교. clone/weights 저장 위치 결정 필요 (출처: notes/context/REPRESENTATION\_LEARNING\_NEXT\_EXPERIMENT\_PLAN.md).
+- **평가축 전환**: hard 3-class 대신 CN vs AD binary + CN→AD disease-axis + MCI projection + cohort probe로 representation을 측정(E1) (출처: notes/context/REPRESENTATION\_LEARNING\_NEXT\_EXPERIMENT\_PLAN.md).
+- **ROI final-tensor transfer Option B**: FastSurfer aparc/aseg를 final\_tensor 공간으로 정확히 옮기고 per-ROI overlap/volerr/visual QC 게이트 통과 후에만 voxel-wise 재개 (출처: notes/context/REPRESENTATION\_LEARNING\_NEXT\_EXPERIMENT\_PLAN.md, notes/context/ROI\_FINAL\_TENSOR\_TRANSFER\_OPTION\_B\_PLAN.md).
+- **멀티모달 확장 (사전승인 필요)**: AJU/ADNI/NACC DICOM→NIfTI 배치 변환 후 raw\_\*\_path 재빌드 (출처: research\_notes/daily/2026-06-10.md).
+- **VLM readiness gate는 아직 미충족**: ROI teacher validity + spatial QC + frozen representation gate + cohort 일반화 + 3-seed 안정성 전부 통과 전까지 full VLM 금지, 소형 retrieval smoke만 허용 (출처: notes/context/REPRESENTATION\_LEARNING\_ROOT\_CAUSE\_PLAN.md).
+
+## 출처 맵
+
+- `AGENTS.md` — 워크스페이스 운영 규칙(Karpathy식, GPU 게이트, 데이터 안전)
+- `notes/context/PROJECT_GOAL.md` — VLM 연구 목표·task 위계·baseline gate
+- `notes/context/WORKSPACE_STATE.md` — 워크스페이스 정체성(문헌/설계 전용 명시, 2026-05-19)
+- `notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md` — 실패 해부 통합 기록(ROI distillation 약함 결론)
+- `notes/context/REPRESENTATION_LEARNING_ROOT_CAUSE_PLAN.md` — 단계별 게이트·실패 위치 추적·전 실험 수치
+- `notes/context/REPRESENTATION_LEARNING_NEXT_EXPERIMENT_PLAN.md` — E1~E4 다음 실험 Go/No-Go
+- `notes/context/VOXELWISE_PASS_ONLY_LABELED_MANIFEST_HANDOFF_20260525.md` — PASS-only labeled manifest 카운트·검증
+- `literature/notes/2026-05-18_vlm_research_feasibility.md` — VLM 가능성 판단·naming 주의·task 후보
+- `manifests/v2_integrated/captions/policy/CAPTION_FIELD_POLICY.md` — task별 allowed/forbidden caption field
+- `manifests/v2_integrated/audits/shortcut_audit_v0/shortcut_audit_v0_report.md` — 비이미지 metadata shortcut 정량화
+- `experiments/voxelwise_feature_learning_v1/baselines/baseline_02…/REPORT.md` — ROI mean CN vs AD baseline
+- `experiments/voxelwise_feature_learning_v1/baselines/baseline_03…/REPORT.md` — ROI summary 40-feature baseline·LOCO
+- `experiments/voxelwise_feature_learning_v1/baselines/baseline_04…/REPORT.md` — ROI stat ablation
+- `experiments/image_only_smoke_v0/runs/…/diagnostic_audit_v0/DIAGNOSTIC_SUMMARY_KO.md` — image-only CNN 3-seed 진단
+- `research_notes/daily/2026-05-31.md` · `2026-06-02.md` · `2026-06-04.md` · `2026-06-10.md` — (미러) clinical/CDR·N4·harmonization·138컬럼 manifest
+- `docs/README.md` — blog형 설계 문서·PaperBanana figure 안내
 
 ---
-
-## 출처 맵 (참조한 핵심 파일)
-
-- `notes/context/PROJECT_GOAL.md` — VLM/MLLM 연구 목표·task hierarchy(A main / B longitudinal / C PET-ATN)·baseline gate
-- `notes/context/WORKSPACE_STATE.md` — 워크스페이스 charter(2026-05-19, 현재 stale)
-- `README.md` — 워크스페이스 구조·빠른 시작(2026-06-10 기준)
-- `AGENTS.md` — Codex/에이전트 가드레일(Karpathy식 원칙), charter 원문
-- `research_notes/daily/2026-06-10.md` — manifest 138컬럼 완성, raw_*_path 11,947 검증, 7코호트 멀티모달 서베이
-- `research_notes/daily/2026-06-04.md` — harmonization 01~09 종합(ComBat/GAM/MixStyle/LOCO), 수치·검증
-- `notes/context/VOXELWISE_PASS_ONLY_LABELED_MANIFEST_HANDOFF_20260525.md` — PASS-only labeled subset(MRI 10,623, ROI-pair 53,115)
-- `notes/context/REPRESENTATION_LEARNING_EXPERIMENT_BLOG.md` — 3D 표현학습 실패 해부, root cause 확정
-- `experiments/voxelwise_feature_learning_v1/baselines/baseline_02_roi_mean_logreg_cn_vs_ad/REPORT.md` — CN vs AD ROC-AUC 0.7018
-- `experiments/voxelwise_feature_learning_v1/README.md` · `experiments/voxelwise_feature_learning_v1/docs/BASELINE_SEQUENCE.md` — baseline ladder(B00~B04)
-- `experiments/image_only_smoke_v0/runs/image_only_smoke_v0_20260521T072243Z/diagnostic_audit_v0/DIAGNOSTIC_SUMMARY_KO.md` — image-only tiny CNN MCI 과예측 진단
-- `roi_qc/experiments/harmonization/SCANNER_BIAS_PLAYBOOK.md` — site-bias DO/DON'T 단일 권위 문서, 증거표
-- `research_topic/README.md` — 연구 적부 판정(가능/조건부/죽음)
-- `research_topic/03_processed_data_spec.md` — Korean(AJU·KDRC) 처리 데이터 정본·커버리지·한계
-- `literature/notes/2026-05-18_vlm_research_feasibility.md` — VLM 가능성 판단·naming 주의·task 후보 A~D
-
----
-> 자동 생성: LLM 에이전트가 `minyoungi` 를 탐색해 작성·검증. **검토용**이며 [VERIFY]·[근거부족] 표시 항목은 미확인. 모델 gen=`claude-opus-4-8` critic=`claude-sonnet-4-6` · 갱신 2026-06-10.
+> 자동 생성: LLM 에이전트가 `minyoungi` 를 탐색해 작성·검증. **검토용**이며 [VERIFY]·[근거부족] 표시 항목은 미확인. 모델 gen=`claude-opus-4-8` critic=`claude-sonnet-4-6` · 갱신 2026-06-13.
