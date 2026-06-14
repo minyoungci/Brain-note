@@ -2,6 +2,15 @@
 
 > 현재 상태·가설·결과를 여기에 누적. 핸드오프 시 이 파일로 상태 전달. 최신이 위.
 
+## 2026-06-11 — P2 1.5mm 검증: cortical R² 복원 (해상도가 범인 확정)
+- 1.5mm 캐시(128×149×128, 16.5GB) + morph-regression 재실행. **cortical 복원 확인:**
+  entorhinal_L −1.07→**0.61** · fusiform_L −2.02→**0.16** · parahippocampal_L −0.63→**0.53** · middletemporal_R −0.21→**0.43**.
+  subcortical 유지(ventricle 0.95/0.85·hippo 0.57/0.65·amyg 0.55/0.73). mean R² −0.06→0.23, median 0.41→0.50.
+  (precuneus/cingulate 등 thin midline은 여전히 음수 → 1mm 필요할 수도. 회귀 학습 다소 불안정.)
+- **판정:** 2mm가 cortical 신호를 죽인 게 맞음(Min 지적 확정). 1.5mm면 이미지가 morph 신호(subcortical+대부분 cortical)에 *공정하게* 접근.
+- backbone 확보: `diag_morph_regress_1p5mm_encoder.pt`. **다음: 이걸 init/frozen으로 amyloid LOCO probe + site-invariance(③).**
+- ⚠️ 비용: 2mm Stage-1이 ~80분/training(12회 ≈ 다수 시간). 1.5mm full fine-tune LOCO multi-seed는 비현실적(~수십시간) → ③은 frozen-probe 우선.
+
 ## 2026-06-11 — P2 진단: 이미지→FastSurfer 부피 재현 (b vs c 판별)
 - Stage-1 재해석: image<morph가 (b)천장 증명 아님(약백본/2mm/site-shortcut 혼재). → 진단 실행(image 2mm→fs_vol 회귀, R²).
 - **결과(held-out R², subject-disjoint):** subcortical/ventricle **mean 0.67**(ventricle 0.91/0.94·hippo 0.68/0.54·amyg 0.63/0.72) — **모델 정상, 부피 추출 가능**.

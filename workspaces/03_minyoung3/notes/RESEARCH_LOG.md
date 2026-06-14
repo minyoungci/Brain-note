@@ -141,3 +141,44 @@ threshold(morphometry); grounding GT = FS masks) AND anatomy is spatially trivia
 => accuracy axis = tool mimicry (oracle-bounded); grounding axis = constant-prior trivial.
 No top-tier novelty in THIS task/data. Novelty needs a non-FreeSurfer label source (clinical
 outcome/genetics, currently data-starved) or a different task. See report.
+
+## PIVOT — Amyloid molecular-status VQA (2026-06-13)
+
+Non-FreeSurfer escape from the circularity: amyloid positivity is PET-measured (independent of
+the T1 image), so image->amyloid is non-circular. Data exists (real_final manifest): 3,383
+binary-amyloid sessions / 2,407 subjects / 4 cohorts (OASIS/AJU/KDRC/NACC; A4 excluded =
+positive-only). Multi-tracer (PiB/AV45/F18-centiloid/F18-visual), multi-ethnicity (Korean+West).
+Full results: results/amyloid_vision/RESULTS_AMYLOID.md. Bar: results/amyloid_probe/BASELINE_BAR.md.
+
+Honest CPU bar (subject-level, bootstrap): morphometry is NOT an oracle for amyloid (within-cohort
+0.709 / LOCO 0.665, not 1.0) -> circularity broken, real headroom to probe. BUT in age-matched CN
+morphometry's increment over age+APOE = +0.002 (~0); literature ceiling multi-cohort T1 ~0.62.
+
+Vision result (image-only 3D CNN, strict LOCO, image-only input, A4 excluded, subject-level):
+| arm | macro-LOCO | age-matched CN (200-draw) |
+|---|---|---|
+| scratch w16/w32 | 0.610 / 0.584 | ~chance (CI brackets 0.5) |
+| brain-age pretrained (MAE 4.40yr) ft/frozen | 0.627 / 0.603 | ~chance |
+| ROI-volume pretrained ("learned morpho") ft/frozen | 0.653 / 0.636 | ~chance |
+| morphometry bar | 0.665 | 0.55-0.58 (CI excludes 0.5) |
+| permutation null | 0.510 | (no leakage) |
+| APOE-e4 from MRI | 0.52 | (chance; genotype not structural) |
+
+VERDICT: a null robust across 3 pretext families (none/age/structure) x {frozen,fine-tune}. No
+image representation beats morphometry; the best (ROI-volume ft 0.653) only approaches it; ALL are
+at chance in age+sex-matched CN. Ceiling = MODALITY (structural T1 carries no usable CN-amyloid
+signal beyond ROI volumes), not model/representation/resolution. Reviewed twice by research-critic
+(F1/F2 width-confound + n-seed + wording fixed) and code-auditor (no leakage, A4 excluded,
+cache-aligned, image-only confirmed). Subject overlap pretrain(ADNI/A4/AIBL) vs test = 0.
+
+CONTRIBUTION (honest, non-fabricated): (C1) first molecular-status 3D-MRI VQA + shortcut/confound-
+controlled multi-cohort/tracer/ethnicity LOCO benchmark; (C2) a representation-robust bounded null
+(MRI does not read CN-amyloid beyond morphometry); (C3) morphometry-oracle taxonomy connecting the
+archived FreeSurfer-VQA dead-end (morpho=oracle, no headroom above) to amyloid (morpho~=clinical~=
+chance in CN, no headroom for anything). NOT a positive accuracy claim. Tier: MICCAI/MIDL/journal
+bounded-negative+benchmark; not a top-CV method paper.
+
+REMAINING honest gap (next, if pursued): the one regime NOT capped is LONGITUDINAL imaging
+(literature: longitudinal CN amyloid ~0.87 vs single-timepoint ~0.62); data has 18,868 longitudinal
+sessions / 599 CDR-SB progressors / 273 dx converters. Single-timepoint structural T1 has converged
+to a null; within-subject change is the only structural axis with literature-supported headroom.

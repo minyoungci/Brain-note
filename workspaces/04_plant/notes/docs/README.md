@@ -8,7 +8,8 @@
 | 순서 | 문서 | 무엇 | 상태 |
 |---|---|---|---|
 | ① | `../RESEARCH_BRIEF.md` | 라인 전체 설계(SoT) — 임무·과거실패·게이트 | **canonical** |
-| ② | `RESEARCH_PROPOSAL.md` | **★ 현재 제안** — 우리 상황에 맞는 연구 + 근거 사슬 | **★ CURRENT** |
+| ②a | `FINDINGS.md` | **전체 발견 consolidated**(결과 종합) | **★ CURRENT** |
+| ②b | `RESEARCH_PROPOSAL.md` | **★ 현재 제안** — 우리 상황에 맞는 연구 + 근거 사슬 | **★ CURRENT** |
 | ③ | `DECISION_LOG.md` | 모든 결정·NO-GO·폐기 (왜 여기까지 왔나) | live |
 
 ## 문서별 역할

@@ -12,12 +12,15 @@ analysis, and the figures/docs around them. Experiments live in `/home/vlm/minyo
 
 | What | Path | Status |
 |---|---|---|
-| **Final manifest** (13,022 × **138**) | `/home/vlm/data/preprocessed_official/official_manifest_full_n4_real_final.{parquet,csv}` | ✅ canonical · **2026-06-10 최신** |
+| **Final manifest** (13,022 × **141**) | `/home/vlm/data/preprocessed_official/official_manifest_full_n4_real_final.{parquet,csv}` | ✅ canonical · **2026-06-14 최신** (+scanner_model, KDRC 재-enrich) |
+| **⭐ Manifest & 데이터 경로 단일 참조** | [`docs/MANIFEST_AND_DATA_PATHS.md`](MANIFEST_AND_DATA_PATHS.md) | ✅ 11블록 컬럼맵·9 경로컬럼 커버리지·디스크 레이아웃·caveat **(2026-06-14)** |
+| **⭐ 데이터 인벤토리 (보유 vs 활용)** | [`docs/DATA_INVENTORY.md`](DATA_INVENTORY.md) | ✅ 코호트별 raw 보유 모달리티·임상 매트릭스·활용 로드맵·DICOM 변환 대기분 **(2026-06-14)** |
+| **scanner 분포** | [`docs/SCANNER_DISTRIBUTION.md`](SCANNER_DISTRIBUTION.md) | ✅ 코호트별 vendor+model-family 분포·커버리지 |
 | **Official data dictionary** | `/home/vlm/data/preprocessed_official/official_manifest_full_n4.README.md` | ✅ authoritative reference |
 | N4 model-input tensors | `…/v2/{C}/subjects/*/t1w/final_tensor_n4/` (per-session) | ✅ scanner-bias-reduced, ROI-aligned |
 | **raw_*_path 컬럼** (5개) | manifest 내 `raw_t1/flair/t2/dwi/pet_path` | ✅ 11,947경로 전수검증 · AJU/ADNI/NACC 변환 후 추가 반영 |
 | **raw_manifest 빌드** | `preprocessing/raw_manifest/build.py --verify` | ✅ 이미 실행됨 · 재실행 idempotent |
-| **Korean manifest** (2,196 × 89) | `/home/vlm/data/preprocessed_official/korean_multimodal_manifest.{parquet,csv}` | ✅ AJU 1,287 + KDRC 909 · 1세션1행 완전체 |
+| **Korean manifest** (2,196 × 93) | `/home/vlm/data/preprocessed_official/korean_multimodal_manifest.{parquet,csv}` | ✅ AJU 1,287 + KDRC 909 · **2026-06-14** scanner_model + KDRC 임상 재-enrich |
 
 > Load `final_tensor_n4_path` (not the original), subject-level + leave-one-consortium-out
 > splits, watch residual site bias. raw_*_path = 전처리 전 원본 NIfTI 위치.
@@ -88,7 +91,9 @@ Each folder keeps its `pb_*_input.md` prompt + `run_*/` artifacts for re-generat
 | Clinical enrichment | `enrich_amyloid_a4_nacc.py`, `enrich_oasis_data_files.py`, `enrich_aju_adni_clinical_v3.py`, `finalize_real_final_manifest.py` |
 | **raw path build** | `preprocessing/raw_manifest/build.py` (7코호트 resolver, --dry-run/--verify) |
 | **DICOM 변환** | `preprocessing/dicom_to_nifti/{aju,adni,nacc}.py` (dcm2niix 기반, 대량배치) |
-| **노트북 경로 검증 루프** | `Clinical/common/verify_notebook_paths.py` (비-Korean ipynb·helper의 경로/manifest canonicity/138-stale/clinical_io·ROI grid 라이브 점검, 종료코드 0=PASS) |
+| **노트북 경로 검증 루프** | `Clinical/common/verify_notebook_paths.py` (비-Korean ipynb·helper의 경로/manifest canonicity/141-stale/clinical_io·ROI grid 라이브 점검, 종료코드 0=PASS) |
+| **scanner model 추출** | `roi_qc/scripts/extract_scanner_model.py` (DICOM 0008,1090 + KDRC 4파일 병합 → `reports/acq_scanner_model.parquet`) |
+| **manifest scanner/KDRC enrich** | `roi_qc/scripts/enrich_manifest_scanner_kdrc.py` (--write) + `enrich_korean_manifest.py` + `verify_enriched_manifest.py` (additive·NaN-only·행불변) |
 
 All merges enforce row-invariance (13,022), original-column immutability, re-read integrity.
 
