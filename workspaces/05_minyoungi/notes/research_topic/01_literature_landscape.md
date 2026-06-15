@@ -36,7 +36,7 @@
 
 **Open problem**: **AD classification에서 비서구(특히 한국) 일반화·공정성 peer-reviewed 벤치마크가 사실상 공백**(존재하는 건 brain-age 회귀·White/Black 위주·preprint). **metric이 site-confound로 무효화되는 현상을 정면으로 다룬 연구 희소** — 우리 INSIGHT 2(site==population)와 정확히 맞물림.
 
-**우리 데이터 적합**: 한국+서구 동시 = 문헌에 없는 조합. 부족: traveling subject 0 → "인종 효과" 인과 분해 불가. AJU CN n=23, KDRC/A4 dx 0%.
+**우리 데이터 적합**: 한국+서구 동시 = 문헌에 없는 조합. 부족: traveling subject 0 → "인종 효과" 인과 분해 불가. AJU CN n=**144**(~~23~~=clin_dx_label 함정 정정→[`06`](06_korean_richness_audit.md)), KDRC/A4 dx 0%.
 
 **Verdict**: **FEASIBLE(감사·현상보고로서) / NOT-WITH-OUR-DATA(인과적 "인종 효과" 주장으로서)**. 프레이밍을 "population-confounded site에서 fairness metric이 어떻게 무효화되나"로 한정해야 방어 가능.
 **닫힌-방향 충돌?**: 없음(핵심 자산과 정렬). 단 "harmonization으로 fairness 고치기"는 INSIGHT 4/X4 충돌(한국 생물학 over-correction).

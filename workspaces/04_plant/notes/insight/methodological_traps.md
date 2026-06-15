@@ -44,3 +44,14 @@
 ## T8. sunk-cost 반복 (minyoung4 4번째 무덤 경고)
 - 같은 target에서 backbone·해상도·objective만 바꿔 0.66→0.69 올리는 루프 = (a)/(b) 판정에 기여 0.
 - **같은 arm 3회 NO-GO면 폐기**, 상위 결정점 복귀. target/질문을 바꾸는 것만이 판정에 기여.
+
+## T10. transductive vs inductive test-time adaptation 공정성 (★ 2026-06-15)
+- **무엇:** "TTA"가 실은 **transductive BN-adapt**(추론 시 `bb.train()` → held-out 배치 통계로 BN 재정규화). 한 test 샘플의 예측이 *같은 배치의 다른 test 샘플*에 의존 → held-out site 분포를 추론에 *사용*. inductive baseline(morphometry, subject 단위)과 직접 비교하면 **불공정**(이미지만 held-out 정보 특혜).
+- **증상:** none 0.844 → none_tta 0.910 (+0.066) "회복"을 deployable·fair gain으로 읽으면 함정.
+- **검증/해소:** **inductive 변형**(target-site unlabeled calibration K개로 BN 재계산→freeze→per-subject)으로 같은 회복이 나는지 먼저 확인. 본 라인 C4가 inductive(K=64)≈transductive(0.912 vs 0.909, recovery 1.05, K64 포화)로 *공정 재현* 확인 → 이 경우는 fair였음. **하지만 검증 전엔 transductive 수치를 inductive baseline과 비교 금지.**
+- **체크:** "내 test-time 적응이 held-out 배치/세트 통계를 쓰나?" → yes면 inductive 변형으로 공정성 먼저 검증.
+
+## T11. 고정 임계 bACC = degenerate 지표
+- **무엇:** bACC를 고정 0.5 임계로 계산 → 불균형/miscalibration 시 **0.50(전부 한 클래스)**로 붕괴. discrimination 아닌 calibration 증상.
+- **증상:** none arm bACC 0.50 다수인데 AUROC는 0.82~0.91(정상). bACC만 보면 "모델 실패"로 오판.
+- **교훈:** discrimination은 **AUROC로만** 판정. bACC 보려면 train에서 임계 선택(test 누수 금지) 또는 calibration 별도 보고.

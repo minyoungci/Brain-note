@@ -29,11 +29,13 @@
 
 ## Track 맵
 
-| Track | 주제 | 상태 | gate |
-|---|---|---|---|
-| **[01](01_adlip_multimodal_vlm/)** ⭐현재 | ADLIP식 multimodal contrastive VLM | 데이터 준비완료, 설계 단계 | confound 통제·ΔAUC·cohort-balanced |
-| **[02](02_crosspop_confound_audit/)** | cross-population confound audit | 증거 일부 수집됨 | 식별성·dual-probe |
-| **[03](03_single_modality_tasks/)** | 단일모달 clean task (amyloid·atrophy) | 일부 실측 | within-modality, harmonize |
-| **[04](04_vascular_vs_degenerative/)** | 혈관성 vs 퇴행성 (혈액 활용처) | 미착수 | AJU 단독 |
+> ⚠️ **피벗 반영(2026-06-14)**: 현재 확정 전략은 단일 플래그십 `../research_topic/04_sci_clinical_pivot.md`
+> (서구→한국 횡단 transportability & fairness). 정확도 SOTA/VLM 라인은 종료 → **Track 01(ADLIP VLM)·
+> Track 04(혈관성, 미착수)는 제거**. 아래 02·03은 피벗 플래그십의 **audit/baseline 구성요소**로 존속.
 
-진행 순서: **01 먼저** (사용자 결정). 01은 02의 증거 substrate로도 직결된다.
+| Track | 주제 | 상태 | 역할(피벗 후) |
+|---|---|---|---|
+| **[02](02_crosspop_confound_audit/)** | cross-population confound audit | 증거 일부 수집됨 | 플래그십 fairness/calibration audit의 상류 근거 |
+| **[03](03_single_modality_tasks/)** | 단일모달 clean task (amyloid·atrophy) | 일부 실측 | 플래그십 정직-baseline(영상 천장·amyloid clean task) |
+
+(구 Track 01/04 README는 죽은 라인으로 삭제됨. 멀티모달 raw 보유 현황은 `../docs/MANIFEST_FINAL_DATA_SPEC.md`.)

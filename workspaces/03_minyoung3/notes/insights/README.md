@@ -16,3 +16,4 @@
 - [I07](I07_whattofuse_amyloid_clinical_dominant.md) — 무엇을 fuse(amyloid): 임상/유전 지배·T1 image marginal (CN에서 image 증분 0)
 - [I08](I08_mci_conversion_feasibility.md) — MCI→AD 전환: 최선의 non-circular task이나 N=134·PET3%·engineered바0.831 제약
 - [I09](I09_multimodal_alignment_transfer.md) — 첫 POSITIVE: multimodal alignment이 cross-cohort 전이 개선 (LOCO→한국 AD/CN +0.14)
+- [I10](I10_actigraphy_no_increment_over_morphometry.md) — actigraphy(circadian RAR)도 morphometry+clinical 천장 못 넘음(ΔAUC +0.008±0.010 noise). 천장이 behavior축에도 성립; 단일-seed +0.024는 운나쁜 인플레이션

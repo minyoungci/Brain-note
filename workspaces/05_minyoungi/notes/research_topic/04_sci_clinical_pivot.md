@@ -22,7 +22,7 @@ clean negative를 지지** → 임상저널의 "외부검증·보정·형평성"
 | **Korean 횡단 임상/amyloid** | AJU dx96·APOE100·amyloid_visual100·MMSE100·CDR100; KDRC dx85·APOE100·amyloid_visual100·SUVR94·CDR59 | ✅ **횡단 transportability external 강력** (Korean=주인공) |
 | **amyloid 횡단(전수)** | A4 1811+KDRC 856+OASIS 1048+NACC 515+**ADNI 1203(UCBERKELEY, join 100% 검증)** ≈ **5,433 / 5코호트** | ✅ **scale가 진짜 산출물** (인구-규모 amyloid 참조) |
 | **종단(예후) 학습** | ADNI conv 791(162ev)/slope 783 + OASIS conv 282(23ev)/slope 274 | ~**1k events ≠ 13k** (Western only) |
-| **dx 라벨 이질성** | AJU MCI980·AD238·**CN23**; KDRC CN282·AD249·MCI239 | ⚠️ 순진한 pooling 금지, 정의 lock 필수 |
+| **dx 라벨 이질성** | AJU(권위 dx_session) MCI801·AD239·**CN144**·OtherDem94; KDRC CN282·AD249·MCI239 | ⚠️ 순진한 pooling 금지, 정의 lock. ~~CN23~~=clin_dx_label 함정(→[`06`](06_korean_richness_audit.md) 정정) |
 
 **핵심**: "13k"는 대부분 claim에서 **decoration/liability**. 실제로 scale가 *payoff*인 곳은 **횡단 amyloid(5,433)와
 cross-population(Korean external)** 뿐. 종단 예후의 effective N은 ~1k(Western). Methods에 분모를 외과적으로 명시.
@@ -60,7 +60,7 @@ cross-population(Korean external)** 뿐. 종단 예후의 effective N은 ~1k(Wes
   (공간 위축 패턴·궤적·*한국 등 under-served 인구 형평성*)**으로 가치 재정위.
 - traveling-subject 0 → "한국 정확도"가 아니라 **audit/calibration/fairness**로 framing.
 - modest 효과 = 약점 아니라 **정직한 external regime** (내부 0.8+ 미보고분). overclaim이 이 데이터의 cardinal sin.
-- dx 라벨(AJU CN 23명) → CN-vs-AD를 AJU서 못 함; amyloid-positivity/연속 타깃/stratified로, 정의 lock(`03_spec §3/§7`).
+- dx 라벨(AJU CN **144**세션, ~~23~~=clin_dx_label 함정 정정→[`06`](06_korean_richness_audit.md)) → CN-vs-AD AJU서 modest 가능(구조적 불가 아님); amyloid-positivity/연속 타깃/stratified, 정의 lock(`03_spec §3/§7`).
 
 ## 5. 다음 단계 (CPU, 승인 불요)
 1. 라벨/분모 정의 lock (AJU MCI-dominant, KDRC 균형; amyloid_visual 코호트별 코딩 통일).

@@ -14,7 +14,7 @@
 | D-2 | **Foundation/SSL feature가 morphometry(0.91)를 *이긴다*** | regime(AD 희소+site==pop)에서 *상대* 우위가 뒤집힌다는 근거 0. "이긴다" claim은 죽음. *단 "언제 깨지나"는 살아있음(질문 재정의, T-3)* | 07, 04, PLAYBOOK §3② |
 | D-3 | **CDR 회귀/staging 7코호트 pooled** | CDR 분포 site 극이질(AJU=MCI-heavy) → CDR 아닌 site 학습. A4/KDRC dx 없음, KDRC CDR은 한국과 공선 | INSIGHT 8, 08 §3 |
 | D-4 | **option_b ROI mask voxel-level/SBM 정량** | 전수 `BLOCKED_PROVISIONAL`, 192³↔256³ 그리드 불일치, centroid ~31vox 오프셋 → "검증" 아닌 "후보", reviewer 첫 줄 reject | INSIGHT 5·6 |
-| D-5 | **AJU(최강 한국 코호트) held-out CN/AD 일반화** | AJU CN n=23 → CN/AD held-target 구조적 불가. 가장 강한 반례가 검증 불가 | 04 주의, 06 |
+| D-5 ⚠️**재검토** | **AJU(최강 한국 코호트) held-out CN/AD 일반화** | ~~AJU CN n=23~~ **정정: CN=144**(23은 clin_dx_label 함정→[`06`](06_korean_richness_audit.md)). 死因이 6배 과소집계에 근거 → "구조적 불가" 강등(CN144/AD239 modest 가능). 단 0.91 바·MCI편중 잔존 | 04 주의, [`06`](06_korean_richness_audit.md) |
 
 **死因 구조**: D-1·D-2 = "더 센 모델" 환상(regime이 문제, 모델 아님). D-3·D-4·D-5 = **라벨·그리드·표본의 구조적 결손**(모델로 못 메움).
 

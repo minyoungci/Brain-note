@@ -53,6 +53,19 @@
 | 초과하나 site-probe 높음 | — | 높음 | site 누수 의심 → Arm B 필수 |
 | 미초과 | 낮음 | — | (c) 미결 → 1mm |
 
+## 6b. ADDENDUM C4 (2026-06-15) — L5 BN-adapt의 transductive/inductive 공정성 검증
+> 배경: Tier-2 결과 none_tta(transductive BN-adapt) 0.910 vs none 0.844 = 회복 +0.06. 단 transductive는
+> held-out 배치 통계를 추론에 쓰므로 morphometry(inductive, subject 단위)와 **불공정 비교**(novelty 실측 C4).
+> 해상도는 무관 확정(2026-06-15 ledger) → 2mm 사용(속도).
+
+- **3-way BN eval (동일 학습, 동일 고정 eval subset):** raw(학습 running stats) / transductive(eval 배치 통계) /
+  **inductive**(target-site calibration subset K개, 라벨 미사용·eval과 disjoint로 BN 재계산→freeze→per-sample).
+- calibration pool=256(seed 고정), K∈{64,128,256} sweep, eval=cohort−256. seeds 0,1. 격리 스크립트 `adcn_inductive_bn.py`.
+- **KILL/판정:**
+  - inductive(256) ≈ transductive (±0.01) → **C4 PASS**: 회복 공정·배포가능 → "0.91 도달 정당, 잔여=천장" 유지 → C3 진행.
+  - inductive가 raw→transductive gap의 **<50% 회복** → 회복은 transductive 아티팩트 → 0.910은 불공정 상한 → 약화, ledger.
+  - inductive < raw → K noise/구현버그 의심 → 진단(맹목 반복 금지).
+
 ## 7. 스테이징 (비용)
 - nested-LOCO 인코더 5× + finetune 5×multi-seed = 1.5mm ~반나절 GPU. → ① morph baseline(즉시) → ② R² 체크 1-2 fold(모델작동 확인) → ③ image LOCO 전체 → ④ bias arm(B/C/TTA).
 - Stage 진입 전 git 체크포인트. 실패·교훈은 `insight/`에 누적.

@@ -5,6 +5,23 @@
 
 ## 결정 기록
 
+- [2026-06-15] **C4 PASS — BN-adapt 회복은 공정·inductive·배포가능.** 3-seed×5-fold 동일 eval subset 3-way BN:
+  raw 0.850 / transductive 0.909 / **inductive(K64) 0.912** → recovery_ratio (ind−raw)/(trans−raw)=**1.05**(전 K).
+  target-site **unlabeled 64장**으로 BN 재계산→freeze→per-subject가 +0.06 회복 전부 재현(K64 포화).
+  → **transductive 공정성 confound 제거**: image(BN-adapt) 0.91 vs morph 0.931은 이제 양쪽 inductive=공정 비교,
+  잔여 −0.02 유지. 회복은 site-shift 큰 fold(ADNI .75→.92, NACC .78→.90)에 집중. 단 공정성만 해결 — 잔여=천장
+  판정은 **C3**(잔여의 morph 환원불가 + 회복↔site-decode 인과) 필요. 근거=`results/P2/adcn_inductive_bn_adcn_2mm.{csv,json}`,
+  설계=`docs/P2_plan.md §6b`. 되돌아갈 지점: commit `af0ecdb`.
+
+- [2026-06-15] **P2 Tier-2 방법론 4-arm 확정 + 해상도 축 종료(NO-GO).** LOCO 5-cohort×2-seed, image-only,
+  morph bar 0.931. 결과: none 0.844 / grl 0.817(**적대 디바이싱 악화**, NACC .82→.70) / **none_tta(BN-adapt) 0.910**.
+  해상도-매칭 검정(2mm→1.5mm, voxel 2.37×): none_tta Δ=**0.000**(0.910→0.910), none Δ=+0.005 → **잔여 −0.021은
+  해상도 핸디캡 아님 = 천장 성분**. 사전 등록 NO-GO(≤0.910) 트리거 → **1mm 캐시 빌드 안 함.** 단 none_tta는
+  transductive(C4 confound)라 0.910은 낙관적 상한. 다음=천장 확정용 C2(multi-seed dissociation)·C3(site-decode 인과)·
+  C4(inductive 변형). 근거=`docs/ledgers/2026-06-15_adcn_resolution_ceiling_negative.md`,
+  novelty 실측=memory `p2-novelty-positioning`(Bron 2021이 최대 위협 — C1 단순비교는 점유됨, C3 분해만 공백).
+  되돌아갈 지점: commit `51944b3`(1.5mm 실행 직전 체크포인트).
+
 - [2026-06-11] 라인 시작 — plant를 longitudinal에서 **microbrain(bias-robust micro-level T1w 표현)**으로
   재정의. 옛 longitudinal 산출물 제거. · 되돌아갈 지점: commit `27b1665`(git init, longitudinal 상태).
 
@@ -30,4 +47,6 @@
 
 - [2026-06-11] **D5 혈액바이오마커+MRI 폐기** — novel(whitespace)이나 morph+age 대비 incremental 반증:
   dementia +0.005 · MCI-vs-CN +0.000 · amyloid +0.007. tested-negative control로만 잔존. 근거=`docs/novelty_deep_research.md`.
+- [2026-06-15] **AD/CN 이미지 해상도 추격 NO-GO** — 잔여 −0.021(none_tta 0.910 vs morph 0.931)이 해상도 불변
+  (2mm→1.5mm Δ0.000) → 1mm 빌드 폐기. + **grl(consortium-adversarial) 폐기**(0.817, raw보다 악화). 근거=`docs/ledgers/2026-06-15_adcn_resolution_ceiling_negative.md`.
 - (P0 audit 자체는 폐기 arm 없음.)
