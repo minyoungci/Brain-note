@@ -8,6 +8,7 @@
 - ✅ 규칙 정리 → [[docs/00_challenge_rules]] | 무결성 → [[docs/03_data_integrity]] | 전략 → [[docs/04_strategy_timeline]]
 - ✅ 전처리 파이프라인 검증(파일럿) → [[preprocessing/PREPROCESSING]]
 - ✅ 모니터링 시스템 검증 → `pretrain/monitor.py`
+- ✅ 경고 레지스터 → [[Warning]] (가설·실패모드 W1~W15를 monitor.py 신호·임계·fallback에 묶음)
 - ⏳ **다음 게이트 = FOMO26 등록 → downstream 7 task 데이터 → Phase A pilot**
 
 ## Branch별 상세 status

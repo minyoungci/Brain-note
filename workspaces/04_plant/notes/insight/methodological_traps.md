@@ -55,3 +55,10 @@
 - **무엇:** bACC를 고정 0.5 임계로 계산 → 불균형/miscalibration 시 **0.50(전부 한 클래스)**로 붕괴. discrimination 아닌 calibration 증상.
 - **증상:** none arm bACC 0.50 다수인데 AUROC는 0.82~0.91(정상). bACC만 보면 "모델 실패"로 오판.
 - **교훈:** discrimination은 **AUROC로만** 판정. bACC 보려면 train에서 임계 선택(test 누수 금지) 또는 calibration 별도 보고.
+
+## T12. ★ DataLoader + mmap 랜덤 페이징 thrash (인프라 — 2026-06-16 우리를 문 것)
+- **증상:** 3D CNN 학습이 epoch 0에서 **9분+ 멈춤**(main CPU ~19%, GPU 0–5%, JSON 미생성). smoke(소량)는 정상이라 안 보임 → full에서만 발현.
+- **원인:** `DataLoader(num_workers=4)`가 **4.7GB mmap(npy) numpy 배열을 shuffle로 랜덤 디스크 페이징**. 작은 subset은 page cache에 들어가 빠르나, full(랜덤 ~2GB/epoch) + 동시 잡 여러 개가 같은 파일을 두드리면 disk thrash로 사실상 정지.
+- **진단 순서:** `ps -eo etimes,%cpu,stat` 로 경과시간·CPU 확인(컴파일이면 main 100%, 데이터대기면 낮음) + GPU util(0%=데이터 대기). grep 필터가 traceback도 가리므로 **필터 없이** 원출력 확인.
+- **해결:** 데이터가 GPU에 들어가는 크기면(여기 4.7GB ≪ B200 183GB) **캐시 전체를 GPU 상주 텐서로 올리고 DataLoader/worker 제거 + index_select manual 배칭.** → epoch 9분+ → **~3초**. (mmap 디스크 IO·worker fork 동시 제거.)
+- **교훈:** 소규모 데이터 학습은 DataLoader 대신 **GPU 상주 + manual 배칭**이 가장 빠르고 함정이 없다. smoke가 통과해도 full-scale IO는 별도 검증(epoch 시간)하라.

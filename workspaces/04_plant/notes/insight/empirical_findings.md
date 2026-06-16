@@ -28,6 +28,9 @@
 | **clean-vendor subspace** | A4(V=0.00)·ADNI(V=0.06): vendor⊥diagnosis | site-invariance를 *글로벌 삭제 아닌* 여기서 학습 |
 | **APOE는 amyloid 예측에 기여** | morph+APOE 0.78 vs morph 0.66 (+0.12) | 단 유전정보(이미지 아님). 임상 바엔 포함해야 |
 | **inductive BN-adapt (unlabeled K=64→freeze)** | LOCO site-shift gap +0.06 회복, transductive와 동등(recovery 1.05, K64 포화)·공정·배포가능. GRL은 악화 | `adcn_inductive_bn` C4 2026-06-15 |
+| **★morphometry는 *인구 간*(서양↔Korean)에도 deep보다 transportable** | CN-vs-impaired cross-pop(n=1143): deep<morph 양방향 유의(W→K Δ−0.106[−0.143,−0.068]·K→W −0.062[−0.101,−0.022]). within은 유의차 없음 | P4 2026-06-16, `docs/P4_results.md` |
+| **★cross-population deep 결손 = test-time(BN) 비가역 / 사전학습으론 *비대칭* 회복** | BN-adapt 0% 회복(둘 다). 단 **brain-age 사전학습은 W→K를 morph 동등까지 회복(Δ−0.002), K→W는 못 함(Δ−0.053 유의)** | "비가역 population"은 과한 결론 — 정정. Korean→Western이 가장 취약. P4 §4e |
+| **★MMSE는 인구간 비등가** | 매칭(age·sex·CDR-stage) 후에도 Korean MMSE 낮음(AD Δ+4.7) | 강한 임상 feature가 곧 비전이 → fusion서 제외, equity 메시지 |
 
 ## 핵심 메커니즘 (왜 자꾸 (b)로 수렴하나)
 - **site≈population confound**(Cramér's V site-impaired 0.42): site가 신호를 *가리는* 게 아니라 confounded 라벨을 *부풀린다*. → harmonization 걸면 일반화 안 좋아지고 over-correction.

@@ -17,3 +17,5 @@
 - [I08](I08_mci_conversion_feasibility.md) — MCI→AD 전환: 최선의 non-circular task이나 N=134·PET3%·engineered바0.831 제약
 - [I09](I09_multimodal_alignment_transfer.md) — 첫 POSITIVE: multimodal alignment이 cross-cohort 전이 개선 (LOCO→한국 AD/CN +0.14)
 - [I10](I10_actigraphy_no_increment_over_morphometry.md) — actigraphy(circadian RAR)도 morphometry+clinical 천장 못 넘음(ΔAUC +0.008±0.010 noise). 천장이 behavior축에도 성립; 단일-seed +0.024는 운나쁜 인플레이션
+- [I11](I11_snsb_domain_dissociation_and_decline.md) — 새 자산(다site 한국 cerebrovascular+SNSB 도메인z+종단292). morphometry=1차원 전반-중증도 센서: 기억-특이만 잡고(+0.030) 집행/언어/시공간-특이 0%·종단저하 예측불가(R²<0). 유일 균열=morphometry가 0인 reliable executive-specific 변량(DTI 후보, EV중간). 추가: radiomics shape 196개도 음수(−0.23)→volume·shape·WMH 전부 null, DTI EV 하락
+- [I12](I12_ceiling_meta_topic_preempted_by_literature.md) — "예측-법칙" 메타토픽은 Schulz/Bzdok(Nat Commun'20·Cell Rep'24)·Bron'21에 경험적 칸 전부 선점. 생존 각도=딥모델 학습 전 S·M 싸게 계산하는 a priori 스크리닝 *규칙*(method, MIDL tier). 진짜 미점유 자산=심층표현형 한국 VCI 코호트(ML 아닌 임상 finding 쪽)

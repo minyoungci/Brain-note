@@ -1,37 +1,36 @@
-# minyoung3 — F04 2.5D + ROI MRI representation study
+# minyoung3 — multi-cohort 3D brain-MRI
 
-This workspace is now dedicated to one primary paper direction only:
+Self-contained project. Use ONLY this directory's own assets — do not borrow corpora/code from
+sibling projects (`minyoung2` = FOMO/ACCV, `minyoung4`, etc.). `/home/vlm/data` is read-only shared
+data; physical presence there does not make a thing this project's asset.
 
-- **Primary study:** 2.5D axial T1w MRI masked center-slice representation learning with ROI-informed auxiliary/probe pathways.
-- **Core SSL objective:** 5-slice slab `[z-2,z-1,z,z+1,z+2]` -> reconstruct masked brain patches of the center 2D slice `z`.
-- **Clinical/probe labels:** use `/home/vlm/data/preprocessed_official/official_manifest.csv` as the label authority for CDR global/CDR-SB/source provenance.
-- **ROI role:** controlled technical novelty layer, not unverified atlas-wide ROI evidence.
+## Current direction (locked 2026-06-16)
+**Clinically-conditioned counterfactual 3D brain-MRI generation — Korean AD–SVD cohort (AJU).**
+A conditional *latent* diffusion model (AutoencoderKL → conditional DiffusionModelUNet in latent space)
+conditioned on a rich multimodal clinical vector; identity-preserving counterfactuals along clinically
+meaningful axes (amyloid-PET status, WMH/Fazekas grade, SNSB executive-vs-memory, APOE, vascular subtype),
+validated by a per-axis conditioning-fidelity battery. The contribution is the **per-axis structural-encoding
+readout**, not the generator. Target MICCAI/MIDL.
 
-## Critical boundary
+- Current state + milestones: **`SCRATCHPAD.md`**
+- Full plan: `/home/jovyan/.claude/plans/glistening-booping-meadow.md`
 
-- Do **not** revive the old full 3D voxel/PET-transfer direction.
-- Do **not** use `/home/vlm/data` as a writable workspace; it is read-only canonical data.
-- Do **not** claim ROI anatomical perfection from Visual-QC PASS alone. Treat PASS as a trainability/policy layer.
-- Do **not** claim reconstruction loss proves clinical representation quality.
+## Why this direction (the record)
+11 prior supervised directions all hit the **morphometry-oracle ceiling** (learned reps never beat
+engineered morphometry+clinical; targets are saturated or T1-blind), and the negative "ceiling-law"
+meta-paper is literature-pre-empted (Schulz/Bzdok, Bron). The generative pivot is the one route that
+uses the rich Korean multimodal cohort without competing on a prediction metric. Full per-experiment
+failure record: **`insights/`** (I01–I12, indexed in `insights/README.md`). Always log new
+failures/insights there.
 
-## Current active families
+## Layout
+- `insights/` — distilled per-experiment knowledge archive (I01–I12). The knowledge layer.
+- `scripts/` — analysis gates + generation smokes (reproducible code).
+- `manifests/` — assembled generation manifest (conditioning table + image index + splits). [gitignored]
+- `results/` — gating-experiment outputs. [gitignored]
 
-- `F04`: 2.5D axial slab masked center-slice SSL with ViT/MAE-style patch Transformer.
-- `F04-label`: official-label-enriched slab manifest for downstream probes.
-- `F05`: ROI-informed 2.5D extension to be built after label-join and ROI-source contract are verified.
-
-## Novelty target
-
-The novelty is not “masked reconstruction” itself. The defensible novelty is:
-
-1. strict multi-consortium 2.5D MRI SSL corpus construction;
-2. center-slice masked reconstruction with subject-level split discipline;
-3. ROI-informed token/prompt/crop auxiliary pathway under fail-closed ROI QC;
-4. official CDR/CDR-SB/progression probes separated from the unlabeled SSL corpus;
-5. shortcut controls: cohort-only, ROI-volume-only, clinical-only, 2D-only, 2.5D-no-ROI.
-
-## Current status
-
-- Old PET/longitudinal voxel/3D remnants were deleted from code/results/reports/notes on 2026-05-27 with pre-delete inventory preserved under `Official/potato/Reset_Audits/`.
-- F04 2.5D SSL scaffold and short CUDA pilot already passed.
-- Next active gate: build and verify official-label-enriched F04 slab manifest.
+## Discipline
+bf16 only (no fp16); GPU runs need prior approval + smoke-subset first; subject-level splits (no leakage);
+multi-seed + subject-bootstrap CIs; report FID but do NOT claim generator superiority; memorization audit;
+NO "synthetic augmentation improves diagnosis" claim (information-capped). 3D AE must be conv-only
+(attention OOMs at these resolutions). GPU0/6/7 often shared/busy — prefer GPU3–5.

@@ -5,6 +5,7 @@
 > 각 항목은 "무엇을 했나 · 왜 실패/교훈인가 · 다음에 어떻게" 형식. 수치·근거 commit/파일 병기.
 
 ## 색인
+- `failure_root_causes.md` — **★ 4-사인 통합 지도**(4 라인 원본 검증: R1 site==population·R2 morph천장·R3 평가누수·R4 약한target). 상위 종합 + 설계 점검 체크리스트. 새 설계는 먼저 여기로.
 - `methodological_traps.md` — **방법론 함정**(우리를 문 것들: LOCO 누수·순환·약한 target·해상도·confirmation bias). 재현 방지용 체크리스트.
 - `empirical_findings.md` — **경험적 dead-end + 작동하는 것**(harmonization·혈액·멀티모달 음성 / morphometry 견고).
 - (추가 시 여기 한 줄 색인)

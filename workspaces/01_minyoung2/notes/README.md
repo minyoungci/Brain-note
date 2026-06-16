@@ -8,6 +8,7 @@ MICCAI 2026 Foundation Model Challenge for Brain MRI. FOMO300K(306K 라벨없는
 | | |
 |---|---|
 | [SCRATCHPAD.md](SCRATCHPAD.md) | **현재 상태·branch별 status** (매 업데이트) |
+| [Warning.md](Warning.md) | ⚠️ **경고 레지스터** — 가설·실패모드를 학습 중 관찰신호(monitor.py)에 묶어 기록 |
 | [docs/00_challenge_rules.md](docs/00_challenge_rules.md) | FOMO26 공식 규칙 + 설계 함의 (단일 체크포인트/seg 50%/120초/3회) |
 | [docs/01_prior_research.md](docs/01_prior_research.md) | 선행 연구 통합 (3 deep-research + 에이전트) |
 | [docs/02_architecture_method.md](docs/02_architecture_method.md) | 모델 계획 — ViT 백본 + 학습법(①②③) |
