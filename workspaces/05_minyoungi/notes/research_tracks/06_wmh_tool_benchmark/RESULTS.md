@@ -91,6 +91,72 @@ Independent confirmation on a properly-powered cohort:
   signal even before ventricle adjustment (β+0.008, p.74).** The signal is the atrophy-coupled
   periventricular fraction. (Caveat: deep fraction 2.3% → deep test underpowered.)
 
+## ⭐⭐ GT-Dice — the killer experiment (MICCAI 2017 WMH Challenge, `gt_dice_summary.json`)
+100 subjects, expert manual masks (3 sites). Tools run on co-registered pre/FLAIR(+T1) → Dice.
+| tool | GT-Dice (accuracy) | clinical detection (OASIS A−) | atrophy leakage (% β collapse under ventricle) |
+|---|---|---|---|
+| **SYSU** | **0.664 (#1)** | **✗ misses** | — (no signal to collapse) |
+| HyperMapp3r | 0.504 (#2) | (multimodal; not on cohort) | — |
+| **SynthSeg** | 0.492 (#3) | **✓ detects** | **84%** |
+| **SHIVA** | 0.225 (#4) | **✓ detects** | **57%** |
+| wmhseg | excluded (requires >64 vox/dim; FLAIR=48 slices) | — | — |
+→ **Segmentation accuracy (Dice) is decoupled from — even anti-correlated with — clinical "detection."**
+The most accurate tool (SYSU) recovers NO clinical association; the tools that "detect" are less
+accurate AND their detected signal is 57–84% atrophy leakage (collapses under ventricle adjustment).
+**Validating/ranking WMH tools by downstream clinical association selects for atrophy leakage, not
+accuracy.** The accurate segmenter reveals the true null; the leaky ones manufacture a spurious signal.
+(SYSU is the MICCAI challenge winner → Dice is on its home-turf training distribution, which only
+strengthens the dissociation: even at its accuracy ceiling, SYSU is the clinical "non-detector".)
+
+## ⭐⭐⭐ Dissociation across 6 tools (bias-controlled) — `dissociation_analysis.json`
+6 WMH methods spanning the accuracy spectrum: 4 deep-learning (SYSU, SHIVA, WMH-SynthSeg,
+HyperMapp3r) + 2 classical baselines (fixed z>2.5 "naive", Otsu). Each scored on:
+GT-Dice (MICCAI, **test split only** → removes SYSU's home-turf training bias) + OASIS A−
+downstream β + atrophy-leakage (% β collapse under ventricle adjustment).
+| tool | type | GT-Dice (test) | OASIS β (p) | correct detect | ventricle-leak % | survives vent+cortex |
+|---|---|---|---|---|---|---|
+| SYSU | DL | **0.635 (#1)** | −0.020 (.56) | ✗ | −25% | — |
+| HyperMapp3r | DL | 0.496 | −0.094 (.010) | ✓ | **73%** | ✗ (collapses) |
+| SynthSeg | DL | 0.477 | −0.115 (.002) | ✓ | **84%** | ✗ |
+| SHIVA | DL | 0.235 | −0.076 (.026) | ✓ | **63%** | ✗ |
+| naive z>2.5 | classical | 0.157 | +0.095 (.007) | ✗ (wrong sign) | 6% | — |
+| Otsu | classical | 0.032 | −0.001 (.97) | ✗ | −50% | — |
+
+**Three quantified results (`dissociation_analysis.json`, `atrophy_control_profile.json`):**
+1. **Accuracy does NOT predict clinical detection (decoupled):** Spearman(GT-Dice, β) = −0.54,
+   p=0.27 (n.s.). The most accurate tool (SYSU) detects nothing; the crudest fail in opposite
+   ways (naive = spurious +, Otsu = null). No monotone Dice↔detection.
+2. **Atrophy-leakage PERFECTLY separates detectors from non-detectors:** every detector has
+   ventricle-leak 63–84%, every non-detector ≤6% — zero overlap (Mann–Whitney p=0.05). The
+   leakage is ventricle-specific (all detectors collapse under ventricle control but survive
+   cortex control → periventricular-WMH↔ventricular-enlargement coupling).
+3. **NO tool's clinical association survives ventricle+cortex atrophy control** (survives_both = ∅).
+   Every "detection" is atrophy-confounded.
+→ **A downstream-clinical benchmark rewards atrophy leakage, not segmentation accuracy.**
+Bias control: GT-Dice uses the held-out TEST split only (SYSU trained on the training split);
+SYSU is still #1 accurate AND the clinical non-detector → the dissociation is not a training-set
+artifact. 6 tools span the full accuracy spectrum (Dice 0.03–0.64).
+
+## Multi-cohort replication (`dissociation_multicohort.json`) — partial, honestly scoped
+The 6-tool dissociation was tested in 3 cohorts:
+- **OASIS (A−, n=242)** — flagship: perfect leak-separation (detectors 63–84% vs non-detectors ≤6%).
+- **A4 (A+, n=250)** — independent population: the strong detector (SynthSeg β−0.146, p≈0) is
+  high-leak (61%) and collapses under ventricle → **core mechanism (detection=leakage) replicates**.
+  But clean tool-separation does NOT hold (A+ dynamics: several tools borderline-significant with
+  high leak), and the leak% metric is unstable when base β≈0.
+- **AJU native (A−, n=96)** — underpowered: no tool detects (consistent with the random n=96 subset
+  being null even at registered resolution); uninformative for the dissociation.
+→ **Honest scope**: the *mechanism* (every significant detector is atrophy-leaky and collapses)
+holds in both A− (OASIS) and A+ (A4); the *clean accuracy-vs-detection dissociation* is cleanest
+in OASIS. A second well-powered A− replication is not achievable from available raw-FLAIR data
+(AJU registered is z-scored → ANTsPyNet-invalid; AJU native n=96 underpowered; KDRC FLAIR 5/20).
+
+## Tool roster note
+4 deep-learning tools (SYSU, SHIVA, WMH-SynthSeg, HyperMapp3r) + 2 classical baselines (naive z>2.5,
+Otsu). LST-AI (5th DL, MS-lesion ensemble) was installed and made runnable (greedy bridged via
+picsl_greedy) but is ~6–8 min/subject → infeasible across the full benchmark (~90 GPU-h); MS-focused
+applicability to WMH is uncertain. truenet/nnU-Net require FSL/framework+weights not available.
+
 ## Honest limitations
 - GT-free by design → relative validity/robustness only, not absolute accuracy (intended framing).
 - AJU benchmark arm = random n=96 subset, underpowered (null even at registered 1mm per Stage E)

@@ -1,36 +1,36 @@
-# minyoung3 — multi-cohort 3D brain-MRI
+# minyoung3 — conditional 3D brain-MRI generation
 
 Self-contained project. Use ONLY this directory's own assets — do not borrow corpora/code from
-sibling projects (`minyoung2` = FOMO/ACCV, `minyoung4`, etc.). `/home/vlm/data` is read-only shared
-data; physical presence there does not make a thing this project's asset.
+sibling projects (`minyoung2`, `minyoung4`, etc.). `/home/vlm/data` is read-only shared data;
+physical presence there does not make a thing this project's asset.
 
-## Current direction (locked 2026-06-16)
+## Direction
 **Clinically-conditioned counterfactual 3D brain-MRI generation — Korean AD–SVD cohort (AJU).**
 A conditional *latent* diffusion model (AutoencoderKL → conditional DiffusionModelUNet in latent space)
 conditioned on a rich multimodal clinical vector; identity-preserving counterfactuals along clinically
 meaningful axes (amyloid-PET status, WMH/Fazekas grade, SNSB executive-vs-memory, APOE, vascular subtype),
-validated by a per-axis conditioning-fidelity battery. The contribution is the **per-axis structural-encoding
-readout**, not the generator. Target MICCAI/MIDL.
+validated by a per-clinical-axis conditioning-fidelity readout. The contribution is the **per-axis
+structural-encoding readout**, not generator fidelity. Target ACCV/MICCAI-tier.
 
-- Current state + milestones: **`SCRATCHPAD.md`**
+- Current state + roadmap: **`SCRATCHPAD.md`**
 - Full plan: `/home/jovyan/.claude/plans/glistening-booping-meadow.md`
 
-## Why this direction (the record)
-11 prior supervised directions all hit the **morphometry-oracle ceiling** (learned reps never beat
-engineered morphometry+clinical; targets are saturated or T1-blind), and the negative "ceiling-law"
-meta-paper is literature-pre-empted (Schulz/Bzdok, Bron). The generative pivot is the one route that
-uses the rich Korean multimodal cohort without competing on a prediction metric. Full per-experiment
-failure record: **`insights/`** (I01–I12, indexed in `insights/README.md`). Always log new
-failures/insights there.
-
 ## Layout
-- `insights/` — distilled per-experiment knowledge archive (I01–I12). The knowledge layer.
-- `scripts/` — analysis gates + generation smokes (reproducible code).
+- `scripts/` — data assembly + AE/diffusion training + sampling/diagnostics (reproducible code).
 - `manifests/` — assembled generation manifest (conditioning table + image index + splits). [gitignored]
-- `results/` — gating-experiment outputs. [gitignored]
+- `results/` — generation diagnostics/montages. [gitignored]
+- `runs/` — model checkpoints + caches. [gitignored]
+
+## Key scripts
+- `build_generation_manifest.py` — assemble conditioning table + image index + subject-level splits.
+- `train_autoencoder.py` — AutoencoderKL pretrain on in-project multi-cohort T1 (Gate G1: recon PSNR/SSIM).
+- `train_latent_diffusion.py` — conditional latent diffusion (CondEncoder + CFG; latents cached).
+- `sample_m2_sanity.py` — conditional generation montage (the visual gate).
+- `diag_*.py` — latent / reconstruction diagnostics.
+- `run_pipeline.sh` — autonomous AE→diffusion orchestration (detached).
 
 ## Discipline
 bf16 only (no fp16); GPU runs need prior approval + smoke-subset first; subject-level splits (no leakage);
-multi-seed + subject-bootstrap CIs; report FID but do NOT claim generator superiority; memorization audit;
-NO "synthetic augmentation improves diagnosis" claim (information-capped). 3D AE must be conv-only
-(attention OOMs at these resolutions). GPU0/6/7 often shared/busy — prefer GPU3–5.
+3D AE must be conv-only (attention OOMs at these resolutions); detached runs via `nohup`/`setsid` (kill by PID,
+never `pkill -f <scriptname>`); report FID but do NOT claim generator superiority; memorization audit;
+ALWAYS verify generation visually — low loss ≠ working (the montage is the truth).

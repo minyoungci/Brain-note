@@ -157,5 +157,5 @@ README: 같은 폴더 README_MANIFEST.md
 
 1. `official_manifest_full_n4_real_final.datadict.csv` 정독 → 컬럼·코호트별 커버리지 파악.
 2. §1 원문(OBSERVATORY 형제 카드 3종) 읽고 과거 실패를 자기 말로 요약(이해 확인).
-3. **P0 설계 문서**(`docs/P0_bias_audit_plan.md`)를 먼저 쓰고 Min 승인 → 그 다음 코드.
+3. **단계 설계 문서**(`docs/<phase>_plan.md`)를 먼저 쓰고 Min 승인 → 그 다음 코드.
    (GPU·대형 배치 실행은 사전 승인 게이트. P0는 대부분 CPU/소형으로 가능.)

@@ -11,7 +11,7 @@
 | **global GRL/site-adversarial** | minyoung4 2회 실패 + **AD/CN 3회째 확인**: 0.844→0.817(NACC 0.82→0.70). bounded(n=55) 개선→full 악화(scanner-family 0.328→0.660) | minyoung4 · `adcn_methodology` |
 | **이미지가 AD/CN morph 초과 ((a) 신호)** | 누수無 nested-LOCO+from-scratch+강target(0.931)+**공정(inductive)** 비교+해상도 불변에서 image(BN-adapt) 0.910 ≤ morph 0.931. 과거 철회된 (b) 주장을 이번엔 **F1/F2/F3 없이 clean하게** 닫음 | `adcn_inductive_bn` · DECISION_LOG 2026-06-15 |
 | **해상도 추격(2mm→1.5mm)** | BN-adapt image Δ**0.000**(0.910→0.910), raw +0.005. AD/CN 분류 AUROC는 해상도 무관(T5 cortical R²와 별개 — task-level은 평탄). 1mm 빌드 폐기 | `ledgers/2026-06-15_adcn_resolution...` |
-| **혈액 바이오마커 + MRI** | morph+age 대비 Δ: dementia +0.005·MCI +0.000·amyloid +0.007. texture +0.00 | `novelty_deep_research.md` |
+| **혈액 바이오마커 + MRI** | morph+age 대비 Δ: dementia +0.005·MCI +0.000·amyloid +0.007. texture +0.00 | deep-research D5 (git `5eae3c1`) |
 | **멀티모달 fusion**(ShaSpec/HyperFusion 등) | 문헌 crowded + cross-site(LOCO) 증거 전무. imaging-only SSL "matches morph" 주장 REFUTED | deep-research |
 | **amyloid를 (a)/(b) target으로** | morph 0.66(약) → 판정 불가. image 0.63~0.66 ≈ morph | T3 함정 |
 | **APOE/molecular를 brain으로 예측** | morph→APOE 0.586(≈chance). 모달리티 천장 | landscape 측정 |
@@ -28,7 +28,7 @@
 | **clean-vendor subspace** | A4(V=0.00)·ADNI(V=0.06): vendor⊥diagnosis | site-invariance를 *글로벌 삭제 아닌* 여기서 학습 |
 | **APOE는 amyloid 예측에 기여** | morph+APOE 0.78 vs morph 0.66 (+0.12) | 단 유전정보(이미지 아님). 임상 바엔 포함해야 |
 | **inductive BN-adapt (unlabeled K=64→freeze)** | LOCO site-shift gap +0.06 회복, transductive와 동등(recovery 1.05, K64 포화)·공정·배포가능. GRL은 악화 | `adcn_inductive_bn` C4 2026-06-15 |
-| **★morphometry는 *인구 간*(서양↔Korean)에도 deep보다 transportable** | CN-vs-impaired cross-pop(n=1143): deep<morph 양방향 유의(W→K Δ−0.106[−0.143,−0.068]·K→W −0.062[−0.101,−0.022]). within은 유의차 없음 | P4 2026-06-16, `docs/P4_results.md` |
+| **★morphometry는 *인구 간*(서양↔Korean)에도 deep보다 transportable** | CN-vs-impaired cross-pop(n=1143): deep<morph 양방향 유의(W→K Δ−0.106[−0.143,−0.068]·K→W −0.062[−0.101,−0.022]). within은 유의차 없음 | P4 (DECISION_LOG 2026-06-16, git `5eae3c1`) |
 | **★cross-population deep 결손 = test-time(BN) 비가역 / 사전학습으론 *비대칭* 회복** | BN-adapt 0% 회복(둘 다). 단 **brain-age 사전학습은 W→K를 morph 동등까지 회복(Δ−0.002), K→W는 못 함(Δ−0.053 유의)** | "비가역 population"은 과한 결론 — 정정. Korean→Western이 가장 취약. P4 §4e |
 | **★MMSE는 인구간 비등가** | 매칭(age·sex·CDR-stage) 후에도 Korean MMSE 낮음(AD Δ+4.7) | 강한 임상 feature가 곧 비전이 → fusion서 제외, equity 메시지 |
 

@@ -5,7 +5,12 @@
 
 ## 결정 기록
 
-- [2026-06-16] **P4 헤드라인 정정 — strong-backbone(brain-age 사전학습)이 "비가역 population" 단정을 뒤집음.**
+- [2026-06-17] **P4 라인 폐기 — 코드·산출물 삭제.** 사용자 결정. P4(서양 vs Korean cross-pop AD 전이)는
+  실증·robustness가 닫혔으나 **체급 부족으로 폐기**: ① 방법 아닌 경고성 negative 결과(Bron2021 영역 중첩,
+  [[p2-novelty-positioning]]) ② 최강 펀치라인(비가역 population)을 strong-backbone에 스스로 철회(2026-06-16 기록) ③
+  within deep≈morph로 전제 약함 ④ "population effect" 해석이 MMSE/중증도/라벨정의 confound에 노출(4코호트로 미해소).
+  삭제: `experiments/P4/`(11 .py, git 복구가능) + `data/derived/P4/`(4.4GB, gitignore=영구). **보존:** `docs/P4_*.md`·
+  `insight/`·`SCRATCHPAD.md`. 되돌아갈 지점: commit `5eae3c1`(P4 코드·문서 온전).
   필요실험 완수(per-cohort·M2공정성·M4 split·독립 코드감사·강backbone) + 코드리뷰·산출물비교. 핵심 정정:
   from-scratch deep은 cross 양방향 deep<morph(유의)이나, **brain-age 사전학습이 W→K를 morph *동등*까지 회복
   (Δ−0.002, CI[−0.036,+0.032]) · K→W는 비회복(Δ−0.053 유의) · within-Korean은 morph 초과(Δ+0.075)**.
