@@ -134,12 +134,164 @@ LIMITS: N=6 (consistency 5/6,4/6, large sd — NEED N>=24 for stats); dx weaker 
 NEXT: scale readout — N>=24, ALL axes (age/dx/cdr/mmse/memory/executive/amyloid/wmh/apoe) x s={1,3} with paired stats
 (mean±CI, % positive) -> final contribution table. Optionally identity/minimality (non-target region unchanged).
 
-## Method novelty (lock for paper — literature-verified)
-**Decoupled CFG (per-axis guidance over the CORRELATED clinical vector) + per-axis counterfactual-fidelity readout.**
-Standard CFG (one global scale) leaks across correlated axes (amyloid↔dx↔atrophy); partition conditioning into
-intervened/invariant groups per clinical causal graph → decoupled guidance → "change amyloid, hold atrophy fixed".
-Quantify leakage with the peer-reviewed fidelity battery (composition/effectiveness/minimality/realism) **per axis** →
-readout of which clinical axes are structurally encoded in T1 (amyloid/executive ≈ null vs WMH/atrophy strong+localized).
+## FINAL per-axis readout (2026-06-18, `experiments/dcfg_FULL.md`, p0.4, N=18, s1->s3, decoupled-CFG)
+ΔCSF (s=1 -> s=3, %pos@s3): age +.0067->+.0161 16/18 | dx +.0034->+.0087 16/18 | cdr +.0028->+.0050 13/18 |
+memory +.0016->+.0037 12/18 | amyloid +.0018->+.0032 12/18 | executive +.0015->+.0026 11/18 |
+wmh +.0024->+.0029 11/18 | mmse +.0015->+.0017 9/18 | apoe +.0016->+.0008 9/18.
+**READOUT**: STRONG age,dx (s3 0.009-0.016, 89% consistent, 1.8-2.6x amplified by guidance) > MID cdr > WEAK/null
+memory/amyloid/executive/wmh/mmse/apoe (<=0.004, 50-67% consistent). Decoupled CFG amplifies atrophy axes, not
+molecular/cognitive/vascular/genetic — generative restatement of morphometry-oracle (amyloid/executive ~T1-blind).
+HONEST CAVEATS: continuous spectrum (not clean dichotomy; amyloid+.0032 != exactly 0); sd large (±.007-.011) so weak-axis
+separation not yet statistically firm. NEXT for paper: bootstrap CIs + grouped paired test (atrophy vs blind);
+minimality (non-target region unchanged) + identity preservation; then writeup. Pipeline END-TO-END WORKS.
+
+## STATISTICS (2026-06-18, `experiments/STAT_SUMMARY.md`, N=30, bootstrap B=10000) — claims hold
+Per-axis s=3 bootstrap 95% CI: **age +0.0112 [+.0076,+.0148] CI>0 ✓ | dx +0.0069 [+.0043,+.0097] ✓** | cdr +0.0030
+[-.0000,+.0060] borderline | memory/amyloid/executive/wmh/mmse/apoe ALL CI include 0 (null = T1-blind, stat-confirmed).
+**GROUP paired-permutation**: atrophy(age,dx,cdr) +0.0070 vs T1-blind(6 axes) +0.0018, diff +0.0052, **p<0.0001 SIGNIF**.
+**Guidance growth s1->s3 (decoupled CFG works)**: age +0.0074 [+.0044,+.0105] | dx +0.0041 [+.0020,+.0062] |
+cdr +0.0026 [+.0008,+.0046] — ALL amplified (CI>0). → decoupled CFG significantly amplifies atrophy axes; atrophy >>
+T1-blind (p<1e-4); amyloid/executive/etc statistically null = morphometry-oracle confirmed generatively.
+Caveat: strong individual signal narrows to age,dx (cdr borderline); weak axes correctly null. PIPELINE+CLAIMS COMPLETE.
+NEXT: minimality (non-target region unchanged under CF) + identity preservation → finish fidelity battery → writeup.
+
+## ===== PIVOT: COLLINEARITY-CEILING FINDING (literature-scout #6, 2026-06-18) — strongest direction so far =====
+literature: "controllability diagnostic FRAMEWORK" = WEAK (Eval-3D DGM4MICCAI'25 owns per-axis effectiveness/minimality,
+same domain/motivation; Melistas, GenCtrl). Clinical-axis extension = data work, not novelty. BUT "collinearity index =
+Δ_single/Δ_joint" has 0 explicit prior. **WINNING REFRAME = impossibility/NEGATIVE finding, not a framework:**
+**"Clinical-vector COLLINEARITY imposes a ceiling on per-axis controllability in conditional 3D generation that NEITHER
+inference-time decoupled guidance NOR training-time decorrelation can surpass."**
+WHY STRONG: Eval-3D(metrics)/Causal-Adapter(method) did NOT do this; OUR experiments already evidence it (single-axis weak,
+decoupled guidance partial+residual amyloid leak +0.0025, decorrelation trade-off = HFS-predicted age-monopoly-broken-but-
+signal-weakened). Venue MICCAI/MIDL (finding); ML venue if impossibility framed rigorously.
+MUST-PROVE (else collapses): (1) collinearity index VALIDITY = matches data VIF/condition-number. (2) index ⟂ minimality
+(non-redundant info). (3) mitigation CEILING: guidance/decorrelation can't separate collinear axes (= the finding). (4)
+synthetic positive control (inject corr -> index monotone). Risk: Eval-3D adjacent; single metric thin -> MUST be the
+NEGATIVE/ceiling finding, not "another metric". STATUS: starting (1) VIF on clinical conditioning vector.
+
+## ===== FRAMEWORK LOCK (2026-06-18) — superseded by collinearity-ceiling pivot above; kept for pipeline ref =====
+**"Generative per-axis structural-encoding readout"** — a FRAMEWORK that generatively measures WHICH clinical axes are
+structurally encoded in brain MRI. Contribution = framework(tool) + finding, NOT generator novelty (all components borrowed
+& cited). Venue MICCAI/MIDL/IPMI. Pipeline:
+1. Clinical conditioning: multimodal vector — molecular(amyloid-PET) / cognitive(SNSB exec,mem) / vascular(WMH/Fazekas) /
+   genetic(APOE) + age/dx/cdr. **The NON-OBVIOUS axes = our white space** (prior work: regional-volume/age/dx only — Peng,
+   Eval-3D confirmed).
+2. Conditional latent diffusion: AE runs/ae_kl1e2 + cond UNet runs/ldm_decorr_p0.4. [borrowed backbone, cited]
+3. Identity-preserving counterfactual: SDEdit invert (cf_inversion.py) + decoupled per-axis guidance (cf_dcfg.py).
+   [SEGA-style, cited — NOT claimed novel]
+4. Per-axis fidelity battery: effectiveness(ΔCSF) + MINIMALITY + IDENTITY + realism(FID), per axis, subject-bootstrap CI +
+   atrophy-vs-blind group test (stat_readout.py). [Eval-3D/Melistas-style, cited]
+5. Structural-encoding MAP: which axis, how strongly, (optionally where via spatial attribution).
+**FINDING (real contribution)**: age/dx/cdr STRONG (p<1e-4) >> amyloid/executive/WMH/APOE statistically NULL = generative
+restatement & multi-axis extension of the morphometry-oracle (no prior work measured molecular/cognitive/vascular/genetic
+axes generatively). HONEST: single-axis CF limited by clinical collinearity (HFS-predicted trade-off).
+**REVIEWER DEFENSE**: novelty = MEASURED AXES (non-obvious clinical) + finding, not the borrowed pipeline. Cite SEGA(guidance)
++ Eval-3D/Melistas(battery) + Peng(competitor, volume-only) UP FRONT.
+**STATUS**: effectiveness + stats done. Fidelity battery (fidelity_battery.py, p0.4 t0=700 N=12): eff ΔCSF +0.0097±0.009
+(9/12+), **identity=0.403 (LOW, ~0.9 expected — SDEdit t0=700 loses subject)**, **minimality=0.174 < chance 0.246 (change
+is GLOBAL, not localized to ventricular target)**. ⚠️ FIDELITY WEAK = reviewer attack ("CF keeps neither identity nor
+locality, why trust readout?"). Trying t0 sweep {400,500,600} for identity↔effectiveness trade-off. If irreducibly weak:
+the readout's RELATIVE pattern (amyloid<atrophy) may still hold even if ABSOLUTE fidelity is weak — but must report honestly.
+Possible fixes: lower t0 (identity↑), single-axis (locality↑ but eff↓), SynthSeg region metric (replace crude central-box).
+**KILLED method directions kept below for record (decoupled CFG/decorrelation/spatial/causal-selective all preempted or
+high-risk). Generator novelty = NONE; framework+finding = the paper.**
+
+## CAUSAL-SELECTIVE CONDITIONING — NARROW GAP EXISTS (literature-scout #5, 2026-06-18) — first survivor, GATED
+Unlike the 3 prior (fully preempted), TRAINING-TIME causal-graph-informed SELECTIVE decorrelation for conditional
+diffusion (graph preserves causal edges, removes spurious edges DURING TRAINING) appears UNOCCUPIED (within search).
+Surrounded by strong work:
+- **DCFG (Glocker 2506.14399) = TOP THREAT**: same skeleton (graph splits intervened/invariant, group-wise guidance) but
+  INFERENCE-TIME only ("no changes to model or loss"). We target TRAINING-TIME shortcut baked into weights. Same group →
+  training-time is their natural next step (SCOOP RISK). venue ICML'26 [VERIFY].
+- Causal-Adapter (2509.24798): ADNI + "reduce spurious correlation" BUT CTC loss is graph-AGNOSTIC per-attribute disent.
+  (not selective); graph only propagates intervention. venue [VERIFY].
+- DSCM (ICML'23): graph=true generative process, NO spurious-edge concept. CausalVAE/C-Disent/CausalDiff = independence-
+  oriented, not selective preservation.
+**SURVIVAL HINGES ON "why inference(DCFG) fails & training is needed"** — show a failure case where the shortcut is baked
+into WEIGHTS and inference guidance can't separate it. Without it → "DCFG incremental" reject.
+**WE ALREADY HAVE A CLUE**: our cf_dcfg (inference decoupled guidance) left residual amyloid leak +0.0025 @p0.4. If
+causal-selective TRAINING reduces it further → gap is real.
+**GO/NO-GO GATE (before any commitment)**: toy SCM with LABELED causal/spurious correlations → reproduce "inference(DCFG)
+fails + training-selective succeeds". If not reproducible → no gap (4th death). Then research-critic for DCFG/DSCM formal
+separation. NOTE: this gap is a THEORETICAL method question (training vs inference), NOT data richness — our data is the
+testbed, not the gap's essence. HFS cite tone: "sidesteps causal/spurious by preserving all correlations", not "stated".
+
+## research-critic verdict on causal-selective (2026-06-18) — gap REAL but ONE experiment decides it
+FCFG(=DCFG) is **ICML'26 ACCEPTED** and EXPLICITLY scopes out training-time (= our gap is competitor-declared, good).
+BUT "shortcut baked in weights → inference can't fix" BROAD claim is FALSE (FCFG queries score at group-masked configs =
+uses all weight info). DEFENSIBLE = finite-sample OFF-SUPPORT disentanglement-identifiability: at high ρ the off-support
+region (size-intervened, position-fixed) is unpopulated → score mis-estimated there; inference only reweights a wrong
+function, training adds gradient pressure off-manifold. Claim the NARROW version, never the broad one.
+**MAKE-OR-BREAK (gate): FCFG's FULL 2D weight-grid Pareto frontier must be DOMINATED — no (wc,ws) reaches the oracle
+operating point (size preserved AND leak~0). If FCFG reaches it → NO PAPER. Run this BEFORE committing.**
+MUST-HAVES (else reject): ① DSCM-edge-deleted baseline (spurious edge removed, refit — strongest objection: "isn't that
+just DSCM?"; defense = spurious corr contaminates learned p(x|cond) image mechanism, not just graph edges DSCM deletes).
+② ρ-sweep 0→1: gap monotone↑ in ρ, →0 at ρ=0 (else toy is circular). ③ independent probe for leakage (not same render
+knob = circular). ④ wrong-graph sensitivity + placebo edge. ⑤ N=707 = plausibility only; PROOF on synthetic; semi-synthetic
+bridge (real imgs + injected known corr) for real-image claim (raw clinical causal labels = circular per Point 4).
+NARRATIVE: FCFG(sampling-time) ⊥ ours(training-time) = ORTHOGONAL & COMPOSABLE, not "we beat FCFG".
+1st-pass toy running: toy_scm.py (std vs selective-oracle) + toy_eval.py (FCFG 2D grid vs oracle) → experiments/toy_gonogo.log.
+
+## SPATIAL CONDITIONING method — DEAD (literature-scout #4, 2026-06-18) — 3rd preemption, pattern is STRUCTURAL
+3rd method attempt (anatomically-grounded spatial conditioning) also preempted:
+- SPADE-style spatial FiLM = SPADE (CVPR'19) + 3D brain (Karimaghaloo'26). anatomy-grounded 3D brain diffusion =
+  AG-LDM/Cor2Vox/VCM (2025-26 red ocean). scalar-attr→spatial counterfactual = **Glocker MICCAI'25 Segmentor-Guided CF**.
+- Residual gap (scalar clinical → atlas spatially-varying injection → 3D brain, all three) is REAL but NARROW, weak for
+  ACCV/CVPR method (all building blocks off-the-shelf), high Glocker-scoop risk. Candidate 2 (2.5D-3D hybrid) = preempted
+  (Choo MICCAI'24). 
+**STRUCTURAL PATTERN (3/3 preempted)**: decoupled-CFG→SEGA, decorrelation→BarlowTwins/HFS, spatial→SPADE/Glocker. All were
+"global→X" intuitions already owned. Generative-method space is a hyper-competitive red ocean; our off-the-cuff methods are
+already done. We are NOT method researchers — our edge is UNIQUE DATA (Korean AD-SVD: amyloid-PET/SNSB exec-mem/WMH/APOE),
+not method invention. ACCV(method-required) vs our asset(data+finding) MISMATCH is now triple-confirmed.
+**DECISION: stop chasing method novelty (diminishing returns, 4th will also be preempted). Lock MICCAI/DGM4MICCAI FINDING.**
+Spatial conditioning SURVIVES as a finding-tool: "which axis changes WHICH anatomical region" = SPATIAL ATTRIBUTION readout
+(upgrades per-axis finding from "which axis" to "which axis, where"), NO method-novelty claim. That deepens data+finding.
+
+## WHITE SPACE CONFIRMED (literature-scout #3, 2026-06-18) — FINDING paper is viable
+Verified Peng et al. (2409.05585) & Eval-3D (2508.02880) FULL TEXT variable lists:
+- Peng: 5 vars = age, diagnosis(**AUD alcohol, NOT AD** — helps us), frontal/insula/parietal VOLUME. No molecular/cognitive/
+  vascular/genetic axis. Per-variable single-axis intervention NOT explicitly stated ("unclear" — don't claim they did multi).
+- Eval-3D: 7 vars = ventricle + 6 lobe VOLUMES only. Demographics collected but NOT intervention vars. BUT it DID publish
+  per-axis single-attribute intervention + effectiveness/minimality framing → the READOUT METHOD is prior art, cite it.
+**OUR white space = the AXES, not the method**: no prior 3D brain-CF work uses amyloid-PET / SNSB exec-vs-mem / WMH-Fazekas /
+APOE as intervention vars. Positioning (lock): "prior 3D brain CF validates per-axis intervention only for axes TRIVIALLY
+encoded in structure (regional volume, age, coarse dx); we measure whether clinical axes whose structural encoding is
+NON-OBVIOUS — molecular(amyloid), cognitive-domain dissociation(exec vs mem), vascular(WMH), genetic(APOE) — are readable
+from T1." Novelty = WHICH axes + the scientific question; readout framework cited from Eval-3D/Melistas (NOT claimed new).
+CAVEAT: both ★★ (arXiv preprint + workshop); verify Peng Springer camera-ready var list before "peer-reviewed" claim [VERIFY].
+NEXT: minimality+identity via Eval-3D's effectiveness/minimality framing applied to OUR clinical axes; then writeup.
+
+## DECORRELATION-LOSS method — DEAD for AI venue (literature-scout #2, 2026-06-18)
+Tried "collinearity-aware training via conditioning-token decorrelation loss" (train_ldm_orth.py, lam sweep running).
+Literature verdict: TRIPLE-occupied + theoretically refuted.
+- Mechanism = Barlow Twins (ICML'21) + VICReg (ICLR'22) — our off-diagonal penalty IS their loss.
+- Objective = β-TCVAE (NeurIPS'18) / FactorVAE total-correlation — ours is the weak 2nd-order approximation.
+- Problem+domain = FCFG (ICML'26, Glocker lab; ~= our cf_dcfg) + Causal-Adapter (CTC loss, ADNI brain-MRI).
+- **KILLER: HFS (ICLR'23)** proves forcing independence on CORRELATED factors fails by design → our dropout/decorr
+  trade-off (signal weakens) is a PREDICTED failure, not a bug. age↔atrophy is a real biological correlation; cutting it
+  destroys signal. No λ fixes this. ⇒ decorrelation loss CANNOT be an AI-venue method contribution.
+- orth sweep value now = NEGATIVE ablation only (empirically confirm HFS in medical data: decorrelation doesn't solve the
+  trade-off), supports an honest MICCAI finding paper. NOT a method.
+- HFS opens the ONLY theoretical gap: distinguish SHARED structural variance (preserve) from SPURIOUS shortcut variance
+  (penalize). Our edge if pursued: clinical causal priors could make that distinction (HFS had no causal knowledge). But
+  this = a theory paper, high risk, not our strength. Best ckpt of the method line stays runs/ldm_decorr_p0.4.
+CONCLUSION: AI-venue METHOD is twice-preempted (decoupled CFG, decorrelation loss). Realistic = MICCAI/MIDL FINDING paper.
+
+## Method positioning (REVISED 2026-06-18 after literature-scout — METHOD NOVELTY IS OCCUPIED)
+**HONEST: decoupled CFG is NOT novel.** SEGA (Brack NeurIPS'23) + Composable Diffusion (Liu ECCV'22) already own
+"per-concept guidance with independent scales, isolate one axis / hold others" — SEGA's motivation ("global CFG leaks →
+guide per-concept") preempts ours verbatim. Brain-MRI per-axis CF + leakage already done: Peng et al. (latent SCM,
+DGM4MICCAI'24/25), Eval-3D (DGM4MICCAI'25, minimality = leakage), Melistas (NeurIPS'24 = the fidelity battery itself).
+Decorrelated per-var dropout = standard multi-condition CFG practice. ⇒ CANNOT claim a new guidance method (reviewers cite
+SEGA+Peng to reject). The std-vs-decoupled benchmark = domain evidence only, NOT a method contribution.
+**WHITE SPACE = FINDING, not method**: (1) structural-encoding readout of MOLECULAR/COGNITIVE/VASCULAR axes (amyloid-PET,
+SNSB exec/mem, WMH, APOE) — prior work covers only anatomical-volume / dx / age; our stat (atrophy +0.0070 vs T1-blind
+6 axes +0.0018, p<1e-4; amyloid/executive statistically null) is a NEW clinically-surprising finding = generative
+restatement of morphometry-oracle. (2) Korean AD–SVD + vascular spectrum (not ADNI). (3) collinearity makes single-axis
+CF structurally non-separable (honest negative trade-off). POSITIONING: "structural-encoding readout / negative-result
+study" using SEGA/Composable-style guidance as a TOOL (cite up front), NOT "we propose decoupled CFG".
+**MUST verify next**: Peng et al. full PDF — did they cover molecular(amyloid) axes? if NOT, our white space widens. [VERIFY]
+Prior framing (kept for record): per-axis fidelity battery (composition/effectiveness/minimality/realism) per clinical axis.
 - Anchors: Melistas et al. NeurIPS 2024 (CF benchmark) + 3D ext DGM4MICCAI 2025; competitor Peng et al. DGM4MICCAI 2025
   (VQ-VAE latent SCM). White space = vascular + cognitive-domain axes (competitors do ADNI age/amyloid). Scoop risk — move fast.
 - Add-ons (ROI-ranked): adaLN/FiLM conditioning (data-efficient N≈707); SynthSeg anatomy-consistency for minimality.

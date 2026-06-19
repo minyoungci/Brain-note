@@ -100,4 +100,5 @@ Each run contains:
 ## Official-Use Rule
 
 This CPU baseline can be used for development and shortcut diagnosis.
-It is not a final paper result until exp00 protocol approval and code review are recorded.
+It is not a final paper result until exp00 protocol approval, code review, and an approved
+age-semantics policy are recorded.

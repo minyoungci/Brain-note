@@ -67,10 +67,10 @@ Stable IDs:
 Go condition:
 
 - Image model shows paired incremental value over clinical-only under LOCO.
-- The same model has at least one age-controlled confirmation:
-  - improved `40_59` age-bin performance;
-  - positive clinical-adjusted/residualized image-score test;
-  - or age-matched sensitivity improvement where sample size permits.
+- Primary confirmatory age-control test is positive: full-cohort out-of-fold
+  clinical-adjusted or residualized image-score test fit without held-out leakage.
+- Supportive `40_59` analysis improves when pooled across subjects scored in their
+  own held-out fold.
 - It improves middle-age performance without collapsing worst-consortium metrics.
 - It does not rely only on apparent brain-age signal.
 
@@ -84,10 +84,25 @@ No-go condition:
 
 Before any GPU image run:
 
+- resolve `experiments/exp00_protocol_and_leakage_gate/age_semantics_audit.md`;
+- lock scan-age versus diagnosis-age policy per consortium;
+- lock subject-level imaging-unit selection policy before interpreting image results;
+  `draft_first_lexical` is smoke-only, while `earliest_numeric` is an explicit diagnostic
+  policy and still does not prove pre-treatment semantics;
+- run 4-channel geometry checks (shape, affine, voxel spacing) before training;
+- use explicit bf16 autocast for CUDA/B200 runs unless a run is deliberately CPU-only;
+- lock a strong unconstrained baseline regimen (capacity, resolution, epochs, train-only
+  augmentation) before treating any NO-GO as evidence that image signal is absent;
 - define paired bootstrap CI for delta AUC, delta AUPRC, and delta Brier versus `age_sex`;
+- define the bootstrap unit as subject-level paired resampling of out-of-fold predictions;
 - treat `age_sex` as the clean clinical baseline;
+- require `p_age_only` LOCO OOF predictions for brain-age shortcut diagnostics;
 - treat `age_sex_scanner` as sensitivity/diagnostic unless scanner use is explicitly approved;
-- pre-specify `40_59` as the primary age-stratified target and `60_69` as exploratory;
+- pre-specify full-cohort clinical-adjusted/residualized image-score testing as the
+  primary confirmatory age-control endpoint;
+- pre-specify `40_59` pooled out-of-fold stratified performance as supportive and
+  `60_69` as exploratory;
+- exclude folds with zero positives from fold-level stratum AUC and report them as undefined;
 - treat `70_plus` as specificity/calibration-only because draft B0 has 0 mutants there;
 - define the train-only residual/clinical-adjusted image-score test;
 - define correlation diagnostics between image logits, age, and age-only logits.

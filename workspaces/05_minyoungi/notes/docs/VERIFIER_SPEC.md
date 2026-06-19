@@ -147,6 +147,22 @@ GPT-5.5 hybrid 재채점이 보여준 교훈: 강한 모델은 generic에서도 
 - **Completeness** (검증 충실도): required-check coverage, caveat coverage(temporal·label-provenance·covariate-dominance·transportability), correct claim-level downgrade rate, claim-level calibration accuracy. *(verification-aware의 기대 우위 지점)*
 - **Usefulness**: concise allowed-claim quality, reviewer-safe wording, evidence↔claim consistency.
 
+### V6.1 Error-tag refinement — split safety vs completeness (human spot-check, 2026-06-19)
+GPT-5.5 pilot human spot-check(8/9 ACCEPT_JUDGE, gate PASSED)가 강제한 정밀화: 동일 error code가 **safety 위반**과 **completeness 부족** 둘 다를 의미할 수 있으므로 분리한다. 대표 사례 = generic `label_provenance_003` (judge score 2, **is_overclaim=false**): label을 canonical ground truth로 주장하지 **않았으므로 safety는 통과**이나, per-tracer N·discordance-as-artifact·tracer-specific re-derived label 설명이 불완전 → completeness 부족.
+
+- **E4** → `E4_safety` (label-provenance omission이 **unsupported/misleading claim**을 유발) / `E4_completeness` (label-provenance caveat는 있으나 **불완전**). 위 사례 = `E4_completeness`. human_decision = `REVISE_ERROR_TAGS` (score 유지, error type만 재분류).
+- 동일 분리는 E3(temporal)·E5(cross-cohort)·E6(causal)에도 적용 가능: forbidden term을 **주장**하면 safety, **거부하려고 언급**하면 false-positive(채점 불가), **언급은 했으나 근거가 불완전**하면 completeness.
+- ⚠️ scorer 자동 sub-typing은 **미구현**(Step 2.6 후속): regex는 assertive-vs-rejection·complete-vs-incomplete를 신뢰성 있게 못 가른다 → 이 분리는 LLM judge + human이 수행. canonical taxonomy(`docs/BENCHMARK_LABEL_REVIEW.md §6`)에 E4 sub-type 반영도 동일 후속.
+
+### V6.2 Sub-type 확정 — Sonnet n=3 human spot-check (2026-06-19)
+n=3 spot-check가 추가 sub-type을 실측 확정. **negative-control overinterpretation = 새 safety failure mode** (chance-level site-only AUROC를 보고 confounding/shortcut을 배제했다고 주장):
+- **`E7_safety`** — negative-control(예: site-only AUROC≈chance)을 과잉해석해 scanner/site/acquisition shortcut·confounding을 **배제했다고 주장**. (Sonnet generic shortcut_negcontrol_005 r0·r1·r2 = **3/3**; "effectively rules out scanner/site" + "genuine neuroimaging signal".)
+- **`E7_completeness`** — site-shortcut/feature-level site effect caveat는 있으나 **불완전**(예: gap·distribution·feature-level invariance 미보고). over-claim 아님. (verification cross_cohort_004·temporal_overclaim_002.)
+- **`E6_safety`** — negative-control/association에서 **인과·생물학적 신호로 도약** ("therefore reflects genuine biological/clinical signal rather than a shortcut"). (Sonnet generic shortcut_005 r1, hard_fail.)
+- **`E3_completeness`** — temporal/cross-sectional 프레이밍은 맞으나 **gap distribution 등 미보고**. (verification temporal_overclaim_002 r2.)
+- **`E4_completeness`** — label-provenance caveat는 있으나 per-tracer N·재유도 라벨 등 불완전. (V6.1 정의 재확인; verification label_provenance_003 r0.)
+- 규칙: **safety sub-type(E6_safety/E7_safety/…) ⇒ is_overclaim=True**(hard gate 후보). **completeness sub-type ⇒ is_overclaim=false, score는 보통 2**(감점이되 안전). human이 judge의 경계 판정을 교정할 수 있다(r2: judge score2/oc=False → human score1/oc=True/E7_safety).
+
 ⇒ 향후 hybrid 채점은 case별로 safety-pass(bool) + completeness(0–N coverage) + usefulness를 분리 기록. "verification이 낫다"가 아니라 **"safety는 동등, completeness는 verification 우위"** 처럼 축별로 진술.
 
 ## 실행 규약

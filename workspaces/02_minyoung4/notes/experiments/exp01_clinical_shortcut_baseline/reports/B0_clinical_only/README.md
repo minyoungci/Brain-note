@@ -24,6 +24,8 @@ brain-age confounding rather than IDH-specific tumor signal.
 The official clinical baseline should remain `age_sex_scanner` only if scanner variables are
 approved for the intended claim. Otherwise, `age_only` and `age_sex` should be treated as the
 cleaner shortcut floor, and scanner/site variables should remain diagnostic/reporting axes.
+Because age semantics are non-uniform across consortia, all age-based B0 variants remain
+diagnostic until the exp00 age policy is approved.
 
 ## Age Confounding Finding
 
@@ -45,7 +47,8 @@ does not trivially determine all labels but positives still exist.
 - LOCO summary is an unweighted fold mean; UCSD and UPENN have few mutant cases, so calibration
   and AUPRC are noisy.
 - Bootstrap confidence intervals are not yet implemented.
-- Age definition across datasets still needs raw-source verification before final reporting.
+- Raw-source verification found non-uniform age semantics across consortia; final reporting
+  requires an approved age policy. See `experiments/exp00_protocol_and_leakage_gate/age_semantics_audit.md`.
 - LOCO group-overlap checks are necessary but not sufficient: because `leakage_group_id` includes
   dataset prefix, dataset-heldout splits structurally avoid group overlap.
 

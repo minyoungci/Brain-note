@@ -49,12 +49,16 @@ Exit criteria:
 Required before exp02 is treated as interpretable:
 
 - lock whether the official supervised cohort is 1,457 or conflict-excluded 1,444;
-- verify age definition across source datasets;
+- resolve `exp00_protocol_and_leakage_gate/age_semantics_audit.md` as a hard blocker
+  before exp02 image modeling;
 - add bootstrap confidence intervals for exp01/exp02 comparisons;
-- define age-stratified reporting, especially `40_59` and `60_69`;
-- define age-residualized or clinical-adjusted comparison against B0.
-- make exp02 success conjunctive: paired LOCO incremental value over clinical-only plus at
-  least one age-controlled confirmation.
+- define subject-level paired bootstrap over out-of-fold predictions;
+- define age-stratified reporting with pooled `40_59` supportive analysis and
+  exploratory `60_69` analysis, marking zero-positive fold AUC as undefined;
+- define full-cohort age-residualized or clinical-adjusted comparison against B0 as the
+  primary confirmatory age-control endpoint.
+- make exp02 success conjunctive: paired LOCO incremental value over clinical-only plus
+  positive primary clinical-adjusted age-control confirmation.
 
 ## Phase 2: Novelty Modules
 

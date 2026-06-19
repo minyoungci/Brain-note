@@ -36,6 +36,7 @@ This experiment is a gate, not a performance experiment.
 
 - `protocol.md`
 - `label_policy.md`
+- `age_semantics_audit.md`
 - `split_policy.md`
 - `preprocessing_policy.md`
 - `mask_policy.md`
@@ -55,6 +56,7 @@ These files should be produced before exp01 or any image model implementation is
 Min approval is required before:
 
 - final split files are written;
+- age policy is treated as final for clinical adjustment;
 - full NIfTI header audit is run;
 - preprocessing outputs are created;
 - GPU training starts.
