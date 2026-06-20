@@ -51,3 +51,20 @@
 
 ## 핵심 ablation (= 논문 기여)
 ① balancing > well-tuned λ? ② cross-seq > single-modal? ③ fairness가 seg 안 깎고 Task7 올리나? + iBOT-dense vs MAE. 전부 OpenMind 프로토콜·subject-disjoint·3시드+CI. 안 되면 negative=자산.
+
+### ④ corpus-composition ablation (DWI 포함 여부 — research-critic 권고, 2026-06-20)
+> ⚠️ "consistency 정합 = DWI 반드시 포함"은 **비약**(정합은 *어떻게* 전처리할지를 규정, *얼마나 넣을지* 아님). DWI 사전학습은 nice-to-have(Task1/2 finetune이 어차피 backbone에 dwi 노출). 희석 위험: 7중 5개 구조 task, seg 2·4=리더보드 50%, DINOv2/SEER "큐레이션>raw볼륨". → **혼합비는 실증 결정.**
+- **전처리는 all-DWI 유지**(유연성·재전처리 회피). 혼합비는 manifest `modality`(b값 태그)로 학습 시 샘플링.
+- **arm**: C0 structural-only(182K) / C1 +b0-dwi / C2 +all-dwi(현 기본=control) / C3 +dwi downweight(~15%).
+- **결정지표**: Task2·4 seg DSC(50%, 1차) + Task1 infarct AUROC(dwi 입력 task) + Task6 probe. **동일 step수**(epoch 아님)·subject-disjoint·3시드+CI.
+- **규칙**: C0/C1이 seg서 C2 tie-or-better & Task1 손실 없으면 → b0-only/고b 제외. 전부 CI겹침 → C1(parsimony).
+- 열린 검증: Task1/2 finetune이 full-backbone인지 frozen+head인지(등록 후 config) → dilution 계산 좌우. 선행 3D-brain-SSL의 DWI-fraction ablation 유무(literature-scout) → 없으면 ④ 자체가 novelty.
+- ⚠️ b값 분포(전수 실측, dwi 118,509): **b0 32% · b1000-family(998/999/1000) ~23%**(downstream 정합 양호) · **고b(≥1500) 27%**(=corpus ~10%, 노이즈) · 'dwi' untagged 10% · trace 1.4%. **adc/md/fa는 corpus에 없음**(per-b-value만) → 사전학습 DWI 신호 = b1000-family+trace.
+
+### literature-scout 종합 (2026-06-20) — 근거기반 DATA FORM 정정
+> 6축 peer-reviewed 조사. brain FM 선례 전부 구조중심(all-b DWI 1급 스트림 0); modality-invariance가 seg↓(2511.11311[VERIFY]); 큐레이션>규모(DINOv2); FM 관행=최소전처리(MNI/강제등방 X, OpenMind·FOMO우승); DWI 표준형=b1000 trace; norm=percentile-clip+z-score>무클립[0,1].
+- **(a) DWI 형태**: all-b → **b1000-family(+trace)로 큐레이션**, b0(T2중복)·고b(노이즈) drop/downweight. ADC는 corpus에 없어 사전학습 불가(downstream만 제공).
+- **(b) 전처리**: FM 관행대로 **더 최소화** — crop+RAS 유지, **DWI 1mm 업샘플 지양(native)**, norm을 **percentile-clip(0.5–99.5)+z-score**로(무클립[0,1]은 고b 아웃라이어에 취약), MNI 비권장. ⚠️ 대회규칙=전처리 자유(필수 아님)이므로 우리가 pretrain=our-inference 일관성만 지키면 자유 선택 가능.
+- **(c) ablation은 선례 없음=novelty**: 구조-only vs +b1000 vs +all-b × (4단계 vs 최소전처리)를 구조5/DWI2 task 분리 측정. MICCAI/IPMI 기여.
+- **삼중복합오류**(현 run): all-DWI(39%)+1mm-resample+[0,1] → 1순위 수정=조성(b1000만), 2순위=DWI native, 3순위=clip.
+- **운영 해법(재확인)**: 전처리 all-DWI 유지(유연 풀, b값 태그) → **학습 혼합비=구조+b1000-family**(샘플링). 단 해상도/norm은 npy에 baked → 최소전처리 변형은 Phase-A서 DWI 재처리(저렴 ~0.5TB)로 ablation.

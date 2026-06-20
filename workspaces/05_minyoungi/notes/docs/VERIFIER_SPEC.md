@@ -165,6 +165,21 @@ n=3 spot-check가 추가 sub-type을 실측 확정. **negative-control overinter
 
 ⇒ 향후 hybrid 채점은 case별로 safety-pass(bool) + completeness(0–N coverage) + usefulness를 분리 기록. "verification이 낫다"가 아니라 **"safety는 동등, completeness는 verification 우위"** 처럼 축별로 진술.
 
+## V7. generation/scoring view 분리 — verification ≠ gold-aware (ClaimTrap30 adapter, 2026-06-19)
+⚠️ **5-case 누설 교정**: 5-case harness의 `_verifier_text(gold)`는 verification-aware agent에 그 case의 **gold_claim_level(ceiling) + gold_forbidden_phrases + gold_required_checks**를 주입했다 → verification이 사실상 **답안지를 본 gold-aware agent**였다. 따라서 5-case의 verification-side 우위는 confounded(generic-side failure-mode 발견은 무관하게 유효).
+
+30-case(`src/benchmark/claimtrap30_adapter.py`)는 두 view를 **완전 분리**한다:
+- **generation_view** (agent 가시): 중립 task + input_artifacts + focus_question + provenance만. 양 agent 동일.
+- **scoring_view** (scorer 전용): gold_allowed_claim·forbidden·required·claim_level·primary_error_type·adjudication. **프롬프트에 절대 미주입.**
+- verification-aware agent = **GLOBAL_VERIFIER_CHECKLIST**(claim schema L0–L3 + 7개 일반 검증 지침, 30 case 공통)만 받음. case별 ceiling/forbidden/required는 **agent가 스스로 도출**. "no answer is provided for this specific case."
+- blinding guard는 generic·verification **양쪽** 프롬프트를 scoring_view gold에 대해 검사(forbidden은 focus_question 제외, required는 GLOBAL checklist 제외 — 둘은 정당한 가시 컨텍스트라 false-positive 아님; gold allowed claim·metadata token은 어디에도 금지). dry-run(`scripts/claimtrap30_dryrun.py`) leak 0 검증.
+
+## V8. Blind 30-case 실측 — safety sub-type 확정 + verification 비-면역성 (Step 2.6g/h, 2026-06-19)
+첫 gold-leak-없는 blind run(Sonnet gen + GPT-5.5 judge, n=1) human spot-check(8 safety-critical)로 V6.2 sub-type을 비-누설 환경에서 확정:
+- 관측·확정된 safety sub-type: **E2_safety**(incremental over-claim), **E3_safety**(temporal→prediction), **E4_safety**(L0 blocked-claim violation), **E6_safety**(association→biological/causal 도약), **E7_safety**(negative-control 과잉해석; 양방향 — chance를 "shortcut 배제"로 / above-chance를 "not a shortcut"으로). e3_02는 E8 격하(secondary_unsupported_predictive_wording), E3_safety primary.
+- ⭐ **verification ≠ 면역**: GLOBAL checklist만 받은 verification-aware도 강한 incremental trap(e2_03)에서 +0.04를 "beats covariates"로 단언 → **global 검증 지침은 over-claim을 줄이나(7→1) 제거하진 못함**. 보고는 "reduces, not eliminates"로.
+- 채점 분리 재확인: safety sub-type ⇒ is_overclaim=True(hard gate), completeness gap은 별도(Tier 2). 누설 없는 환경에서도 동일.
+
 ## 실행 규약
 - 3 검증기는 **모델 학습 코드와 분리된 모듈/에이전트**로 실행(독립 컨텍스트 — harness.md Evaluator).
 - 게이트 순서: **V1(leakage) → V3(shortcut) → V2(confounding)**. V1 FAIL이면 이후 무의미(중단).
