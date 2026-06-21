@@ -49,7 +49,7 @@
 |---|---|---|---|
 | **W12** | **단일 체크포인트 강제**(규칙) | task별 튜닝 불가 → 리더보드 과적합 위험 | 모든 선택을 **내부 subject-disjoint val**로, 3시드+CI ([[docs/03_data_integrity]]) |
 | **W13** | **pretrain ↔ downstream subject overlap** | 누수 시 전 결과 무효 | 결과 신뢰 *전에* overlap-check 스크립트 = **0 중복** 강제 ([[docs/03_data_integrity]]) |
-| **W14** | **공유 디스크** (gpfs 여유 ~3.8TB, 타 사용자/프로젝트 공유) | 대용량 전처리가 공유 풀 채워 타 작업 손상 | 전처리는 **subset만**(full 6~9TB 불가), 진행 중 `df` 감시. AD 잔존물 회수는 확인 후 |
+| **W14** | **공유 디스크** (gpfs, 타 사용자/프로젝트 공유) | 대용량이 공유 풀 채워 타 작업 손상; 타 사용자도 우리 공간 잠식(실측: 12h에 200GB↑) | ✅전처리 완료(float16으로 full anat+dwi=3.2TB, 6~9TB는 float32 추정이었음). 학습 중 체크포인트/로그 누적 `df` 감시. disk guard 100GB. AD 잔존 정리 완료 |
 | **W15** | **제출 컨테이너 형식**(120초/case, 7 task I/O) | env가 아니라 *형식*이 진짜 제약 — 형식 불일치 시 좋은 모델도 제출 실패 | sanity-check 파이프라인으로 **최소 제출 조기 검증** ([[docs/00_challenge_rules]]) |
 
 ---
@@ -61,12 +61,15 @@
 4. **STOP 발생 시**: 즉시 중단 + 원인(어떤 alert, 직전 metric 추세) 기록 → 재시작 전 근인 분석 (낙관적 재시작 금지).
 
 ## 학습 시작 전 pre-flight (W와 연결)
-- [ ] W13: pretrain↔downstream subject overlap = 0 확인 (스크립트 실행)
-- [ ] W11: bf16 설정, fp16 없음 확인
-- [ ] W14: `df -h /home/vlm` 여유 + 전처리 출력 예상치 < 여유 확인
+- [x] **env**: 학습은 `.venv-train`(torch 2.12.1+cu130, B200 sm_100 검증). 전처리 .venv(torch2.2)는 B200 학습 불가(numpy ABI + sm_100 커널 없음) — 절대 학습에 쓰지 말 것. [[fomo-env-split]]
+- [x] **전처리**: 227,443볼륨(anat 181,965+dwi 45,478) 전수정합·대량로드·DataLoader 검증 PASS.
+- [ ] W13: pretrain↔downstream subject overlap = 0 확인 (등록 후 downstream 데이터 시)
+- [ ] W11: bf16 설정, fp16 없음 확인 (.venv-train, bf16 B200 검증됨)
+- [ ] W14: `df -h /home/vlm` 여유 감시 (체크포인트 누적 + 공유디스크 잠식 주의)
 - [ ] W5/W6: baseline rankme 첫 기록(이후 drop_frac 기준)
 - [ ] W8: `grad_conflict`를 K step마다 호출하도록 grad_terms 배선
 - [ ] W2: 120초 추론 벤치 1회 (대표 case)
+- [ ] monitor.py: `.venv-train`에서 import 확인(import torch/numpy)
 
 ## 학습 중 일일 점검 루틴
 - STOP alert 0 인지 (있으면 이미 중단됐어야 함).

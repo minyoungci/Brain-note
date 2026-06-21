@@ -19,20 +19,21 @@ MICCAI 2026 Foundation Model Challenge for Brain MRI. FOMO300K(306K 라벨없는
 | [pretrain/MONITORING.md](pretrain/MONITORING.md) | SSL 사전학습 모니터링 spec |
 
 ## 구조
-- `preprocessing/` — 전처리(extract_arrange + PREPROCESSING.md)
+- `preprocessing/` — 전처리 드라이버 `preprocess_fomo300k.py`(프로덕션) + PREPROCESSING.md (구 extract_arrange.py=파일럿)
 - `pretrain/` — SSL 사전학습 (monitor.py)
 - `downstream/task1~7/` — 각 downstream task
 - `baseline-codebase/` — 공식 FOMO 코드 (gitignored)
-- `.venv/` — 전용 env (yucca2.2.6/torch2.2)
+- `.venv/` — 전처리 env (yucca2.2.6/torch2.2, **완료**) · `.venv-train/` — 학습 env (torch 2.12.1+cu130, B200)
 
 ## 환경
 ```
-.venv/bin/python -c "import yucca"   # 전처리 env
-# 데이터: /home/vlm/data/FOMO300K (minyoung2 밖)
+.venv/bin/python -c "import yucca"          # 전처리 env (완료)
+.venv-train/bin/python -c "import torch"    # 학습 env (B200 sm_100)
+# 원본 데이터: /home/vlm/data/FOMO300K  ·  전처리 산출물: /home/vlm/data/FOMO300K_preprocessed (227,443볼륨/3.2TB)
 ```
 
 ## 다음 게이트
-**FOMO26 등록 → downstream 7 task 데이터 → Phase A pilot.** ([[SCRATCHPAD]] 참조)
+✅ 전처리 완료(227,443볼륨) · ✅ 학습 env(.venv-train, B200) → **SSL 사전학습 코드 셋업 → Phase A pilot.** (FOMO26 등록·downstream 데이터는 병행) ([[SCRATCHPAD]] 참조)
 
 ---
 *이전 AD/7-코호트 연구는 git 태그 `exploratory-v1`/`rtssl-v1`/`experiments-v1`로 보존(현 tree는 FOMO 전용).*

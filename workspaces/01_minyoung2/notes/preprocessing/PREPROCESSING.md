@@ -23,14 +23,13 @@
 
 ## Branch별 상세
 
-### Branch A: pretrain-prep (FOMO300K → SSL)
-- **목표(2026-06-20 확정): full 300K 전체 전처리 → foundation 사전학습** (thesis "FOMO300K 규모로 처음 입증"과 정합). subset 회귀 아님.
-- FOMO300K zip(`/home/vlm/data/FOMO300K`, **2.292TB / 251,944 files / 81,195 sessions(zip) / 36 PT 파티션**, download 로그 확인) → **`extract_arrange.py`** → 공식 `preprocess.py` → npy.
-- **저장 dtype = float16** (출력값 [0,1], 학습 bf16(8bit mantissa)보다 정밀 → 무손실. round-trip err<5e-4 검증 예정). ⚠️ 원 출력이 float32냐 float64냐는 파일럿 산출물에서 `np.load().dtype` 실측 [VERIFY] → 절감배율(×2 vs ×4) 확정.
-- **용량 추정**(float16): scan당 ~17.5MB(float32 35MB 기준) → full ~306K ≈ **5.4TB**. (float32면 ~10.7TB.)
-- **디스크**: gpfs 단일 마운트, 여유 **4.0T**(공유). `/` overlay는 ephemeral+쓰기불가 → 사용 불가. → **옛 AD 데이터 정리 필요**(`data/raw`+`preprocessed_official`, hee/hyerin 제외=동료 추정). 정리 후 ~8.9T → float16 full 수용.
-- **스트리밍**: zip 풀기→전처리→**풀린 임시 nii.gz만 삭제(zip은 유지)**. AD 정리로 raw zip(2.3T) 삭제 불필요 → 안전. per-volume 처리라 배치/순서가 출력 불변(bit-identical).
-- status: 파일럿 IXI 15scan만 검증됨 → **이질 파티션 2~3개 재검증 필요**(dtype·float16·4단계 동작). 그 후 full 실행.
+### Branch A: pretrain-prep (FOMO300K → SSL) — ✅ 완료(2026-06-21)
+- **목표 달성: full 전체 전처리 → foundation 사전학습** (thesis "FOMO300K 규모로 처음 입증"과 정합). subset 아님.
+- 흐름: FOMO300K zip(`/home/vlm/data/FOMO300K`, 2.292TB / 81,195 zip / 36 PT) → **`preprocess_fomo300k.py`**(아래 "실행 드라이버" 섹션) → `FOMO300K_preprocessed/npy/<PT>/*.npy`(float16). *(구 `extract_arrange.py`는 파일럿 추출 전용 — 프로덕션은 드라이버로 대체.)*
+- **결과**: 학습 코퍼스 **227,443 볼륨 = anat 181,965 + DWI b1000대역 45,478**, **~3.2TB(float16)**, 36/36 파티션, error 2(PT030 상수볼륨 정상격리). DWI=b800~1200 큐레이션(b0/고b drop). float16 round-trip err 2.44e-4. out-of-band dwi(7,129/79GB) 정리 완료(백업 `manifest_allruns_backup.csv`).
+- **검증**: 전수 정합(npy=pkl=manifest ok=227,443, 고아/누락 0) + 무작위 300개 무손상 + `.venv-train` DataLoader 멀티워커 로드 PASS.
+- **디스크 히스토리**: gpfs 공유. float16 덕에 full이 ~3.2TB로 수용(애초 6~9TB는 float32 추정). 옛 AD `preprocessed_official` 등 정리. `/` overlay는 ephemeral+무권한이라 사용 불가 → gpfs만 영구.
+- **스트리밍/안전**: zip 풀기→전처리→임시 nii.gz만 삭제(zip 유지), per-volume라 출력 bit-identical. 중간 외부kill 1회→resume(재작업 0)로 완주.
 
 ## 실행 드라이버 & 산출물 — `preprocess_fomo300k.py` (프로덕션, 검증완료 2026-06-20)
 

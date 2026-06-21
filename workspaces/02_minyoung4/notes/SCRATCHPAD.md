@@ -183,6 +183,253 @@
 - Interpretation:
   - P2.05 is the current best performance artifact against P2.02, but ensemble/TTA alone is weak novelty.
   - Strong next direction: distill P2.02/P2.03 complementarity into a single uncertainty/tail-aware model, with explicit UCSD transfer diagnostics.
+- P2.05 all-flip TTA result:
+  - run: `EXP_flag/P2_05_checkpoint_ensemble/reports/p202_p203_tta_all_v1/`
+  - vs P2.02:
+    `EXP_flag/P2_05_checkpoint_ensemble/reports/compare_vs_p202_p202_p203_tta_all_v1/comparison_report.md`
+  - vs P2.05 single:
+    `EXP_flag/P2_05_checkpoint_ensemble/reports/compare_vs_p205_single_p202_p203_tta_all_v1/comparison_report.md`
+  - mean Dice 0.849610.
+  - delta vs P2.02 +0.003780, CI95 [+0.002435, +0.005146].
+  - low Dice <=0.8 rate delta -0.009926, CI95 [-0.017990, -0.002481].
+  - delta vs single-axis TTA +0.001709, CI95 [+0.001132, +0.002332].
+  - current best performance artifact = P2.05 all-flip TTA ensemble.
+  - still weak as novelty alone; use as teacher/upper bound for a stronger method.
+
+## P2.07 validation-routed inference result
+- New report-composition track: `EXP_flag/P2_07_validation_routed_inference/`.
+- Method: fold-level validation Dice routing between P2.02 baseline and P2.05 all-flip TTA.
+  Uses validation Dice only; test labels are not used for routing.
+- Run:
+  `EXP_flag/P2_07_validation_routed_inference/reports/p202_vs_p205all_val_routed_v1/`
+- Routing selected:
+  - MU -> P2.02 baseline.
+  - UCSD/UPENN/UTSW -> P2.05 all-flip TTA.
+- Comparison vs P2.02:
+  `EXP_flag/P2_07_validation_routed_inference/reports/compare_vs_p202_p202_vs_p205all_val_routed_v1/comparison_report.md`
+  - mean Dice 0.849862.
+  - delta +0.004032, CI95 [+0.002854, +0.005238].
+  - low Dice <=0.8 rate delta -0.012407, CI95 [-0.019231, -0.005583].
+- Comparison vs P2.05 all-TTA:
+  `EXP_flag/P2_07_validation_routed_inference/reports/compare_vs_p205all_p202_vs_p205all_val_routed_v1/comparison_report.md`
+  - delta +0.000252, CI95 [-0.000338, +0.000925].
+- Current best performance artifact = P2.07 validation-routed P2.02/P2.05-all.
+  The improvement over P2.05 all-TTA is small/non-significant, so the publishable novelty should not be
+  "manual fold routing" itself; it should become validation-calibrated uncertainty/domain routing.
+
+## P2.08/P2.09 follow-up routing/fusion results
+- P2.08 subject-level uncertainty router:
+  - track: `EXP_flag/P2_08_uncertainty_routed_inference/`.
+  - method: fit simple prediction-feature routing rules on validation subjects only, then choose P2.02 vs P2.05 all-TTA per test subject.
+  - full GPU/nohup run completed on 2026-06-20; stderr 0.
+  - report: `EXP_flag/P2_08_uncertainty_routed_inference/reports/p202_vs_p205all_uncertainty_router_v1/loco_segmentation_baseline_report.md`
+  - mean Dice 0.849477.
+  - vs P2.02: +0.003646, CI95 [+0.002539, +0.004798].
+  - vs P2.05 all-TTA: -0.000134, CI95 [-0.000905, +0.000662].
+  - vs P2.07: -0.000386, CI95 [-0.000897, +0.000148].
+  - low Dice <=0.5 rate is slightly best (0.032878), but mean Dice does not beat P2.05/P2.07.
+  - verdict: useful diagnostic / low-tail hint, **not final method**.
+- P2.09 validation-calibrated weighted ensemble:
+  - track: `EXP_flag/P2_09_weighted_ensemble_calibration/`.
+  - method: validation grid over P2.02/P2.03 probability weight + threshold, then one held-out test evaluation.
+  - full GPU/nohup run completed on 2026-06-20; stderr 0.
+  - report: `EXP_flag/P2_09_weighted_ensemble_calibration/reports/p202_p203_weighted_tta_all_v1/loco_segmentation_baseline_report.md`
+  - mean Dice 0.848405.
+  - vs P2.02: +0.002574, CI95 [+0.001014, +0.004089].
+  - vs P2.05 all-TTA: -0.001205, CI95 [-0.002126, -0.000303].
+  - vs P2.07: -0.001457, CI95 [-0.002600, -0.000447].
+  - UCSD degraded badly under validation-selected weighting (0.741227 -> 0.729331).
+  - verdict: **NO-GO**. Validation-selected fold weights overfit consortium shift; fixed all-TTA average remains stronger.
+- Current best performance artifact remains **P2.07 validation-routed P2.02/P2.05-all**:
+  mean Dice 0.849862, delta vs P2.02 +0.004032 CI95 [+0.002854, +0.005238].
+  But novelty is still not enough for ACCV as-is.
+- Main methodological problem now: validation split inside train consortia does not reliably predict held-out consortium transfer. Next method should explicitly model domain/consortium shift or train a single robust model, not keep tuning validation-only inference calibration.
+
+## P2.10 source-robust segmentation active run
+- New training-method track: `EXP_flag/P2_10_source_robust_segmentation/`.
+- Motivation: P2.08/P2.09 proved validation-only inference calibration is unstable under held-out consortium shift.
+- Method: same compact 3D U-Net and Dice+BCE as P2.02, but:
+  - `--train-sampling source_balanced`
+  - `--checkpoint-metric worst_dataset_dice`
+  - extended validation threshold grid up to 0.95.
+- Shared trainer updated backward-compatibly:
+  - default remains random sampling + mean Dice checkpointing.
+  - new metadata fields: `train_sampling`, `checkpoint_metric`.
+  - validation summaries now include `worst_dataset_dice_mean`.
+- Validation before launch:
+  - `py_compile` OK.
+  - `bash -n` OK.
+  - CPU real-data smoke OK:
+    `EXP_flag/P2_10_source_robust_segmentation/runs/smoke_source_robust_cpu/outer_UCSD-PTGBM/`.
+  - smoke summary OK:
+    `EXP_flag/P2_10_source_robust_segmentation/reports/smoke_source_robust_cpu/`.
+  - preflight OK:
+    `EXP_flag/P2_10_source_robust_segmentation/reports/preflight_latest.json`.
+- Full GPU run launched 2026-06-20 with `CONFIRM_LONG_GPU_RUN=yes`.
+  All 4 folds and watcher are `setsid nohup` processes with PPID 1.
+  - UCSD: `seg_source_robust_loco_ucsd_full_v1`, pid 3051880, GPU2.
+  - MU: `seg_source_robust_loco_mu_full_v1`, pid 3051884, GPU3.
+  - UPENN: `seg_source_robust_loco_upenn_full_v1`, pid 3051888, GPU2.
+  - UTSW: `seg_source_robust_loco_utsw_full_v1`, pid 3051892, GPU3.
+  - watcher: pid 3051896, will summarize to
+    `EXP_flag/P2_10_source_robust_segmentation/reports/loco_full_v1/`
+    and compare against P2.02/P2.05-all/P2.07.
+- Early health after epoch 0:
+  - all folds alive, stderr 0, GPU attached.
+  - epoch 0 validation recorded `worst_dataset_dice` path correctly.
+  - val Dice / worst-source val Dice:
+    - MU heldout: 0.804839 / 0.690881
+    - UCSD heldout: 0.812300 / 0.748480
+    - UPENN heldout: 0.743711 / 0.681244
+    - UTSW heldout: 0.761845 / 0.668778
+  - Do not interpret epoch 0 as final performance.
+- Status checked 2026-06-20: full GPU run is still active via `setsid nohup`; watcher pid 3051896 is running; stderr bytes are 0 for all folds.
+  - Latest monitor snapshot:
+    - MU heldout: alive, epoch 17, latest val Dice 0.863764, best 0.868742.
+    - UCSD heldout: alive, epoch 17, latest val Dice 0.870941, best-checkpoint mean Dice 0.868572.
+    - UPENN heldout: alive, epoch 24, latest val Dice 0.840045, best-checkpoint mean Dice 0.835582.
+    - UTSW heldout: alive, epoch 35, latest val Dice 0.853566, best-checkpoint mean Dice 0.858693.
+  - Test summaries are not written yet. Do not claim performance until watcher produces
+    `EXP_flag/P2_10_source_robust_segmentation/reports/loco_full_v1/` and comparisons against P2.02/P2.05/P2.07.
+
+## P2.11 source-DRO segmentation stopped diagnostic
+- New training-method track: `EXP_flag/P2_11_source_dro_segmentation/`.
+- Motivation: P2.10 handles source shift with source-balanced sampling and worst-source checkpointing; P2.11 additionally makes source risk part of the training objective.
+- Method:
+  - same compact 3D U-Net and Dice+BCE as P2.02/P2.10.
+  - `--train-sampling source_balanced`
+  - `--train-objective source_dro`
+  - `--source-dro-eta 0.05`
+  - `--checkpoint-metric worst_dataset_dice`
+  - extended validation threshold grid up to 0.95.
+- Shared trainer updated backward-compatibly:
+  - default remains `--train-objective standard`.
+  - source-DRO state is logged as `source_dro_q_*` in `history.csv`.
+  - P2.10 running processes are unaffected because they already loaded the previous script into memory.
+- Validation before launch:
+  - `py_compile` OK.
+  - `bash -n` OK.
+  - CPU real-data smoke OK:
+    `EXP_flag/P2_11_source_dro_segmentation/runs/smoke_source_dro_cpu/outer_UCSD-PTGBM/`.
+  - smoke summary OK:
+    `EXP_flag/P2_11_source_dro_segmentation/reports/smoke_source_dro_cpu/`.
+  - preflight OK:
+    `EXP_flag/P2_11_source_dro_segmentation/reports/preflight_latest.json`.
+- Full GPU run launched 2026-06-20 with `CONFIRM_LONG_GPU_RUN=yes`.
+  Uses GPU4 only, to avoid P2.10's active GPU2/3 jobs. All folds and watcher are `setsid nohup` with PPID 1.
+  - UCSD: `seg_source_dro_loco_ucsd_full_v1`, pid 3652432, GPU4.
+  - MU: `seg_source_dro_loco_mu_full_v1`, pid 3652436, GPU4.
+  - UPENN: `seg_source_dro_loco_upenn_full_v1`, pid 3652440, GPU4.
+  - UTSW: `seg_source_dro_loco_utsw_full_v1`, pid 3652444, GPU4.
+  - watcher: pid 3652448, will summarize to
+    `EXP_flag/P2_11_source_dro_segmentation/reports/loco_full_v1/`
+    and compare against P2.02/P2.05-all/P2.07, and P2.10 if completed by then.
+- Early health after epoch 0:
+  - all folds alive, stderr 0, GPU attached.
+  - source-DRO q is updating and recorded in history.
+  - val Dice / worst-source val Dice:
+    - MU heldout: 0.812648 / 0.737407
+    - UCSD heldout: 0.799666 / 0.740375
+    - UPENN heldout: 0.724674 / 0.678789
+    - UTSW heldout: 0.775495 / 0.694032
+  - Do not interpret epoch 0 as final performance.
+- Updated 2026-06-20: **P2.11 was manually stopped; treat as partial diagnostic / NO-GO, not an active candidate.**
+  - reason: early source-DRO q collapse and validation degradation versus P2.10/P2.02 expectations.
+  - all fold processes and watcher are stopped; stderr remained empty.
+  - latest stopped state:
+    - MU: epoch 1, latest val Dice 0.792891, best 0.812648.
+    - UCSD: epoch 1, latest val Dice 0.766975, best 0.799666.
+    - UPENN: epoch 2, latest val Dice 0.718262, best 0.724674.
+    - UTSW: epoch 2, latest val Dice 0.790686, best 0.790686.
+  - observed q collapse examples:
+    - MU epoch 1 q: UCSD 0.965, UPENN 0.006, UTSW 0.029.
+    - UCSD epoch 1 q: MU 0.739, UPENN 0.083, UTSW 0.178.
+    - UPENN epoch 2 q: UCSD 0.870, MU 0.101, UTSW 0.029.
+    - UTSW epoch 1 q: UCSD 0.828, MU 0.126, UPENN 0.046.
+  - implication: current `source_dro_eta=0.05` is too aggressive. If source-DRO is retried, use tempered/clipped q updates or source-balanced training only; do not report P2.11 as a complete run.
+- Shared trainer was patched after stopping P2.11 with backward-compatible options for a possible P2.12 retry:
+  - `--source-dro-min-q`
+  - `--source-dro-mix-uniform`
+  - defaults preserve old behavior (`0.0`, `0.0`), so prior runs are not redefined.
+  - CPU real-data smoke passed:
+    `EXP_flag/P2_11_source_dro_segmentation/runs/smoke_tempered_dro_cpu_20260620/outer_UCSD-PTGBM/`.
+  - smoke metadata confirms `source_dro_eta=0.005`, `source_dro_min_q=0.1`,
+    `source_dro_mix_uniform=0.05`; history q stayed balanced
+    (UPENN 0.500690, UTSW 0.499310 after epoch 0).
+  - Do not launch a full tempered-DRO GPU run until P2.10 final test/comparison is known.
+
+## P2.12 tempered source-DRO prepared, launch-gated
+- New contingency track: `EXP_flag/P2_12_tempered_source_dro_segmentation/`.
+- Purpose: failure-driven P2.11 revision with bounded/mixed q updates, not a blind source-DRO retry.
+- Method:
+  - same P2.02/P2.10 compact 3D U-Net, Dice+BCE, source-balanced sampling, and `worst_dataset_dice` checkpointing.
+  - `--source-dro-eta 0.005`
+  - `--source-dro-min-q 0.10`
+  - `--source-dro-mix-uniform 0.05`
+- Scripts:
+  - `scripts/launch_all_nohup_tempered_source_dro.sh`
+  - `scripts/launch_nohup_tempered_source_dro.sh`
+  - `scripts/launch_nohup_watcher.sh`
+  - `scripts/monitor_nohup_tempered_source_dro.sh`
+  - `scripts/preflight_tempered_source_dro.py`
+  - `scripts/watch_summarize_compare_tempered_source_dro.py`
+  - `scripts/run_smoke_cpu.sh`
+- Validation completed:
+  - Python compile OK for P2.12 preflight/watcher and shared trainer.
+  - `bash -n` OK for P2.12 shell scripts.
+  - launch-all guard refuses without `CONFIRM_LONG_GPU_RUN=yes`.
+  - default preflight OK; GPU4 has enough free memory.
+  - CPU real-data smoke OK:
+    `EXP_flag/P2_12_tempered_source_dro_segmentation/runs/smoke_tempered_dro_cpu/outer_UCSD-PTGBM/`.
+  - smoke history q stayed balanced:
+    UPENN 0.500690, UTSW 0.499310 after epoch 0.
+- Full launch policy updated:
+  - default launch can run as a parallel contingency while P2.10 finishes, because GPU4 is idle and P2.10 still has no final report.
+  - watcher compares against P2.10 only if P2.10 final metrics exist; otherwise it records that comparison as skipped.
+  - strict gate remains available with `REQUIRE_P210_COMPLETE=yes`.
+- Full GPU run launched 2026-06-20 with `CONFIRM_LONG_GPU_RUN=yes` as parallel contingency.
+  All folds and watcher are `setsid nohup` processes with PPID 1, using GPU4.
+  - UCSD: `seg_tempered_dro_loco_ucsd_full_v1`, pid 73533.
+  - MU: `seg_tempered_dro_loco_mu_full_v1`, pid 73537.
+  - UPENN: `seg_tempered_dro_loco_upenn_full_v1`, pid 73541.
+  - UTSW: `seg_tempered_dro_loco_utsw_full_v1`, pid 73545.
+  - watcher: pid 73549, final report target:
+    `EXP_flag/P2_12_tempered_source_dro_segmentation/reports/loco_full_v1/`.
+  - launch health: all fold processes alive, stderr 0, GPU4 attached (~7.9 GiB used shortly after launch).
+  - metadata/splits verified for all 4 folds. Example train/test isolation:
+    UCSD heldout has train n=1219 with UCSD=0 and test n=178 with UCSD=178.
+  - early q health: UCSD/UPENN fold step 50 q remains near uniform; UTSW step 500 q remains near uniform.
+    This addresses the P2.11 q-collapse failure mode at least in early training.
+  - Final P2.10 result: **NO-GO as standalone method**.
+    - report: `EXP_flag/P2_10_source_robust_segmentation/reports/loco_full_v1/loco_segmentation_baseline_report.md`
+    - comparisons: `reports/compare_vs_p202_loco_full_v1/`, `reports/compare_vs_p205all_loco_full_v1/`, `reports/compare_vs_p207_loco_full_v1/`
+    - mean Dice 0.845773, essentially equal/slightly below P2.02 0.845830.
+    - vs P2.02 delta -0.000057, CI95 [-0.002286, +0.002178].
+    - vs P2.05 all delta -0.003837, CI95 [-0.006235, -0.001435].
+    - vs P2.07 delta -0.004089, CI95 [-0.006576, -0.001635].
+    - fold pattern: MU improved clearly (0.819956 vs P2.07 0.807285), but UCSD/UPENN/UTSW degraded versus P2.05/P2.07.
+    - interpretation: source-balanced/worst-source checkpointing is useful as a candidate for MU only, not as a global model.
+  - New P2.13 source-risk routed artifact: **current best performance artifact, but still routing/inference-level novelty**.
+    - method note: `EXP_flag/P2_13_source_risk_routed_inference/METHOD.md`
+    - generic router patch: `EXP_flag/P2_07_validation_routed_inference/scripts/build_validation_routed_report.py` now accepts repeated `--candidate NAME=REPORT_DIR`.
+    - compatibility dry run against original P2.07 passed: same routed sources, 1612 subjects, max Dice diff 0.
+    - report: `EXP_flag/P2_13_source_risk_routed_inference/reports/p202_p205all_p210_val_routed_v1/loco_segmentation_baseline_report.md`
+    - routing: MU -> P2.10; UCSD/UPENN/UTSW -> P2.05 all-TTA.
+    - mean Dice 0.851450.
+    - vs P2.02 delta +0.005620, CI95 [+0.003894, +0.007465].
+    - vs P2.05 all delta +0.001840, CI95 [+0.000869, +0.002946].
+    - vs P2.07 delta +0.001588, CI95 [+0.000332, +0.002912].
+    - next direct check: after P2.12 finishes, add P2.12 as another candidate to the same validation router.
+  - P2.12 still active on GPU4, watcher alive, stderr 0.
+    Current validation history:
+    - MU epoch 11 latest val mean Dice 0.867045.
+    - UCSD epoch 11 latest val mean Dice 0.866361.
+    - UPENN epoch 16 latest val mean Dice 0.831599; best-checkpoint mean Dice 0.832619.
+    - UTSW epoch 16 latest val mean Dice 0.854007.
+  - P2.12 q remains near uniform across active logs:
+    all observed q values remain around 0.333 per source; no P2.11-like q collapse so far.
+    This confirms the tempered/min-q/mix update is doing what it was designed to do mechanically.
+  - No final Dice comparison is available yet for P2.10 or P2.12; keep current best completed result as P2.07.
 
 ## P2.06 ensemble distillation active run
 - New executable track: `EXP_flag/P2_06_ensemble_distillation/`.
@@ -210,7 +457,15 @@
   - all folds alive, GPU attached, stderr 0, train step logs present, loss decreasing.
   - first validation/checkpoint path works. Early best val Dice:
     MU 0.8469, UCSD 0.8376, UPENN 0.8080, UTSW 0.8315.
-  - final test performance is **pending**; do not claim improvement until watcher comparisons exist.
+  - final P2.06 result: **NO-GO as main method**.
+    - report: `EXP_flag/P2_06_ensemble_distillation/reports/loco_full_v1/loco_segmentation_baseline_report.md`
+    - vs P2.02: `EXP_flag/P2_06_ensemble_distillation/reports/compare_vs_p202_loco_full_v1/comparison_report.md`
+    - vs P2.05: `EXP_flag/P2_06_ensemble_distillation/reports/compare_vs_p205_loco_full_v1/comparison_report.md`
+    - mean Dice 0.846789.
+    - delta vs P2.02 +0.000958, CI95 [-0.000904, +0.002752] => not significant.
+    - delta vs P2.05 -0.001112, CI95 [-0.002790, +0.000558].
+    - UCSD degraded strongly vs P2.02: -0.017055, CI95 [-0.030041, -0.004979].
+  - interpretation: distillation partially transferred complementarity to UPENN/UTSW/MU but amplified UCSD validation-to-test failure. P2.05 remains current best performance artifact.
 
 ## exp02 ceiling probe 결과 (locked)
 - **B2 Res3DNet proxy ceiling = NO-GO** (2026-06-19).

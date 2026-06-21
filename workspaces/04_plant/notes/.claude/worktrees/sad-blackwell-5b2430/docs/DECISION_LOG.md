@@ -5,13 +5,55 @@
 
 ## 결정 기록
 
+- [2026-06-20] **closure 정밀지도 + 우선순위 + Korean 데이터 역할 종합(8-agent workflow).** sibling 4라인 closure 원문 추출 +
+  AJU/KDRC 분석. **상세 closure(5축):** R1 site=population(traveling-subject=0 비식별, decomposition artifact는 disease-prevalence
+  불균형 ρ+0.90→−0.20), R2 morph천장(m2 5-ROI vs deep KDRC 0.836/0.816 regional 더 높음), molecular(IDH oracle dAUC −0.0405),
+  foundation(BrainIAC frozen site 0.842>morph 0.770, dx 0.735<0.911), harmonization(deflate-not-unmask). **안 닫힌 빈틈:** 3D-full-volume
+  minyoung2 미실행(SIGHUP)·TOST 미완(단 사용자 from-scratch 실패가 메움). **Korean DECISIVE 3축:** ①감별/혼합병리(AJU dx_detail —
+  AD+SVD/Subcortical VaD/Multi-infarct, 서양 코호트 부재) ②amyloid×WMH×다모달 co-location(KDRC SUVR+Fazekas+FLAIR/DWI) ③leakage-clean
+  East-Asian 외부검증. **치명 mismatch:** 혈관라벨=AJU(T1전용) ⊥ FLAIR/DWI=KDRC(coarse dx). **우선순위:** #1 amyloid-조건부 순수AD vs
+  혼합(A+ 77 vs 78 subj) morph+WMH bar 위 측정 · #2 East-Asian 외부검증+gap-decomposition · #3 KDRC 다모달→SUVR(WMH통제) · **#4 DO-NOT-PURSUE:
+  morph 넘는 아키텍처/SSL·site제거·fine 4-way 혈관staging(MID 11)·longitudinal conversion·IDH/MGMT.** 데이터 정정: KDRC cdrsb *있음*(909)·
+  education=0·SUVR ratio단위·amyloid 비-Korean고유. 상세=`docs/analysis/04_closure-and-priorities.md`, memory `korean-data-value`. 되돌아갈 commit: `59c0a1e`.
+
+- [2026-06-20] **encoder 조사 — BrainIAC usable(off-the-shelf) + both-compare 권고.** 4-agent workflow(HF+문헌+범용 3D).
+  **BrainIAC**(HF eugenehp/brainiac, ViT-B 96³ patch16 768-d, SimCLR)가 공개 weight 검증(backbone.safetensors 353MB live)·
+  brain-T1 native·turnkey feature 경로 → 1순위(license non-commercial academic, research OK). AMAES ResEnc-B FOMO300K(CC-BY-NC-SA)
+  =독립 cross-check. **치명 confound(우리 voxel-rep 질문과 직결):** ① 둘 다 **96³(≈2mm) downsample 요구** → cortical GATE-3를
+  *또 해상도로 confound*(frozen 실패가 신호천장인지 해상도손실인지 구별불가, CPU trivial rep과 동일 함정). ② BrainIAC **MNI152
+  재등록**이 volume 정보 재주입 → image→fs_vol R² *성공*도 의심(encoder가 volume 재학습). ③ 입력 mismatch(우리 텐서는 이미
+  z-score/identity-grid, BrainIAC는 MNI 96³ 자체정규화). **권고=both-compare:** off-the-shelf(BrainIAC+AMAES, morph와 cross-check)
+  먼저, **full-res self-SSL(12,978, 192³ identity-grid=MNI 재등록 불요=registration-leakage 면역)을 deconfounding companion으로
+  사전등록**(fallback 아님). 다음: `docs/gate3_plan.md`(96³ 해상도·등록 leakage confound + NO-GO 사전등록) + BrainIAC **CPU smoke
+  test**(strict=False 키 무결·feature 유한/non-constant/subject-varying) → 통과 시 GPU 추출(12,978) 승인 게이트. 되돌아갈 commit: `712bde4`.
+
+- [2026-06-20] **GATE-3 CPU 시도 — inconclusive(ambiguous band) + voxel-SSL feasibility 확인.** GATE-3(`image→fs_vol R²`)를
+  trivial 4mm-PCA 표현으로 측정(ADNI baseline 1,575, `src/microbrain/gate3_image_to_fsvol.py`). 결과: SUBCORT R² 0.29
+  (thalamus 0.46·hippocampus 0.30·amygdala 0.10 — *너무 낮음*, 충분한 표현이면 ~0.7+여야), AD-CORTICAL R² **−0.03**(entorhinal
+  0.03·precuneus 0.01·PCC −0.1). 직접 headroom: image-PCA가 morph 위 −0.08~−0.41(300 PCA feature 과적합, 무의미).
+  **판정: trivial 표현이 subcortical조차 못 복원 → cortical≈0은 *표현약함 vs 정보없음* 구별 불가 = ambiguous band.** ledger
+  C2/C6/C7 불변(strongly-disfavored 유지). **결정적 GATE-3는 deep/pretrained encoder(GPU) 필요.** + **voxel-SSL feasibility 확인:**
+  12,978 QC-pass(7,206 subj) 전수 clean·identity-grid → 즉시 SSL 사용가능, RAM 캐싱(~428GB/1.8TB), 8×B200 가용, 3D MAE patch16³
+  =2016 tokens. caveat: scale 12,978≪49k, R3 hold-out 필수, prior=null. 다음: off-the-shelf encoder 조사(workflow) → off-the-shelf
+  vs 자체 pretrain. 되돌아갈 commit: `cf052b6`.
+
+- [2026-06-20] **방향 설정 — Lane B(label-efficiency × LOCO), gated.** 6축 학계동향 조사(literature-scout)+종합.
+  핵심 전환: R2 천장이 학계 전체를 막아 게재기준이 accuracy→label-efficiency·LOCO·leakage-clean·deployability로
+  이동(우리 자산과 일치). **권장 thesis**: morph-aware T1 SSL이 low-label×leave-one-cohort-out에서 FreeSurfer-morph
+  대비 label-efficiency 우위 + inductive BN-adapt가 site=population을 공정·배포가능 증분으로(full-label in-dist엔 둘 다
+  morph 못 넘어도 됨). **공백**: BrainIAC/BrainFound/FOMO25가 morph 미비교; Cautionary Tale(2601.16467)이 SSL-vs-FS
+  +R-NCE 했으나 in-cohort full-label만 → low-budget×LOCO×confound cell 비어있음. window 수개월. **Lane A pivot**:
+  T1→FA/MD 합성 천장우회(KDRC/OASIS DWI=train→ADNI). **지배 prior=null**(R2 천장). 사전등록 kill-test(CPU/소-GPU):
+  frozen 표현 vs fs_vol 예산grid{1..100%} nested-LOCO, GO=≤20%서 held-out site morph CI하한>0 + inductive BN-adapt
+  CI하한>0. 설계=`docs/analysis/03_novelty-and-direction.md`. 되돌아갈 commit: `42b0b31`.
+
 - [2026-06-20] **종단 변화율 thesis kill-test 실패 — NO-GO 폐기.** "기술 novelty"의 마지막 live 후보(종단 변화율
   deep). CPU kill-test(ADNI 614 ≥3tp + OASIS 193 transport): Δmorph(Δfs_vol/yr)가 static morph+cognition을 못 넘음
   (내부 ΔR² −0.089 CI[−0.172,−0.031] 전부 음수) + transport 파탄(OASIS R²<0, population shift 지배=R1 종단판) +
   미래저하 천장 낮음(best R²~0.11). 사전등록 NO-GO(Δmorph CI하한>0) 위반 → 즉시 중단. **누적 4 독립라인**(R2천장·
   baseline bar·문헌 4팀·이 kill-test)이 "구조 T1 *정확도* novelty 경로 없음"으로 수렴. 단 caveat: refute=naive
   per-ROI Δvolume(깨끗), deep이 변화*패턴* 뽑을 가능성은 미refute(prior 강 null). 근거=`docs/ledgers/2026-06-20_longitudinal_changerate_negative.md`,
-  문헌=`docs/NOVELTY_LANDSCAPE.md`, memory `novelty-landscape-verdict`. 상위 결정점 복귀: 다른 modality(FLAIR/DWI/PET
+  문헌=`docs/analysis/03_novelty-and-direction.md`, memory `novelty-landscape-verdict`. 상위 결정점 복귀: 다른 modality(FLAIR/DWI/PET
   원본 존재) vs novelty 축 재정의 vs denoised 1회 재검. 되돌아갈 commit: `4d2eb1b`.
 
 - [2026-06-20] **데이터 정정 — 종단 코호트는 ADNI뿐이 아니다.** YYYYMMDD-only 파싱 오류였음. 시간인코딩이 코호트별

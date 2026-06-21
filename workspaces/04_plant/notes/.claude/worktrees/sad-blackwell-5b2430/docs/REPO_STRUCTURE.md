@@ -9,11 +9,14 @@ plant/
 ├── CLAUDE.md                  # 운영 규칙
 ├── SCRATCHPAD.md              # live 상태 / 핸드오프
 ├── docs/
-│   ├── README.md              # ★ 문서 인덱스 — 여기부터 읽는다(읽는 순서·상태)
+│   ├── README.md              # ★ 문서 인덱스 — 여기부터 읽는다
+│   ├── blog/                  # 설득형 종합(the-data-ceiling.md) + figures/ (추적)
+│   ├── analysis/              # 기술 분석 — 01 data&bias · 02 ceiling&baselines · 03 novelty&direction
 │   ├── DECISION_LOG.md        # 피벗·NO-GO·롤백 (되돌리기 근거)
 │   ├── REPO_STRUCTURE.md      # 이 파일 (디렉토리 규약)
 │   ├── <phase>_plan.md        # 새 라인 단계 설계서(승인 게이트). 코드 전 합의
 │   └── ledgers/               # 음성 결과 상세 ledger (실험별 NO-GO 기록)
+├── notebook/                  # 데이터-문제 증거 + feasible 방향 (01–06, _build.py, figures/)
 ├── src/microbrain/            # 재사용 라이브러리 (테스트됨, 실험이 import)
 │   └── audit.py              #   재사용 통계 primitives (bias/confound audit)
 │                             #   (로더·split·metric 등은 새 라인에서 필요 시 추가)
