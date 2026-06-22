@@ -10,9 +10,10 @@
 | ① | [`analysis/01_data-and-bias.md`](analysis/01_data-and-bias.md) | 7-코호트 bias audit + bias-robust 학습/평가 설계 |
 | ② | [`analysis/02_ceiling-and-baselines.md`](analysis/02_ceiling-and-baselines.md) | 실패 4-사인(R1–R4) + baseline bar + **닫힘/열림 ledger** |
 | ③ | [`analysis/03_novelty-and-direction.md`](analysis/03_novelty-and-direction.md) | 문헌 동향 + 진행 가능한 방향(Lane B/A) + kill-test |
-| ④ | [`analysis/04_closure-and-priorities.md`](analysis/04_closure-and-priorities.md) | ⭐ 실제 닫힌 이유 상세(4라인) + **Korean 데이터 역할** + 우선순위 연구 #1–4 |
-| ⑤ | [`DECISION_LOG.md`](DECISION_LOG.md) | 모든 결정·NO-GO·폐기·롤백 (왜 여기까지 왔나) |
-| ⑥ | [`ledgers/`](ledgers/) | 음성 결과(NO-GO) 상세 |
+| ④ | [`analysis/04_closure-and-priorities.md`](analysis/04_closure-and-priorities.md) | 닫힌 이유 상세(4라인) + **Korean 데이터 역할** + 우선순위 연구 #1–4 |
+| ⭐⑤ | [`analysis/05_active-study-differential-dx.md`](analysis/05_active-study-differential-dx.md) | **활성 positive 연구** — 멀티모달 치매 감별(AD vs 혈관), 검증된 비순환 morph 신호 + Tier 설계 (여기가 현재 작업) |
+| ⑥ | [`DECISION_LOG.md`](DECISION_LOG.md) | 모든 결정·NO-GO·폐기·롤백 (2026-06-22 다수 항목: #4·#1 kill, 감별-dx GO) |
+| ⑦ | [`ledgers/`](ledgers/) | 음성 결과(NO-GO) 상세 |
 
 ## 증거 노트북 (데이터 직접 열람)
 `../notebook/` — 각 데이터-문제를 수치+그림으로 입증. `01` 클래스·site 교란 · `02` 라벨·누수 · `03` modality⊥label 저주 · `04` morphometry 천장 · `05` 종단 한계 · `06` **진행 가능한 방향**. 재현: `../notebook/README.md`.

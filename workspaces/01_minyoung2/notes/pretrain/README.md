@@ -1,25 +1,21 @@
 # pretrain/ — SSL 사전학습 (FOMO300K)
 
-FOMO300K(라벨없는 3D 뇌 MRI) → SSL foundation 사전학습. downstream과 분리(여긴 사전학습 전용).
+FOMO300K → SSL foundation 사전학습(단일 체크포인트). 설계·method는 [[../docs/03_architecture_method]], 데이터는 [[../docs/02_data]], 위험·모니터 spec은 [[../docs/06_risk_register]], 현재 상태는 [[../SCRATCHPAD]].
 
-> 모델·method 상세는 [[../docs/02_architecture_method]] (ViT-3DINO + ① balancing ② cross-seq ③ fairness). 전처리 [[../preprocessing/PREPROCESSING]] · 무결성 [[../docs/03_data_integrity]] · 현재 status [[../SCRATCHPAD]].
+## 데이터 흐름
+`/home/vlm/data/FOMO300K_preprocessed/npy/<PT>/*.npy`(226,793 볼륨, float16) → SSL 사전학습 → 단일 체크포인트 → downstream 7 task.
+- ⚠️ 학습/GPU = `.venv-train`(B200). 전처리 `.venv`(torch2.2)는 학습 불가.
 
-## 데이터 흐름 (전처리 완료 2026-06-21)
-`/home/vlm/data/FOMO300K` zip → **`preprocessing/preprocess_fomo300k.py`**(스트리밍 드라이버: os.walk 임의깊이 + 공식 Yucca 4단계 + float16 + manifest CSV) → `/home/vlm/data/FOMO300K_preprocessed/npy/<PT>/*.npy` → SSL 사전학습 → **단일 체크포인트**(규칙: 모든 task 동일).
-- **학습 코퍼스: 227,443 볼륨 = anat 181,965 + DWI b1000대역 45,478** (~3.2TB float16). full 처리(subset 아님). DWI는 b800~1200만 큐레이션(b0/고b drop). 전수 정합·대량로드 검증 PASS.
-- 산출물 추적: `FOMO300K_preprocessed/manifest.csv`(스캔별 status/dtype/shape/range). error 2(PT030 상수볼륨 정상격리).
-- 메타데이터: demographic(age/sex 83%), scanner(86%) → ③ fairness/invariance 가능.
-- ⚠️ **env 분리**: 전처리=`.venv`(torch2.2, 완료) / **학습=`.venv-train`(torch 2.12.1+cu130, B200 sm_100 검증)**. monitor.py·학습코드는 `.venv-train`에서 실행. [[../SCRATCHPAD]] 참조.
-
-## 모니터링 ([[MONITORING]])
-`monitor.py`(검증완료) — 6범주 자동 STOP/WARN: collapse / local-global tension / dense퇴화 / teacher / bf16 / downstream-proxy. 학습 *중* 조기경보 → 재학습 회피.
+## monitor.py + resources.py — SSL 모니터 (✅ 검증완료: `test_monitor.py` 23 checks PASS)
+`SSLMonitor`가 매 step/주기 metric + 자동 STOP/WARN — **7대 카테고리**: collapse·local-global tension·dense퇴화(Gram)·teacher·수치(bf16)·downstream proxy(torch-native probe)·**리소스/속도/진행**(throughput·data_fraction·ETA·GPU/CPU/RAM·disk guard W14·hang). 의존성 0(torch+stdlib). **임계·카테고리·사용법 = [[../docs/06_risk_register]] §D.**
 ```python
-mon = SSLMonitor(run_dir, probe_every=2000)
-m = mon.log_step(step, losses=..., student_emb=..., grad_terms=(L_d, L_g, params), ...)
+mon = SSLMonitor(run_dir, probe_every=2000, total_steps=N, disk_path=ckpt_dir, is_main=(rank==0))
+m = mon.log_step(step, losses=..., batch_size=B, student_emb=..., total_loss=L,
+                 data_s=t_data, compute_s=t_compute, grad_terms=(L_d,L_g,params))  # grad_terms는 K step마다
 if m.get("_should_stop"): save_ckpt(); break
 ```
+- `resources.py`(ResourceTracker) 분리 — 독립 테스트 가능. 검증: `.venv-train/bin/python pretrain/test_monitor.py`.
+- ⚠️ I/O 바운드 진단: 루프가 `data_s`/`compute_s` 넘기면 `data_fraction`(>0.5=I/O 바운드)·`eta_h` 산출 → Phase A에서 Phase B 학습시간 실측 근거.
 
-## status (2026-06-21)
-✅ 전처리 완료(227,443볼륨/3.2TB) · ✅ 학습 env(.venv-train, B200 검증) · 설계·모니터 검증 완료.
-→ **다음 = SSL 사전학습 코드 셋업**(ViT-3DINO + ①②③, monitor.py 배선). Phase A pilot.
-`configs/` 설정 | `checkpoints/` 가중치. 상세 status [[../SCRATCHPAD]].
+## status
+✅ 전처리·학습env 완료 → **다음 = SSL 사전학습 코드 셋업**(ViT-3DINO + ①②③, monitor 배선). `configs/`·`checkpoints/`. 상세 [[../SCRATCHPAD]].

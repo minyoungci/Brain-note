@@ -1,7 +1,552 @@
 # SCRATCHPAD — Decision Log (handoff only)
 
 > 새 세션 인계용 decision log. 긴 연구 노트 아님. 상세는 링크 문서 참조.
-> Updated: 2026-06-20
+> Updated: 2026-06-22
+
+## 2026-06-22 pre-launch workspace override
+
+- Earlier filesystem state after context transition: `EXP_flag/`, `experiments/`,
+  `src/`, `configs/`, and `tests/` were **absent** from `/home/vlm/minyoung4`.
+- `nvidia-smi -i 2,3,4` showed **no running processes** at 2026-06-22 02:01 UTC.
+- Therefore older `EXP_flag/*` entries below are **historical handoff notes only** and must
+  not be treated as current-file-authoritative evidence or active jobs.
+- Active guardrail remains `AGENTS.md`: previous `EXP_flag/*` results are historical only.
+- The current active experiment is the fresh exp01 run recorded below.
+
+## 2026-06-22 stop-state after exp01 segmentation sweep
+
+- Min requested stopping GPU training because the current direction was not producing a
+  strong enough research result.
+- Verified active GPU processes: none belonged to `/home/vlm/minyoung4` or exp01. Existing
+  GPU jobs belonged to other workspaces and were not touched.
+- exp01 current best artifact remains:
+  `resunet_ds_tta_distill_ensemble_tta_all_v1`.
+  - mean Dice 0.892775.
+  - delta vs standard Dice+BCE U-Net: +0.008498, CI95 [+0.005960, +0.011038].
+- Main limitation: best result depends on two-model all-flip TTA; single-pass distillation
+  and consistency variants did not preserve the gain.
+- Generated final non-GPU method summary:
+  `experiments/exp01_loco_segmentation_robust/METHOD_REPORT.md`.
+- Added CPU-only failure/risk audit:
+  `experiments/exp01_loco_segmentation_robust/analysis/failure_risk_audit_v1/report.md`.
+  - best Dice <= 0.8 is predictable from existing subject-level prediction signals:
+    LOCO OOF AUC 0.923800, AP 0.662324.
+  - selective escalation from single-pass ResUNet-DS to full ensemble-TTA for the highest-risk
+    30% recovers 59.6717% of the full best-artifact gain.
+- Added stricter CPU-only selective-compute policy prototype:
+  `experiments/exp01_loco_segmentation_robust/analysis/selective_compute_policy_v1/report.md`.
+  - cheap gate uses only single-pass ResUNet predicted volume.
+  - best cheap 30% escalation policy reaches mean Dice 0.890627 and recovers 60.1458% of
+    full best-artifact gain.
+  - gain-regression ranking underperforms; failure-risk ranking is the more plausible
+    method direction.
+- Drafted exp02 compute-aware reliability plan:
+  `docs/context/compute_aware_reliability_exp02_plan.md`.
+- Added optional uncertainty/disagreement export, disabled by default:
+  - `scripts/uncertainty_features.py`
+  - `scripts/eval_tta_loco.py --export-uncertainty`
+  - `scripts/eval_ensemble_tta_loco.py --export-uncertainty`
+  - CPU smoke passed for cheap single-pass, single-model TTA, and ensemble-TTA export.
+- Prepared GPU command preview and guarded nohup launchers for feature-export inference only:
+  - `experiments/exp01_loco_segmentation_robust/GPU_COMMANDS_UNCERTAINTY_EXPORT.md`
+  - `scripts/launch_nohup_uncertainty_export_tta_all_folds.sh`
+  - `scripts/launch_nohup_uncertainty_export_ensemble_tta_all_folds.sh`
+  - `bash -n` passed; without `CONFIRM_LONG_GPU_RUN=yes`, both launchers exit 2 and refuse
+    to start.
+  - Important correction: cheap gate export must use `--tta none`
+    (`resunet_ds_singlepass_uncertainty_export_v1`). One-model all-flip TTA export is an
+    optional intermediate/diagnostic, not a cheap gate input.
+- Added CARE-Seg exported-feature policy analysis harness:
+  `scripts/build_careseg_policy_from_exports.py`.
+  - First validation caught and fixed two leakage/feature bugs:
+    internal failure labels are now excluded from deployable features; uncertainty columns
+    are now prefixed and detected.
+  - Full existing-prediction regression: N=1617, 30% LOCO cheap-failure gate mean Dice
+    0.890608, 59.8003% of full best gain.
+    Bootstrap CI: mean Dice [0.883548, 0.897049], delta-vs-cheap [0.001539, 0.004862].
+  - Added recoverable-failure probes:
+    `loco_recoverable_failure_gain_logistic` and
+    `loco_recoverable_failure_nonfailure_logistic`.
+    With current predicted-volume-only features, both are no-go versus the simpler
+    cheap-failure gate; keep cheap-failure gate as primary for now.
+  - Single-pass uncertainty smoke: after excluding constant columns and compute metadata,
+    10 nonconstant deployable cheap uncertainty features are detected.
+  - Existing-prediction proxy remains much weaker as a feature set: after the same filter it
+    has only `cheap_pred_voxels` and `log1p_cheap_pred_voxels`. Treat its GO result as a
+    volume-only proxy, not the final CARE-Seg evidence.
+  - Added CPU regression script:
+    `experiments/exp01_loco_segmentation_robust/scripts/validate_careseg_policy_harness.py`.
+    It checks that forbidden/constant/compute-metadata features are excluded, that the
+    existing-prediction proxy has exactly 2 deployable features, that the uncertainty smoke
+    has exactly 10, and that `--min-cheap-feature-count 11` fails as expected.
+  - Added official acceptance validator:
+    `experiments/exp01_loco_segmentation_robust/scripts/validate_careseg_official_acceptance.py`.
+    It requires the launch manifest, watcher status, N=1617, 4 datasets, >=10 nonconstant
+    deployable features, official policy/budget config, positive expected-random CIs, and
+    nonnegative MU/UCSD hard-fold deltas. Validation: existing-prediction proxy and
+    uncertainty smoke both correctly return `go=false`.
+  - `scripts/watch_careseg_exports.py` now runs the official acceptance validator after
+    strict CARE-Seg policy analysis and writes `official_acceptance.json`. CPU watcher smoke
+    returns exit 0 while recording `official_acceptance_go=false`, as expected for smoke.
+    The watcher now also writes machine-readable failure fields (`failure`,
+    `failure_stage`, `failure_reason`, optional `failure_returncode`/`failure_cmd`) before
+    nonzero exits from summarization, policy analysis, official acceptance, once-incomplete,
+    or stopped-incomplete states. CPU induced-failure smoke with an invalid policy exits 6
+    and records `failure_stage=careseg_analysis`.
+  - `scripts/launch_nohup_careseg_export_watcher.sh` now writes
+    `careseg_feature_export_launch_manifest.json` if the one-shot launcher did not already
+    create it. `DRY_RUN_MANIFEST_ONLY=yes` validates this path without starting the watcher.
+  - Added one-command CPU pre-GPU gate:
+    `experiments/exp01_loco_segmentation_robust/scripts/validate_careseg_pre_gpu_gate.py`.
+    It runs compile checks, default preflight, policy harness regression, official-acceptance
+    negative controls including malformed JSON, no-confirm pipeline refusal, launcher syntax
+    checks, and an active GPU-process scan that fails if any `/home/vlm/minyoung4`/exp01 GPU
+    job is already running. Validation: `/tmp/minyoung4_careseg_pre_gpu_gate.json` reported
+    `ok=true` with `no_active_minyoung4_gpu_jobs.matches=[]`; the gate also checks that the
+    promotion guard refuses proxy output and writes no lock memo, and that fallback watcher
+    manifest dry-run writes a valid manifest without creating `watch_careseg.pid`. The gate
+    now also runs watcher success/failure status smokes: success records
+    `analysis_complete=true` and `official_acceptance_go=false`; induced invalid-policy
+    failure exits 6 and records `failure_stage=careseg_analysis`.
+  - Added promotion guard:
+    `experiments/exp01_loco_segmentation_robust/scripts/promote_careseg_if_accepted.py`.
+    It refuses to write a locked-exp02 memo unless official acceptance passes. Validation:
+    current proxy and smoke outputs both fail promotion and write no lock memo.
+  - Strict compute-accounting checks added: cheap path can require `tta=none`,
+    `n_prob_samples=1`; expensive path can require `tta=all`, `n_prob_samples=16`.
+    A TTA smoke run intentionally fails if forced through the cheap-path `tta=none` check.
+  - Added CARE-Seg post-export watcher:
+    `scripts/watch_careseg_exports.py` and `scripts/launch_nohup_careseg_export_watcher.sh`.
+    CPU `--once` smoke passed. A nonpositive full-gain display issue was found and fixed:
+    retained-gain fraction is now empty if the expensive path is not better than cheap.
+  - CARE-Seg policy reports now include subject-level bootstrap CIs for mean Dice, low-Dice
+    rate, and delta-vs-cheap.
+  - Added overwrite guards to feature-export and CARE-Seg watcher launchers:
+    existing fold/report outputs are refused by default; `ALLOW_OVERWRITE=yes` is required
+    to intentionally overwrite. Validation: no-confirm exits 2, overwrite refusal exits 4.
+  - Added the same no-confirm guard to direct lower-level nohup launchers:
+    `launch_nohup_fold.sh`, `launch_nohup_watcher.sh`, and
+    `launch_nohup_compare_watcher.sh`. Validation: all three exit 2 without
+    `CONFIRM_LONG_GPU_RUN=yes`, and no exp01 process was started.
+  - Full launcher audit: every `experiments/exp01_loco_segmentation_robust/scripts/launch*.sh`
+    passes `bash -n` and exits 2 without `CONFIRM_LONG_GPU_RUN=yes`.
+  - CARE-Seg claim/protocol tightened after prior-work spot check:
+    novelty must be subject-level compute-adaptive escalation, not generic TTA uncertainty
+    or selective segmentation. The exp02 plan now requires paired delta-vs-expected-random
+    CI at the same escalation budget; fixed-seed random remains diagnostic only.
+  - Updated `build_careseg_policy_from_exports.py` to report paired bootstrap CI for
+    `delta_vs_random` and `delta_vs_random_expected`. CPU validation on existing predictions
+    with 500 bootstrap replicates: 30% `loco_cheap_failure_logistic` delta vs expected
+    random +0.001606 CI95 [+0.000398, +0.002838]; 50% +0.001437 CI95
+    [+0.000578, +0.002285].
+  - Extended the same harness to write `per_dataset_policy_curve.csv` and an automatic
+    `confirmatory_decision` block. New CPU validation in `/tmp` reported GO=True for the
+    current existing-prediction proxy, including nonnegative MU/UCSD deltas at 30% and 50%.
+  - Parameterized the confirmatory decision with `--primary-policy`, `--primary-budget`,
+    `--support-budget`, and `--hard-folds`. Default CPU regression still reports GO=True;
+    a non-default smoke (`small_cheap_pred_volume`, 20%/30%, UCSD only) recorded the
+    requested config and returned GO=False, confirming the decision block is not hard-coded.
+  - Added decision-config validation: oracle/random primary policies, unsupported budgets,
+    and unknown hard folds now fail with a concise `ERROR:` message instead of silently
+    producing a misleading decision block.
+  - Added CARE-Seg lock-candidate memo:
+    `docs/context/careseg_lock_candidate_20260622.md`. It recommends CARE-Seg as a
+    lock candidate only, not an approved GPU run, and records the current proxy GO evidence.
+  - Updated CARE-Seg watcher path to forward decision config flags from the nohup launcher
+    (`PRIMARY_POLICY`, `PRIMARY_BUDGET`, `SUPPORT_BUDGET`, `HARD_FOLDS`) into
+    `build_careseg_policy_from_exports.py`. CPU watcher smoke confirmed the config appears
+    in `summary.json` and all expected report files are produced.
+  - Added CPU preflight:
+    `experiments/exp01_loco_segmentation_robust/scripts/preflight_careseg_feature_export.py`.
+    Default preflight currently reports ok=true for the approved-source-run assumptions;
+    invalid policy/budget/fold and existing output markers are rejected.
+  - Added guarded one-shot feature-export pipeline launcher:
+    `experiments/exp01_loco_segmentation_robust/scripts/launch_nohup_careseg_feature_export_pipeline.sh`.
+    It refuses without `CONFIRM_LONG_GPU_RUN=yes`, runs preflight first, then launches cheap
+    export, expensive export, and the CARE-Seg watcher via the already-guarded sublaunchers.
+    The launcher now exports the resolved decision/GPU config to sublaunchers and writes
+    `careseg_feature_export_launch_manifest.json` under the analysis output directory before
+    launching fold jobs; preflight treats an existing manifest as an overwrite marker.
+  - Added paper-facing experiment plan:
+    `docs/context/careseg_paper_experiment_plan_20260622.md`. It defines required tables,
+    ablations, figures, official artifacts, acceptance criteria, and rejection criteria.
+- Latest CPU-only continuation:
+  - Regenerated the existing-prediction CARE-Seg proxy with the current harness:
+    `experiments/exp01_loco_segmentation_robust/analysis/careseg_policy_existing_predictions_v2/`.
+    It now includes `per_dataset_policy_curve.csv`, expected-random deltas, and a
+    `confirmatory_decision` block.
+  - v2 proxy decision is GO=True for `loco_cheap_failure_logistic` at 30%/50%:
+    30% delta vs expected random +0.001606 CI95 [+0.000387, +0.002820];
+    50% +0.001437 CI95 [+0.000559, +0.002323].
+  - v2 remains a volume-only proxy with exactly two deployable features:
+    `cheap_pred_voxels`, `log1p_cheap_pred_voxels`.
+  - Official acceptance correctly rejects v2 (`go=false`) because it lacks full feature
+    export launch/watcher artifacts and does not meet the >=10 deployable feature rule.
+  - Latest CPU pre-GPU gate:
+    `/tmp/minyoung4_careseg_pre_gpu_gate_latest.json` reported `ok=true`.
+  - Official acceptance validator was strengthened to independently inspect
+    `subject_policy_scores.csv` for row count, unique UID, and actual compute-accounting
+    constants: `cheap_tta=none`, `cheap_n_prob_samples=1`, `expensive_tta=all`,
+    `expensive_n_prob_samples=16`. Re-validation:
+    `/tmp/minyoung4_careseg_pre_gpu_gate_after_compute_guard.json` reported `ok=true`.
+  - Official acceptance now also verifies that all listed deployable features exist in
+    `subject_policy_scores.csv`, are numeric, and are nonconstant. Added a pre-GPU
+    negative-control that creates an otherwise official-looking artifact with wrong cheap
+    compute constants; validator rejects it via
+    `subject_policy_scores_cheap_tta_constant` and
+    `subject_policy_scores_cheap_n_prob_samples_constant`. Re-validation:
+    `/tmp/minyoung4_careseg_pre_gpu_gate_feature_compute_negative.json` reported `ok=true`.
+  - Added a stricter namespace check: every deployable feature must come from the cheap path
+    (`cheap_*` or `log1p_cheap_pred_voxels`). A new pre-GPU negative-control creates an
+    otherwise official-looking artifact with `expensive_prob_mean_all` in
+    `deployable_features`; validator rejects it via `deployable_features_cheap_path_only`.
+    Re-validation:
+    `/tmp/minyoung4_careseg_pre_gpu_gate_feature_namespace_negative.json` reported `ok=true`.
+- Do not restart GPU training without a new explicit approval and a revised research
+  question. The next useful step is research-direction review, not another generic
+  segmentation loss run.
+
+## 2026-06-22 fresh exp01 active run
+
+- New current-file-authoritative experiment:
+  `experiments/exp01_loco_segmentation_robust/`.
+- Purpose: fresh-start 4-channel structural MRI whole-tumor segmentation under LOCO,
+  as a robust lesion-representation baseline after molecular IDH/MGMT claims were not
+  reliable enough.
+- Technical variant currently running:
+  compact 3D U-Net + per-volume foreground normalization + train-only augmentation +
+  source-balanced sampling + small-lesion weighted focal Tversky/BCE +
+  worst-source validation checkpointing + validation-only threshold selection.
+- Validation completed before launch:
+  `py_compile` OK, shell syntax OK, CPU real-data smoke OK, GPU bf16 smoke OK.
+- Initial `tail_source_loco_full_v2_fastheader` was stopped before epoch 0 because each
+  fold created its own cache, causing duplicated I/O.
+- Launcher was patched to pass a run-level shared cache:
+  `--cache-dir runs/<run_name>/shared_cache`.
+- Current full run launched with `setsid nohup`:
+  `tail_source_loco_full_v3_sharedcache`.
+  - UCSD heldout: pid 422235, GPU2.
+  - MU heldout: pid 422241, GPU3.
+  - UPENN heldout: pid 422249, GPU4.
+  - UTSW heldout: pid 422255, GPU2.
+  - watcher: pid 515898, detached, summarizes when all folds finish.
+- All four fold processes and watcher had `PPID=1`; stderr/watcher.err were 0 at
+  verification.
+- Cohort locked by the run metadata: N=1617 subjects
+  (MU 203, UCSD 178, UPENN 611, UTSW 625).
+- Initial check: records/split/metadata/history files exist for all folds; shared cache
+  files are being generated; GPU attach verified.
+- Early validation confirmed actual training is running:
+  - MU heldout epoch 1 val mean Dice 0.8760, worst-source 0.8409.
+  - UCSD heldout epoch 1 val mean Dice 0.8500, worst-source 0.8137.
+  - UPENN heldout epoch 2 val mean Dice 0.8448, worst-source 0.7904.
+  - UTSW heldout epoch 6 val mean Dice 0.8829, worst-source 0.8445.
+- Shared cache reached 1617 files, so expensive preprocessing/cache fill is complete.
+- Monitor command:
+  `python experiments/exp01_loco_segmentation_robust/scripts/monitor_runs.py --run-root experiments/exp01_loco_segmentation_robust/runs/tail_source_loco_full_v3_sharedcache`
+- Watcher status:
+  `experiments/exp01_loco_segmentation_robust/runs/tail_source_loco_full_v3_sharedcache/watch_status.json`.
+- Standard comparison baseline launched:
+  `standard_dice_bce_loco_full_v1_sharedcache`.
+  - UCSD heldout: pid 732617, GPU3.
+  - MU heldout: pid 732623, GPU4.
+  - UPENN heldout: pid 732629, GPU3.
+  - UTSW heldout: pid 732635, GPU4.
+  - watcher: pid 736538.
+  - Uses the robust run's shared cache path to avoid duplicate preprocessing.
+  - Early validation confirmed baseline is training:
+    MU epoch 2 val mean 0.8922; UCSD epoch 2 val mean 0.8838;
+    UPENN epoch 3 val mean 0.8487; UTSW epoch 4 val mean 0.8797.
+- Automatic paired comparison watcher launched:
+  `experiments/exp01_loco_segmentation_robust/comparisons/standard_vs_tail_source_v1/`,
+  pid 766980. It will run `compare_loco_runs.py` after both run summaries are complete.
+- Result: `tail_source_loco_full_v3_sharedcache` is **NO-GO** vs standard Dice+BCE.
+  - standard mean Dice 0.884277.
+  - focal-Tversky candidate mean Dice 0.878937.
+  - paired delta mean Dice -0.005340, CI95 [-0.007761, -0.002890].
+  - low-Dice failure rates did not improve.
+  - Do not use focal-Tversky candidate as final method claim.
+- Next active ablation to run:
+  `source_balanced_dice_bce_loco_full_v1_sharedcache` =
+  Dice+BCE + source-balanced sampling + worst-source checkpointing.
+  - launched with `setsid nohup`.
+  - UCSD heldout pid 1790722 GPU2.
+  - MU heldout pid 1790728 GPU3.
+  - UPENN heldout pid 1790734 GPU4.
+  - UTSW heldout pid 1790740 GPU2.
+  - watcher pid 1792174.
+  - comparison watcher vs standard pid 1792186.
+  - initial verification: GPU attach yes, stderr 0, metadata/history created.
+
+## 2026-06-22 exp01 current continuation
+
+- Completed diagnostic: `standard_dice_bce_tta_all_v1`.
+  - all-flip TTA over the completed standard Dice+BCE model.
+  - summary: `experiments/exp01_loco_segmentation_robust/runs/standard_dice_bce_tta_all_v1/loco_summary/report.md`.
+  - comparison: `experiments/exp01_loco_segmentation_robust/comparisons/standard_vs_standard_tta_all_v1/comparison_report.md`.
+  - result vs standard: mean Dice 0.886454 vs 0.884277, paired delta +0.002177
+    CI95 [+0.000459, +0.003924]. Small positive, not a final method claim.
+  - fold deltas: MU +0.008180, UCSD +0.001811, UPENN -0.000367, UTSW +0.002819.
+- Implemented and smoke-tested architecture probe:
+  - `--arch resunet_ds`: residual SE 3D U-Net with auxiliary deep-supervision heads.
+  - CPU smoke: `runs/smoke_resunet_ds_cpu_v1/`.
+  - GPU bf16 smoke: `runs/smoke_resunet_ds_gpu_v1/`.
+- Active full GPU run:
+  `experiments/exp01_loco_segmentation_robust/runs/resunet_ds_dice_bce_loco_full_v1_sharedcache/`.
+  - UCSD heldout pid 2668154 GPU3.
+  - MU heldout pid 2668160 GPU4.
+  - UPENN heldout pid 2668166 GPU3.
+  - UTSW heldout pid 2668172 GPU4.
+  - watcher pid 2677206.
+  - comparison watcher vs standard pid 2677254, output
+    `comparisons/standard_vs_resunet_ds_dice_bce_v1/`.
+  - completed 4/4 folds with stderr 0.
+  - summary: `runs/resunet_ds_dice_bce_loco_full_v1_sharedcache/loco_summary/report.md`.
+  - comparison: `comparisons/standard_vs_resunet_ds_dice_bce_v1/comparison_report.md`.
+  - result vs standard: mean Dice 0.887385 vs 0.884277, paired delta +0.003108
+    CI95 [+0.000509, +0.005785].
+  - fold deltas: MU +0.011721, UCSD +0.005077, UPENN +0.003166, UTSW -0.000306.
+  - This is the current strongest completed training candidate.
+- Completed inference diagnostic:
+  `experiments/exp01_loco_segmentation_robust/runs/resunet_ds_tta_all_v1/`.
+  - all-flip TTA over the completed ResUNet-DS checkpoints.
+  - completed 4/4 folds with stderr 0.
+  - summary: `runs/resunet_ds_tta_all_v1/loco_summary/report.md`.
+  - comparison vs ResUNet-DS:
+    `comparisons/resunet_ds_vs_resunet_ds_tta_all_v1/comparison_report.md`.
+    delta +0.002253, CI95 [+0.000740, +0.003781].
+  - comparison vs standard:
+    `comparisons/standard_vs_resunet_ds_tta_all_v1/comparison_report.md`.
+    delta +0.005362, CI95 [+0.002599, +0.007976].
+  - Current best performance artifact, but not a single-pass training method.
+- Implemented and smoke-tested TTA-inspired single-pass training candidate:
+  - `--consistency-mode flip --consistency-weight 0.15`.
+  - CPU smoke: `runs/smoke_flip_consistency_cpu_v1/`.
+  - GPU bf16 smoke: `runs/smoke_flip_consistency_gpu_v1/`.
+- Completed full flip-consistency GPU run:
+  `experiments/exp01_loco_segmentation_robust/runs/unet_flip_consistency_loco_full_v1_sharedcache/`.
+  - UCSD heldout pid 2902189 GPU2.
+  - MU heldout pid 2902200 GPU2.
+  - UPENN heldout pid 2902207 GPU2.
+  - UTSW heldout pid 2902213 GPU2.
+  - watcher pid 2908231.
+  - comparison watcher vs standard pid 2908240, output
+    `comparisons/standard_vs_flip_consistency_v1/`.
+  - initial verification: all fold processes detached with PPID 1, stderr 0, GPU attached.
+  - completed 4/4 folds with stderr 0.
+  - summary: `runs/unet_flip_consistency_loco_full_v1_sharedcache/loco_summary/report.md`.
+  - comparison vs standard:
+    `comparisons/standard_vs_flip_consistency_v1/comparison_report.md`.
+  - result vs standard: mean Dice 0.882868 vs 0.884277, paired delta -0.001409
+    CI95 [-0.004078, +0.001082].
+  - This is no-go / neutral-negative. Flip-consistency alone did not transfer the TTA gain
+    into the compact U-Net.
+- Completed full ResUNet-DS flip-consistency GPU run:
+  `experiments/exp01_loco_segmentation_robust/runs/resunet_ds_flip_consistency_loco_full_v1_sharedcache/`.
+  - Purpose: test whether the ResUNet-DS architecture and TTA-derived flip consistency
+    combine into a single-pass training method.
+  - UCSD heldout pid 346798 GPU3.
+  - MU heldout pid 346804 GPU4.
+  - UPENN heldout pid 346810 GPU3.
+  - UTSW heldout pid 346816 GPU4.
+  - watcher pid 359296.
+  - comparison watchers:
+    `comparisons/standard_vs_resunet_ds_flip_consistency_v1/` pid 359303,
+    `comparisons/resunet_ds_vs_resunet_ds_flip_consistency_v1/` pid 359326,
+    `comparisons/resunet_ds_tta_vs_resunet_ds_flip_consistency_v1/` pid 359612.
+  - Validation before launch: launcher `bash -n` OK, `py_compile` OK, CPU real-data smoke OK,
+    GPU bf16 smoke OK.
+  - completed 4/4 folds with stderr 0.
+  - summary: `runs/resunet_ds_flip_consistency_loco_full_v1_sharedcache/loco_summary/report.md`.
+  - comparison vs standard:
+    `comparisons/standard_vs_resunet_ds_flip_consistency_v1/comparison_report.md`.
+    mean Dice 0.883842 vs 0.884277, paired delta -0.000435
+    CI95 [-0.003360, +0.002374].
+  - comparison vs ResUNet-DS:
+    `comparisons/resunet_ds_vs_resunet_ds_flip_consistency_v1/comparison_report.md`.
+    paired delta -0.003543, CI95 [-0.005933, -0.001208].
+  - comparison vs ResUNet-DS TTA:
+    `comparisons/resunet_ds_tta_vs_resunet_ds_flip_consistency_v1/comparison_report.md`.
+    paired delta -0.005797, CI95 [-0.007952, -0.003794].
+  - Verdict: no-go. Naive train-time flip-consistency does not transfer the TTA gain into
+    single-pass training and degrades the best training architecture.
+- Implemented next candidate after flip-consistency failure:
+  `flip_tta_distill` in `train_segmentation_loco.py`.
+  - Mechanism: use detached average of original and flipped predictions as a TTA-style
+    soft teacher, and train only the original-view student toward that target.
+  - Rationale: inference-time all-flip TTA is positive, but bidirectional consistency is
+    negative; distillation is a closer training analogue to TTA averaging.
+  - Launcher:
+    `scripts/launch_all_nohup_resunet_ds_tta_distill.sh`.
+  - CPU real-data smoke passed:
+    `runs/smoke_resunet_ds_tta_distill_cpu_v1/outer_UCSD-PTGBM`.
+  - GPU full-run command preview:
+    `experiments/exp01_loco_segmentation_robust/GPU_COMMANDS_TTA_DISTILL.md`.
+  - Full GPU run launched with `setsid nohup` and completed:
+    `resunet_ds_tta_distill_loco_full_v1_sharedcache`.
+    - UCSD heldout pid 1771374 GPU2.
+    - MU heldout pid 1771398 GPU3.
+    - UPENN heldout pid 1771418 GPU4.
+    - UTSW heldout pid 1771444 GPU2.
+    - watcher pid 1777536.
+    - comparison watchers:
+      `standard_vs_resunet_ds_tta_distill_v1` pid 1777576,
+      `resunet_ds_vs_resunet_ds_tta_distill_v1` pid 1777594,
+      `resunet_ds_tta_vs_resunet_ds_tta_distill_v1` pid 1777638.
+  - Initial verification:
+    all fold processes and watchers have PPID 1 / independent sessions, GPU attach verified,
+    stderr 0, metadata/split/records/history files created.
+  - Final status: all 4 folds completed, stderr 0.
+  - summary:
+    `runs/resunet_ds_tta_distill_loco_full_v1_sharedcache/loco_summary/report.md`.
+  - result vs standard:
+    mean Dice 0.885826 vs 0.884277, delta +0.001549,
+    CI95 [-0.001405, +0.004473].
+  - result vs ResUNet-DS:
+    delta -0.001559, CI95 [-0.003975, +0.000881].
+  - result vs ResUNet-DS TTA:
+    delta -0.003812, CI95 [-0.005958, -0.001663].
+  - Fold pattern vs ResUNet-DS:
+    MU +0.006838, UCSD +0.005980, UPENN -0.001597, UTSW -0.006396.
+  - Verdict: no-go as an overall method, but positive on the hard MU/UCSD folds and
+    better than plain flip-consistency. Next direction should be adaptive/source-risk-aware
+    use of TTA-derived training signal rather than stronger global consistency.
+- Validation-routed selection between ResUNet-DS and TTA-distill failed:
+  - val_mean routing mean Dice 0.884913, delta vs ResUNet-DS -0.002472
+    CI95 [-0.004099, -0.000982].
+  - worst-source routing mean Dice 0.884310, delta vs ResUNet-DS -0.003076
+    CI95 [-0.004792, -0.001479].
+  - Interpretation: simple validation routing cannot identify the folds where TTA-distill helps.
+- TTA-distill with all-flip TTA completed:
+  `resunet_ds_tta_distill_tta_all_v1`.
+  - mean Dice 0.888930.
+  - vs standard: +0.004653, CI95 [+0.001918, +0.007449].
+  - vs ResUNet-DS TTA: -0.000709, CI95 [-0.002524, +0.001161].
+  - It is positive vs standard but not a new best.
+- Implemented and ran probability ensemble TTA:
+  `scripts/eval_ensemble_tta_loco.py` and
+  `scripts/launch_nohup_ensemble_tta_all_folds.sh`.
+  - ensemble sources:
+    `resunet_ds_dice_bce_loco_full_v1_sharedcache` +
+    `resunet_ds_tta_distill_loco_full_v1_sharedcache`.
+  - run: `resunet_ds_tta_distill_ensemble_tta_all_v1`.
+  - all 4 folds completed, stderr 0.
+  - mean Dice 0.892775.
+  - vs previous best ResUNet-DS TTA: +0.003136, CI95 [+0.002044, +0.004342].
+  - vs standard: +0.008498, CI95 [+0.005960, +0.011038].
+  - Dice <= 0.8 failure reduction vs ResUNet-DS TTA: -0.011750,
+    CI95 [-0.018553, -0.005566].
+  - Current best performance artifact. It is not single-pass, but it proves complementary
+    information between the standard ResUNet-DS and TTA-distilled ResUNet-DS.
+- Implemented ensemble-to-student compression:
+  - trainer args:
+    `--teacher-run-root`, `--teacher-distill-weight`,
+    `--teacher-distill-warmup-epochs`, `--teacher-distill-views`.
+  - teacher validation checks enforce heldout/target_shape/n_records compatibility.
+  - teacher signal averages standard ResUNet-DS and TTA-distilled ResUNet-DS checkpoints
+    over original + cycle-flip views during training.
+  - launcher:
+    `scripts/launch_all_nohup_resunet_ds_ensemble_student.sh`.
+  - GPU smoke passed:
+    `runs/smoke_resunet_ds_ensemble_student_gpu_v2/outer_UCSD-PTGBM`.
+    teacher distill loss finite: 0.317227 on the single smoke step.
+- Full ensemble-student run launched with `setsid nohup`:
+  `resunet_ds_ensemble_student_loco_full_v1_sharedcache`.
+  - UCSD heldout pid 3615286 GPU2.
+  - MU heldout pid 3615295 GPU3.
+  - UPENN heldout pid 3615374 GPU4.
+  - UTSW heldout pid 3615391 GPU2.
+  - watcher pid 3615423.
+  - comparison watchers:
+    `standard_vs_ensemble_student_v1` pid 3615491,
+    `resunet_ds_vs_ensemble_student_v1` pid 3615522,
+    `ensemble_tta_vs_ensemble_student_v1` pid 3615656.
+  - Initial verification:
+    all fold processes and watchers have PPID 1 / independent sessions, GPU attach verified,
+    stderr 0, metadata/split/records/history files created.
+  - First training monitor:
+    MU epoch 5, UCSD epoch 3, UPENN epoch 6, UTSW epoch 4; all alive, stderr 0.
+    Warmup behavior is correct: pre-warmup folds show teacher loss 0, post-warmup folds
+    show small finite teacher distill loss (~5e-4).
+  - Final status: all 4 folds completed, stderr 0.
+  - mean Dice 0.885765.
+  - vs standard: +0.001488, CI95 [-0.001390, +0.004324].
+  - vs ResUNet-DS: -0.001620, CI95 [-0.003487, +0.000300].
+  - vs ensemble-TTA teacher: -0.007010, CI95 [-0.009016, -0.005096].
+  - Verdict: no-go compression. Simple MSE soft-probability distillation from the
+    complementary ensemble does not preserve the ensemble-TTA gain as a single-pass model.
+- TTA on ensemble-student completed:
+  `resunet_ds_ensemble_student_tta_all_v1`.
+  - mean Dice 0.892077.
+  - vs standard: +0.007800, CI95 [+0.005067, +0.010471].
+  - vs ResUNet-DS TTA: +0.002438, CI95 [+0.000792, +0.004210].
+  - vs two-model ensemble-TTA: -0.000698, CI95 [-0.002478, +0.001103].
+  - Verdict: strong 1-model TTA artifact, but not new best. Useful as a cheaper
+    deployment tradeoff; current best remains `resunet_ds_tta_distill_ensemble_tta_all_v1`.
+- Validation-selected weighted ensemble completed:
+  `resunet_ds_weighted_ensemble_tta_all_v1`.
+  - Mechanism: select ResUNet-DS/TTA-distill probability weights and threshold on validation
+    subjects only, then apply once to held-out test subjects with all-flip TTA.
+  - selected weights by held-out fold:
+    MU 0.7/0.3, UCSD 0.4/0.6, UPENN 0.7/0.3, UTSW 0.5/0.5
+    for ResUNet-DS/TTA-distill.
+  - mean Dice 0.891906.
+  - vs standard: +0.007629, CI95 [+0.004949, +0.010257].
+  - vs fixed 50:50 ensemble-TTA: -0.000869, CI95 [-0.001551, -0.000396].
+  - Verdict: no-go. Validation-selected fold-level weighting overfits/does not generalize
+    better than the fixed 50:50 average. Current best remains
+    `resunet_ds_tta_distill_ensemble_tta_all_v1`.
+- Active follow-up training:
+  `resunet_ds_confidence_distill_loco_full_v1_sharedcache`.
+  - Purpose: stronger single-pass distillation attempt after simple MSE ensemble-student
+    failed.
+  - Mechanism: supervised Dice/BCE + teacher ensemble distillation using confidence-weighted
+    soft BCE+Dice instead of MSE.
+  - Teachers: `resunet_ds_dice_bce_loco_full_v1_sharedcache` and
+    `resunet_ds_tta_distill_loco_full_v1_sharedcache`.
+  - Teacher views: `single_flip`; weight 0.15; warmup 5 epochs.
+  - GPU smoke passed before launch; finite `train_teacher_distill_loss=1.870873`.
+  - Full folds launched with `setsid nohup`:
+    UCSD pid 1854996 GPU2; MU pid 1855023 GPU3; UPENN pid 1855045 GPU4;
+    UTSW pid 1855075 GPU2; watcher pid 1855467.
+  - Compare watchers:
+    `standard_vs_confidence_distill_v1`, `resunet_ds_vs_confidence_distill_v1`,
+    `ensemble_tta_vs_confidence_distill_v1`.
+  - Health check 2026-06-22 08:29 UTC:
+    all four folds alive, stderr 0, best checkpoints present.
+    Teacher loss activated after warmup and is finite
+    (e.g. MU epoch 5 `train_teacher_distill_loss=0.078384`;
+    UPENN epoch 5 `0.097814`; UTSW epoch 5 `0.086321`).
+    Progress: MU 19/30, UCSD 12/30, UPENN 26/30, UTSW 15/30.
+    No `loco_summary` or comparison json yet.
+  - Final result: completed cleanly, stderr 0, all four fold reports and comparisons written.
+    - mean Dice 0.887774.
+    - vs standard: +0.003497, CI95 [+0.000801, +0.006272].
+    - vs ResUNet-DS: +0.000389, CI95 [-0.001428, +0.002163].
+    - vs fixed 50:50 ensemble-TTA: -0.005001, CI95 [-0.006488, -0.003496].
+    - Fold deltas vs ResUNet-DS: MU +0.002433, UCSD +0.004306,
+      UPENN -0.000652, UTSW -0.000374.
+    - Verdict: no-go as a new single-pass method; positive only versus the weaker standard
+      baseline. Next cheap check: all-flip TTA on this checkpoint as a possible 1-model
+      TTA artifact.
+  - All-flip TTA follow-up completed:
+    `resunet_ds_confidence_distill_tta_all_v1`.
+    - mean Dice 0.890254.
+    - vs standard: +0.005977, CI95 [+0.003389, +0.008572].
+    - vs ResUNet-DS TTA: +0.000616, CI95 [-0.000852, +0.002120].
+    - vs fixed 50:50 ensemble-TTA: -0.002521, CI95 [-0.003665, -0.001373].
+    - vs ensemble-student TTA: -0.001823, CI95 [-0.003886, +0.000129].
+    - Verdict: positive but not best. One-model compression remains weaker than current
+      two-model ensemble-TTA; UCSD improves, but MU/UPENN trade off.
+  - Three-model ensemble follow-up completed:
+    `resunet_ds_three_model_ensemble_tta_all_v1`.
+    - Sources: ResUNet-DS + TTA-distilled ResUNet-DS + confidence-distilled ResUNet-DS.
+    - mean Dice 0.892344.
+    - vs standard: +0.008067, CI95 [+0.005448, +0.010681].
+    - vs fixed two-model ensemble-TTA: -0.000431, CI95 [-0.000940, +0.000089].
+    - vs ensemble-student TTA: +0.000268, CI95 [-0.001772, +0.002263].
+    - Verdict: no new best. Keep `resunet_ds_tta_distill_ensemble_tta_all_v1`
+      as current best artifact; confidence-distilled checkpoint is diagnostic only.
 
 ## 현재 결정 (locked)
 - 목표 수준: **ACCV-tier CV / medical-vision method paper** (IDH 예측 응용 논문 아님).

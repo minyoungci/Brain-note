@@ -32,5 +32,9 @@
 ## 추론(120초) 전략
 8³는 추론 부담 최대 → **distillation을 16³ student로** 또는 추론 시 patch 병합 검토. Phase A에서 추론시간 *반드시* 실측(W2).
 
+## Figure
+- **백본 구조(모델 자체)**: `../figures/backbone_vit8_primus.png` — ViT 8³ 인코더(fine token grid, 8× sequence).
+- **사전학습 그래프**: `../figures/candidateB_balanced_dino_mae.png`.
+
 ## Figure spec (paperbanana)
 입력 → 높은마스킹 multi-crop → ViT(patch8³, CLS+register) 인코더 → 두 갈래(CLS→DINO head→L_global / patch→conv decoder→MAE recon, 복원된 볼륨 썸네일→L_dense) → "Adaptive Balancing" 결합 → EMA teacher 점선. 8³ 작은 패치 그리드와 conv decoder를 시각 강조.

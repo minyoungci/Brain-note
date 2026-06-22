@@ -5,6 +5,168 @@
 
 ## 결정 기록
 
+- [2026-06-22] **E6 fine-tune 비교(BrainIAC vs AMAES vs fs_vol, T1→amyloid AJU N=1000) → 두 deep 모두 morph에 *짐*.** frozen(E5) 아닌
+  *fine-tune*(partial: last block+head, leakage-clean subject CV + val early-stop). 결과: **fs_vol 0.697 / BrainIAC 0.503(chance, 학습실패) /
+  AMAES 0.570**(val 0.59–0.67이나 held-out 0.57). ΔAUC: BrainIAC −0.193[−0.243,−0.141], AMAES −0.126[−0.176,−0.078] — **둘 다 CI<0 = morph에 유의하게 짐.**
+  kill-rule(>>fs_vol=누수) 미발동(오히려 deep이 짐). **정직 해석:** "3D Transformer가 더 높은 finding"이라는 가설 미실현 — fine-tune해도 deep<morph.
+  BrainIAC chance=96³ non-MNI 공간불일치+ViT 소-N 부적합; AMAES(CNN 128³)가 더 나으나 여전히 morph 아래. **recipe-dependent 단서**: 더 공격적
+  fine-tune/더 큰 N이면 tie(~0.70) 가능하나 ceiling상 *넘기는* 어려움(문헌 deep≈morph 일치). hand-crafted morph(0.697)가 최선. portable
+  패키지=`dist/e6_amyloid_finetune.zip`(다른 환경서 더 큰 데이터/recipe로 재검증 가능). 코드=`src/microbrain/e6_finetune_amyloid.py`. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **ROI/ontology task 설계(13-agent workflow w6oirulsn) → accuracy=ceiling(tie) 재확인, 유일 positive=robustness(~15% odds).** 96-영역 DKT
+  파셀레이션 substrate로도 **clean-AUC에서 graph/learned가 hand-crafted 100영역 GBM 못넘음(사전등록 tie; clean-win=누수 audit)** — E5/RT-SSL/P2 일치.
+  유일 비-누수 길=**robustness**: 해부 인접그래프가 imputation prior로 region-dropout·LOCO site-shift 하 우아하게 degrade하나(타깃 CDR CN-vs-impaired,
+  비순환, ΔAUC over DEMO). 정직 odds: 55% tie·30% imputation+GBM서 붕괴·**15% 생존**. **워크플로가 잡은 무결성 문제(무관하게 중요): ①cross-cohort
+  dedup 없음**(`build_qc_pass_manifest.py`는 AJU 내부만 → 코호트간 중복=누수위험) **②roi_final_ready=FALSE 전수**(파셀레이션=unsigned candidate, 사인오프
+  전 보고불가) ③100영역 테이블 매니페스트 부재(재추출 필요). novelty=moderate(brain-region GNN 붐빔), venue=specialty. **판정: accuracy positive
+  foreclosed(ceiling); robustness는 高비용·低odds. 정직 권고=ceiling 수용 또는 무결성 수정.** 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **데이터 발견: 풀 DKT 파셀레이션(100영역) + voxelwise 라벨맵 — 26 fs_vol은 curated subset이었음.** 디스크 검증:
+  `t1w/fastsurfer/<subj>/stats/aseg+DKT.stats`=**100-영역 volume**(피질 DKT+피질하 aseg, L/R), **전 7코호트 ~13k**(ADNI 5037·A4 7132·NACC 1876·
+  OASIS 1613·AIBL 990·AJU 1287·KDRC 931). `t1w/roi_transfer_option_b_candidate_v0/aparc_DKTatlas_aseg_final_tensor_grid_*.nii.gz`=**192³ 텐서
+  grid 정렬 96-라벨 voxelwise 파셀레이션**(T1과 동일 grid). roi_masks/(hippocampus 등 status PASS). **roi_usability=USABLE_AUTO 12932,
+  단 roi_final_ready=FALSE(사인오프 미완 — validity flag, 사용 전 QC 필요).** 함의: (1) 감별-dx baseline을 26→100영역으로 강화 가능, (2) 사용자
+  ontology 아이디어에 *실제 substrate*(DKT 해부 ontology+그래프) 생김. **단 핵심 질문 불변: region-structured/graph가 (더 풍부한) hand-crafted
+  tabular을 *넘는가* — prior=ceiling으로 tie 우세(tabular>GNN, E5 null), 이젠 결정적 테스트 가능.** 설계 workflow=w6oirulsn 진행. 코드=`src/microbrain/`. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **감별-dx protocol 설계(13-agent workflow wrc2gv4m2) + E0–E3 leakage-clean 실행 = 검증된 positive.** auditor가 헤드라인이 인라인
+  (repo 부재)이고 study1 zc()는 전역-z 누수라 지적 → **`src/microbrain/diffdx_tier1.py`로 재빌드(sklearn Pipeline=train-fold 전용 스케일링).**
+  **E0 누수증명:** per-fold scaler.mean_ DIFFER, 음성대조 DEMO=0.512∈[0.45,0.55] PASS, N=355(190/165) 0-dropped 중복텐서0. ladder leak-free:
+  0.512→0.677→**0.755**(인라인과 일치). **E1 PRIMARY C1: ΔMORPH-over-severity=+0.077 95%CI[+0.019,+0.132] CI>0 GO✓.** E2: C2 +0.155[+0.04,+0.27]✓,
+  C3(N=138) +0.113[−0.01,+0.24] 비-gating. **E3 severity-MATCHED(N=246): ΔMORPH=+0.261[+0.172,+0.350] 생존✓ → severity-INDEPENDENT atrophy
+  pattern(novelty 핵심). **E4 robustness ✅ 통과**(ICV-method robust; leave-one-ROI-out ×26 range[+0.073,+0.081] 전부양수 0이동; leave-one-subtype ×7 부호뒤집힘0).** **E5 학습-rep kill-test ✅ 완료=NULL 확정:** frozen BrainIAC(ViT-B 96³,768d) T1-only→aju_amyloid(N=1000): BrainIAC AUC=0.512 ≪ fs_vol 0.697, ΔAUC=−0.185[−0.231,−0.136]→학습 rep이 hand-crafted 못넘음(AI 돌파구 없음). kill-rule(>fs_vol=누수) 미발동. degeneracy 공포→positive control로 추출 유효 입증(sex AUC0.807·age R²0.099, amyloid만 chance=진짜 null; raw cos~1은 DC offset). 검증체인 E0–E5 전부 leakage-clean 완료. novelty=circularity-decomposition
+  +co-located 멀티모달+East-Asian 감별라벨 조합(moderate, specialty venue). 천장: 단일코호트(외부복제 불가)·학습-rep NULL 우세. 코드/동결표 커밋. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **감별-dx positive 결과 go/no-go 검증(workflow wbkqc4tfp) → GO-with-conditions, moderately-novel. 2 flag 해소.** 핵심:
+  비순환 morphometry(임상의 미열람 fs_vol)가 중증도 통제 후에도 AD-계열 vs 혈관-계열 가름(3 contrast ΔMORPH-over-sev CI>0) = **durable positive headline**.
+  멀티모달 고AUC(0.91)는 circular(WMH/amyloid를 임상의가 읽고 라벨링)→decision-support로 강등. **flag 검증:** ①provenance OK(wmh_grade_visual은
+  korean_multimodal_manifest 1287, aju_amyloid 메인 1286 — 재현가능, 출처문서화 필요) ②leakage OK(내 N=355=subject-level, drop_duplicates 선행).
+  **정직한 천장(부풀림 없이):** 단일코호트 AJU(감별라벨 고유, KDRC/Western 무 → 외부복제 불가)·NINDS-AIREN VaD=영상정의 라벨 → "severity-independent
+  atrophy-pattern etiology signal"로만 주장. 경쟁 강함(Kolachalama Nat Med 2024 neuropath 51k AUROC 0.96). **학습-rep "AI 기여"는 N~355서 NULL 우세
+  =kill-test이지 headline 아님.** 현실 venue=NeuroImage:Clinical/Alz&Dem/HBM(specialty), Nat Med/MICCAI 아님. **= 세션 최초 생존 positive(단 modest).** 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **POSITIVE 결과 확보: 멀티모달 MRI가 AD-계열 vs 혈관-계열 치매 감별, 각 모달 유의 보탬.** (사용자 정당한 지적: null은 negative,
+  positive 필요.) AJU 감별라벨, N=355(AD-계열 190 vs 혈관-계열 165). 계층 5-seed CV + paired ΔAUC bootstrap: DEMO 0.510(우연)→+MORPH 0.756
+  (Δ+0.237 [+0.161,+0.314])→**+WMH 0.811(Δ+0.058 [+0.027,+0.089], CI>0)**→**+AMYLOID 0.912(Δ+0.109 [+0.075,+0.145], CI>0)**. 핵심: 나이는 우연,
+  멀티모달 쌓으면 AUC 0.91; **혈관 모달(WMH)이 morphometry가 버린 신호를 유의하게 더함**(올바른 paired 검정). within-cohort 분류라 #4(비식별)·#1(null)을
+  죽인 함정 회피. 코드=`src/microbrain/study1_*`(인접). **정직한 한정(부풀림 없이):** N=355 단일코호트(AJU), 라벨 임상의-assigned(경미 circularity),
+  novelty=applied/clinical(새 method 아님); structure-only(morph+WMH=0.811)=routine MRI 배포판(PET 불요). **다음 positive 빌드아웃:** KDRC 복제 +
+  학습 멀티모달 rep이 hand-crafted 넘나(3D-rep 기여 각도) + routine-MRI 배포판. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **Study #1 1차 결과 = NULL(사전등록 NO-GO 충족). super-additivity 미지지.** `src/microbrain/study1_amyloid_wmh_interaction.py`,
+  사전등록 1차=MTL(해마+내후각), KDRC 연속 SUVR×Fazekas-deep→부피, N=616. **beta_int(MTL)=+0.024 boot95%[−0.037,+0.087] → CI 0 포함 NULL**(부호도 가설
+  반대=양수); POST +0.048[−0.007,+0.107] NULL. 주효과 건전(amyloid→MTL −0.393, WMH→MTL ~0). 정밀도: |시너지|>~0.09SD 배제, 그 이하 배제불가.
+  **C1**(혈관위험 보정) base 이미 null. **C2/C3**: recruitment-collapse attenuation=−0.019 vs H0 null mean+0.001 sd0.041, **P(|null|≥|obs|)=0.637 →
+  range-restriction tautology와 구별 불가 = recruitment headline 사망**(무너질 상호작용 없음). **C5** AJU 복제도 NULL(MTL +0.020[−0.031,+0.071]). →
+  **결론: amyloid+WMH는 단면 위축에 가산적; super-additivity 없음. grand 주장 2연속 사망(#4 비식별, #1 null).** 한정: 단면 atrophy만(인지/진행률 미검=사전등록밖,
+  종단 간격부재). 정직한 산출=사전등록 null(가산성) 또는 within-cohort #3(T1→WMH)로 전환. 부풀림 없이 보고함. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **Study #4 KILL(타당성 workflow wptr3lcs0): novelty=already-established, defensibility=fatally-confounded.** 3중 사망:
+  **(1) 비-novel** — EA-vs-Western APOE4→amyloid는 이미 점유(Li 2026·Duara 2019·Jang 2024). **(2) 방향 반박** — 우리 예비 OR=1.75(EA 강함)는
+  소수/반박 방향; **Jang 2024(Korean N=5121, adj OR=0.60)**·Li 2026·Xiao 2026 전부 비-White에서 *약함*. 우리 N은 그에 비해 빈약. **(3) 비-식별** —
+  EA 연속-amyloid arm=KDRC 단독(SUVR), AJU는 binary뿐 → ancestry가 site/tracer/scale과 완전 공선(K1 already-triggered); SUVR(KDRC med 0.95)↔
+  centiloid(West med 5) 변환 부재→scale-bridge 불가; binary는 NACC 단독구동(EA vs OASIS p=0.45). **메타 교훈(durable):** 이 7코호트 데이터에선
+  *모든* cross-population/cross-cohort 인과비교가 cohort-수준 공선(site/scanner/측정법=population)으로 **non-identifiable**; **within-cohort estimand만 생존.**
+  #4 salvage=non-identifiability 측정-validity note(원하는 임상 novelty 아님). **권고: within-cohort인 Study #1(recruitment-dependent super-additivity,
+  amyloid×WMH) 또는 #3(T1→WMH)로 복귀.** 되돌아갈 commit=현재 HEAD. 검증 코드=`src/microbrain/study4_*.py`(보존, salvage용).
+
+- [2026-06-22] **Study #4(APOE4→amyloid coupling cross-pop) 착수 + 적대 검증 → 신호 실재하나 측정법=population 교란.**
+  `src/microbrain/study4_apoe_amyloid_coupling.py`+`study4_verify.py`. 코호트별 OR(e4carrier→amyloid+): AJU 5.52·KDRC 6.99(EA) /
+  OASIS 6.06·NACC 2.19(West) / A4 제외(screened 100%+). pooled e4×EA OR=1.68 [1.26,2.25] p<0.001(N=3558). **적대 검증:**
+  **(V1)** binary interaction은 **NACC가 단독 구동** — EA vs OASIS만=OR 1.18 p=0.448(NULL), EA vs NACC만=3.61 → binary fragile.
+  **(V2)** 연속 amyloid(within-cohort z, cutoff제거): KDRC slope +0.680≫A4 0.328≫NACC 0.171; KDRC vs NACC 연속 interaction +0.506
+  [0.31,0.70] p<0.001 → cutoff-free서 robust. **(V3)** APOE2 EA 9.9%≈West 9.3%(교란 아님), 나이 통제. **근본 문제: amyloid 측정법(visual/binary/
+  centiloid)이 코호트=population과 교란**(site=population의 amyloid 판박이). binary는 NACC-driven, 연속은 robust하나 EA 연속 1코호트(KDRC)뿐.
+  **해법=Centiloid 조화**(KDRC/A4 SUVR→CL, NACC CL; AJU/OASIS binary 합류불가). 타당성 workflow=wptr3lcs0 진행 중(OR non-collapsibility·
+  harmonization 표준·novelty vs Belloy2023). 잠정: 연속-CL 분석을 1차로, binary를 보조로. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **임상-novelty headline 확정(workflow wmmzgqu9y + 검증): "recruitment-dependent super-additivity".** 주장=혈관병 배제 안 하는
+  실세계 East-Asian 클리닉에선 amyloid×WMH가 신경퇴행에 **초가산적**, **같은 코호트를 ADNI/A4식 혈관-배제로 재표집하면 가산성으로 붕괴** →
+  "amyloid+SVD는 가산적"이라는 통설이 부분적으로 **모집 편향**. novelty=상호작용 자체가 아니라 *recruitment에 의한 효과변경*; **within-cohort
+  falsification이라 site 교란 우회**; 항-amyloid 치료 시대 actionable. **검증된 feasibility:** KDRC 1차 joint cell **N=616**(korean매니페스트 age 397뿐
+  →메인 clin_age 770 join 복구; 검증), ICV=fs_BrainSegVol, AJU 2-site sign replication(N=1000 binary×visual). **#1 reject 위험(검증):** range-restriction이
+  상호작용을 기계적 약화→ recruitment-붕괴가 tautology일 수 있음 → **완화=한계분포 맞춘 시뮬레이션으로 초과분 입증**(필수). runner-up=discordance/
+  symptomatic-SNAP(임상AD-amyloid음성 17·Vascular-MCI− 94)=치료 부적격 flag, 단 소N→sub-arm. 종단(AJU V1/V2 286)은 scan-interval 부재로 delta만(slope 불가).
+  cheap-first 전부 CPU(STEP0 join→STEP2 SUVR×WMH→atrophy 상호작용→STEP4 recruitment test→STEP5 2-site sign). null 사전등록=1차결과. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **피벗: 임상-novelty(혼합병리) 방향 + feasibility 확정.** 사용자가 "임상적으로 매우 novel하면 OK". 닫힌 프레임(morph 이기기/교란하 method)
+  대신 **서양이 *배제*하는 혼합·실세계 병리의 멀티모달 특성화**(ADNI/A4는 혈관 exclusion=pure-AD bias). **데이터 feasibility 확정(올바른 컬럼):**
+  AJU=aju_amyloid(1000)+wmh_grade_visual(1001)+aju_dx_detail+APOE+MMSE/CDR; KDRC=amyloid_suvr(855,정량)+fazekas(661)+APOE+혈액패널+혈관위험(dm/htn/dyslip).
+  **amyloid×WMH "two-hit" 셀:** AJU A+/WMHhi=141·A+/WMHlo=203·A−/WMHhi=231; KDRC(suvr>1,faz≥2) 49/194/84. **임상-바이오마커 불일치 직접관측:**
+  "AD without"에 amyloid− 17명(SNAP), Vascular-MCI 94 A−/10 A+, AD+SVD 49 A+. 1836 full multimodal·2 Korean site·일부 종단. **고유성:** subject당 임상감별라벨
+  +T1+FLAIR+PET+APOE+혈액 동시 = 실세계 East-Asian 기억클리닉(혼합이 다수). 후보 임상주장: amyloid×SVD 상호작용(가산 vs 시너지)·discordance(SNAP)
+  특성화/예후·routine-T1 dual-pathology triage·항amyloid치료 적격/ARIA위험. novelty 검증 workflow=wmmzgqu9y 진행 중. 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **A 식별가정 테스트 → A 경험적 사망; 알고리즘 novelty foreclosed; 수렴=VASCULAR-DECOUPLE-XFER 식별 프로토콜.**
+  `src/microbrain/gateA_asymmetry_test.py`(AJU+KDRC 230/230, registered T1+FLAIR+PET, coarse-pool→PCA, cross-modal shared/specific 분해):
+  **site(AJU vs KDRC, 스캐너우세)가 shared AUC=0.911 > specific 0.622 → site_specificity=−0.289**. 즉 스캐너가 모달-고유가 아니라
+  **cross-modal 공유성분에 더 강하게 결합**(공유 registration 파이프라인). A의 "스캐너=모달고유" 가정 거짓. biology(age)는 shared에 결합(+0.21,
+  A의 나머지 절반은 맞음)이나 식별에 필요한 절반이 깨짐. **→ A 사망(검증). A/B/C 전부 rigorous check 통과 못함 → 순수 알고리즘 novelty foreclosed.**
+  부수 발견: multi-cohort에서 cross-modal-shared 신호는 site-지배(naive "멀티모달공유=biology" 가정 반증) — 프로토콜 동기로 유용.
+  **수렴 방향(cross-pop workflow wbyyh0vpi):** VASCULAR-DECOUPLE-XFER = *식별 프로토콜*(아키텍처 아님). between-site 절대량 금지, 대신 scanner-
+  unforgeable estimand 3종: ①APOE4-dose→vascular-readout slope(2 Korean site 복제, 혈액유래=스캐너무관) ②KDRC-Fazekas-fit readout을 freeze→AJU
+  감별라벨 zero-shot 순서전이(circularity firewall) ③FLAIR-vascular vs amyloid-SUVR cross-modal decoupling. 전부 CPU-first, scanner-bound 초과 요구.
+  데이터 게이트 PASS(AJU FLAIR+dx_detail 985). 한계: traveler 0=절대량 영구 도달불가; 기여=defensible measurement protocol(생물 증명 아님). 되돌아갈 commit=현재 HEAD.
+
+- [2026-06-22] **method-novelty 적대검증 + B kill-test → 순수 fresh-method 거의 foreclosed, fresh-ish=gene-anchored pathway 비교.**
+  사용자가 "Method 측면 완벽 fresh" 요구. novelty referee(literature-scout): 후보 A(cross-modal factorization)=PARTIAL-OVERLAP(Daunhawer
+  ICLR'23 block-identifiability + MDPI MRI-PET-site near-scoop; "스캐너=모달고유" 가정이 B0/motion/registration로 경험적 거짓) · B(APOE
+  genetic-anchor)=**GENUINE-GAP(유일)**(GEMCONT은 역으로 ancestry 제거) · C(modality-discordance ruler)=false-novel(Liu&Yap'24 phantom-free
+  소유 + 생물 불일치 confound). **B kill-test(CPU):** fs_vol→APOE4 carrier AUC=0.56–0.60(ADNI/AJU/OASIS), NACC 0.49(우연) → **구조 instrument 약함**.
+  **APOE4→amyloid(AJU): 비보유 23% vs 보유 61%, OR=5.19 p=1.8e-29 → amyloid 축은 강한 instrument.** 함의: B는 amyloid-anchored로만 생존하나
+  amyloid는 PET 직접측정 가능 → imaging-genetics로 미끄러져 method-novelty 약화. **결론: 순수 fresh-method는 식별가정(traveler 부재시 반증불가)
+  위에서 high-risk; memory "방법론 novelty 없음" 재확인.** 가장 방어가능한 fresh-ish=**유전-imaging coupling(APOE→amyloid OR)이 스캐너 오프셋에
+  강건한 site-robust estimand** → 치매 *경로분해*(amyloid: APOE+PET vs 혈관: FLAIR-WMH) population 비교. 무게중심=데이터+estimand 프레임(순수
+  method 아님). 되돌아갈 commit=현재 HEAD. 미해결: cross-pop 설계 workflow(wbyyh0vpi) 결과 대기 중.
+
+- [2026-06-22] **대형 정정: 멀티모달은 4코호트(Korean 전용 아님) — cross-modal T1 학습축 개방.** 전 코호트 디렉토리 스캔+로드 검증:
+  **정합 192³ 텐서 — FLAIR 4159(A4 1807·AJU 1256·KDRC 892·OASIS 204) / PET-amyloid 4305(ADNI 1792·AJU 993·KDRC 891·OASIS 629).**
+  A4/AJU FLAIR Dice 1.0, ADNI PET Dice 0.869, 전부 finite·정량 SUVR. AIBL·NACC=T1단독. OASIS FLAIR 대부분 thick-slice(256×256×35) native.
+  **함의:** (1) cross-modal 표현학습 = 라우틴 T1 → FLAIR-WMH/PET-amyloid 회수, registered voxelwise GT + **4코호트 LOCO + 수천 N** → frozen probe
+  아닌 **실제 3D 학습 가능**(N 제약 해소). (2) Korean 고유성 재정의=멀티모달 아님(Western도 보유)→**감별병리 라벨**. (3) site 교란 LOCO로 검정가능.
+  **함정:** cross-cohort PET tracer/SUVR 정규화 상이(harmonization), T1→amyloid는 atrophy-proxy라 morph천장 재출현 위험(혈관/FLAIR가 더 물리적).
+  Western 멀티모달 **인덱싱 매니페스트 없음→glob 빌드 필요**. 인벤토리=memory `multimodal-data-inventory`. 되돌아갈 commit=현재 HEAD. 다음=멀티모달 index 빌드 + T1→모달 천장 LOCO.
+
+- [2026-06-22] **정정: 전처리 멀티모달 텐서 실재(raw만 오프로드).** 사용자 지적 후 `korean_multimodal_manifest.parquet`(2196행, 메인에 없음) 확인:
+  **전처리 FLAIR(flair_brain_1mm_RAS_192³_zscore, 2148, 20/20)·PET-SUVR(pet_suvr_1mm_RAS_192³, 1882) 디스크 실재**, T1과 동일공간(Dice 0.917),
+  finite·정상. subject full(T1+FLAIR+PET)=AJU 963/KDRC 873(총 1836), FLAIR+감별라벨=1489, 정량 amyloid_suvr+apoe+혈액+혈관위험 동봉.
+  → **직전 workflow의 "다모달·T1→diffusion DEAD"와 memory의 "치명 mismatch(라벨⊥모달)" 둘 다 거짓**(raw_*_path만 보고 오판; raw는 대용량이라 타 서버 이동).
+  **함의:** (a) AJU가 FLAIR+PET+감별라벨 동시보유 → 혈관 라벨×모달 동일코호트, (b) AJU·KDRC 2-site LOCO 가능, (c) positive 후보 격상=**라우틴 T1 표현이
+  멀티모달 신호(FLAIR-WMH·PET-amyloid) 얼마나 회수하나**(registered ground-truth 보유, cross-modal 감독). 되돌아갈 commit=현재 HEAD. 다음=재설계.
+
+- [2026-06-22] **"AD MRI 특징 학습법" 17-agent workflow(survey→adversarial-verify→design→synth, 디스크 검증 포함) → CPU-first radiomics-gated 혈관축.**
+  검증된 핵심: **(1) raw DWI/FLAIR/PET 전부 디스크 부재**(raw_dwi 0/20, raw_flair 0/20, raw_pet 0/20; `/home/vlm/data/raw/`엔 `AJU/`만)
+  → T1→diffusion(MD/FA) 합성 생성기 + KDRC 다모달 방향(구 priority #2/#3) **이 머신에서 DEAD**(매니페스트 경로만 살아있고 파일 없음).
+  **(2) 신규: KDRC Fazekas WMH ordinal 점수 실재**(pv 662, deep 661) — tabular 혈관부담 타깃, T1→Fazekas 가능. **(3) 방법론 정밀화:
+  혈관축의 진짜 경쟁자는 volumetry가 아니라 handcrafted radiomics(texture)** → 구속 bar = DEMO+fs_vol+**radiomics**. learned rep은 *그걸* 넘어야 기여.
+  **(4) 최대 위협: texture = 가장 site-교란된 feature class**(un-LOCO'd 승리=scanner-ID, AJU 단일site라 within-CV로 검증불가).
+  **권고:** STEP-0 = GPU/신규데이터 0의 **CPU radiomics kill-gate**(AJU AD-vs-VaD + KDRC-Fazekas 교차검증)로 (a)beyond-atrophy 신호 확정/사망 (b)learned rep이 넘을 bar 설정. radiomics가 포화면 learned rep 사전확률 null. **정직한 천장:** 증분 ~0.03–0.10 AUC, 단일코호트, "learned>radiomics"는 高bar로 미달 가능; 바닥=측정 논문(gap-decidability). 되돌아갈 commit=현재 HEAD. 전문=`tasks/wf82xb079.output`.
+
+- [2026-06-22] **Korean 축 피벗 + kill-test → priority #1(순수vs혼합) NO-GO, etiological subtyping live.** AJU subject-level(1001),
+  baseline collapse, DEMO(나이+성별)/MORPH(fs_vol26) 5seed CV + bootstrap. **① amyloid+ 순수AD(77) vs 혼합AD(78): NULL** —
+  DEMO 0.697이 분리 대부분, Δ(morph|demo)=[−0.046,+0.109] 0포함(나이교란, morph 증분 ~0). 메모리 "viable binary" 정정: N은 되나 신호=나이.
+  **③ Amnestic-MCI amyloid± : NULL**(T1 morph로 amyloid 불가, 선례 일치). **반면 ④ AD-계열 vs VaD-계열: HEADROOM** — DEMO 0.528(≈우연)
+  → +MORPH 0.688, Δ=[+0.028,+0.250] 0제외(나이교란 아님, 구조 신호 실재), N=251(190/61). **② Vascular-MCI vs Amnestic-MCI: HEADROOM**
+  Δ=[+0.058,+0.200], N=475. **새 positive 후보:** "학습 3D rep > fs_vol, 감별진단(혈관 etiology)" — fs_vol이 버리는 WM/lacune 공간패턴,
+  amyloid천장 직교, AJU 고유라벨. **한계:** N=251~475 → from-scratch 학습 불가(frozen/transfer probe만), 단일코호트(외부검증 불가).
+  **다음:** ④ 대상 image-rep > DEMO+MORPH 사전등록 kill-test. 되돌아갈 commit=현재 HEAD. 코드=`src/microbrain/`(inline), 결과 위 표.
+
+- [2026-06-22] **GATE-3 de-risk → Track C(off-the-shelf 1mm frozen) NO-GO.** AMAES unet_b 정찰 후 smoke+pooling probe
+  (`src/microbrain/gate3_amaes_{smoke,pooling_probe}.py`): ✅strict load(0/66 미스매치)·1mm/192³ finite·OOD안전·텐서 공통공간(Dice 0.89).
+  ❌**사전등록 "bottleneck GAP" pooling 반증**(random≈brain cos 0.9994, 뇌끼리 0.9999; GAP/GMP/std 전부 degenerate). 구조적: bottleneck
+  16mm 유효해상도라 cortical 디테일 부재(BrainIAC 2mm보다 거침), early layer는 억-차원 pooling 미해결, 정공법=decoder fine-tune(=학습).
+  설계 교란: ViT global-CLS vs U-Net 공간피라미드. **판정: frozen-feature로 cortical GATE-3는 cheap·clean 둘 다 실패 → frozen 경로 폐기.**
+  GPU 배치 전 de-risk가 차단(절약). 다음=fork(Track S only / fine-tune 투자 / Korean 축). 되돌아갈 commit=현재 HEAD. 산출=`results/gate3/`.
+
+- [2026-06-22] **GATE-3 사전등록 = 해상도×영역 통제 표현 측정(`docs/gate3_plan.md`).** 정찰 2건으로 두 사실 확정:
+  ① **persist된 frozen feature 0개**(BrainIAC/F04/MAE 전부 on-the-fly, 캐시 없음) → 재추출 불가피.
+  ② **AMAES(Zenodo, U-Net/MedNeXt, 128³@1mm, fully-conv)가 유일하게 released+1mm+T1** → cortical GATE-3를 self-train 없이
+  frozen extraction으로 가능(BrainIAC 96³=ViT 고정, Triad/BrainFM/BrainFound 부적합). **재구성:** 두 트랙(subcortical/cortical)을
+  BrainIAC(2mm) vs AMAES(1mm) × subcort/cort fs_vol **interaction 측정**으로 통합 → positive-framable(필드 96³ 관행이 cortical
+  병목인지 측정). Gate A=rep→fs_vol R²(해상도 interaction ΔR²_cort≥+0.10/CI), Gate B=morph 위 ΔAUC headroom. **NO-GO 사전등록.**
+  사전확률: Gate B 탈락 우세(선례 4회), Gate A cortical interaction이 유일 미지·positive 후보. **다음:** GPU 추출 2배치(ADNI baseline
+  1578subj) Min 승인 대기. 되돌아갈 commit=현재 HEAD.
+
 - [2026-06-20] **closure 정밀지도 + 우선순위 + Korean 데이터 역할 종합(8-agent workflow).** sibling 4라인 closure 원문 추출 +
   AJU/KDRC 분석. **상세 closure(5축):** R1 site=population(traveling-subject=0 비식별, decomposition artifact는 disease-prevalence
   불균형 ρ+0.90→−0.20), R2 morph천장(m2 5-ROI vs deep KDRC 0.836/0.816 regional 더 높음), molecular(IDH oracle dAUC −0.0405),

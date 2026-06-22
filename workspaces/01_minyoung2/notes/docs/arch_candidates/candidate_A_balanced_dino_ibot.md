@@ -33,5 +33,9 @@
 ## 추론(120초) 전략
 ViT-L sliding-window. 초과 시 patch/모델 축소 또는 distillation(Tier 4).
 
-## Figure spec (paperbanana)
+## Figure
+- **백본 구조(foundation 모델 자체)**: `../figures/backbone_vitL.png` — ViT-L 인코더 내부(patch embed·토큰·24블록·CLS/patch 출력). *이게 단일 체크포인트로 남는 자산.* B는 같은 ViT를 8³ patch로, C는 ResEnc-L CNN으로 백본만 교체.
+- **사전학습 그래프(scaffold+balancing)**: `../figures/candidateA_balanced_dino_ibot.png`.
+
+## Figure spec (paperbanana, 사전학습 그래프)
 입력 볼륨 → multi-crop → ViT-L(patch16³, CLS+register) 인코더 → 두 갈래(CLS→DINO head→L_global / patch→iBOT head→L_dense) → 가운데 "Adaptive Balancing" 모듈이 두 loss 결합 → EMA teacher 점선 피드백 → KoLeo·Gram anchoring 박스. 강조색 = Adaptive Balancing(우리 novelty).

@@ -1,6 +1,19 @@
 # Downstream 데이터 셋업 & Finetuning (공식 — Asparagus)
 
-> ⭐ **공식 내용** (PDF 가이드 + erda 실제 파일 + GitHub Asparagus config 실제 기본값 통합). split 비율은 PDF 80/10/10이 아니라 **config 실제 기본값**으로 보정됨. 규칙은 [[00_challenge_rules]], 우리 모델은 [[02_architecture_method]].
+> ⭐ **공식 내용** (PDF 가이드 + erda 실제 파일 + GitHub Asparagus config 실제 기본값 통합). split 비율은 PDF 80/10/10이 아니라 **config 실제 기본값**으로 보정됨. 규칙은 [[00_challenge_rules]], 우리 모델은 [[03_architecture_method]].
+
+## ⓘ Task별 입력 모달리티·샘플수 (실데이터 확정 2026-06-22)
+다운로드·추출·검증 완료 (`/home/vlm/data/fomo26_downstream/raw/Task_N`, repo symlink `downstream/taskN/data`):
+| Task | subjects | 입력 모달(실데이터) | 라벨 |
+|---|---|---|---|
+| 1 infarct cls | **21** | adc·dwi_b1000·flair·swi/t2s | 0/1 |
+| 2 meningioma seg | **23** | dwi_b1000·flair·swi/t2s | seg mask |
+| 3 brain age reg | **494** | **t1w** (predict는 t1+t2였으나 실데이터=t1w) | 나이값 |
+| 4 trigeminal seg | **40** | **t2w** (←미확인이었음, 확정) | seg mask |
+| 5 polymicrogyria cls | **48** | Zhang PPMR coronal T1 변환 | 0/1 case/control |
+| 6,7 probe/fairness | =Task1(21) | =Task1 | =Task1 |
+- 구조: `Task_N/preprocessed/sub-XX/ses-01/<modal>.nii.gz` + `labels/sub-XX/ses-01/label.txt`. 5개 zip 크기 무결성 정확 일치.
+- ⚠️ **여전히 미확인**: Task1~5 **full-backbone vs frozen+head finetune**(Task6/7만 frozen 확정), 제출 컨테이너 형식. (W13 pretrain↔downstream subject overlap=0 검증은 데이터 확보됐으니 *지금 가능*.)
 
 ## 0. 다운로드 파일 (erda: `sid.erda.dk/sharelink/fmeuvo1EdF`)
 | 파일 | 용량 | 용도 |
@@ -98,7 +111,7 @@ Task3/4/5도 위 매핑대로 명령·split만 교체. W&B 끄려면 `logger.wan
 
 ---
 
-## ⭐ 우리 설계 함의 (중요 — [[02_architecture_method]] 반영)
+## ⭐ 우리 설계 함의 (중요 — [[03_architecture_method]] 반영)
 - **공식 baseline 모델 = ResEnc U-Net(CNN)** (`+model=resenc_unet_b` / `resenc_unet_b_clsreg`). 즉 **공식 finetune 파이프라인은 CNN U-Net 중심**.
 - 우리 plan은 백본을 **ViT(3DINO식)**로 정했는데 — Asparagus finetune은 `+model=`로 아키텍처 지정 → **ViT를 쓰려면 Asparagus에 custom model 등록 필요**(통합 마찰).
 - ⚠️ **Phase A 결정사항**: (a) 마찰 줄이려 *공식 ResEnc U-Net*으로 가서 CNN-DINO/MAE 사전학습 → finetune 그대로, vs (b) ViT custom model 등록. **공식 baseline이 CNN이라는 점이 ViT-vs-CNN 결정에 새 변수** — Phase A에서 ResEnc(공식) 기준으로 먼저 돌리고, ViT는 추가 통합으로 비교하는 게 현실적일 수 있음.

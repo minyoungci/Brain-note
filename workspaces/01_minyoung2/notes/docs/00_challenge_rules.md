@@ -43,7 +43,7 @@
 
 ---
 
-## ⭐ 우리 설계 함의 (규칙→설계, [[02_architecture_method]]·[[04_strategy_timeline]] 반영)
+## ⭐ 우리 설계 함의 (규칙→설계, [[03_architecture_method]]·[[04_strategy_plan]] 반영)
 1. **단일 체크포인트 강제** → "단일 백본이 7 task 전부" thesis를 *규칙이 강제*. task별 사전학습 불가 → 우리 **local-global balancing의 정당성을 규칙이 뒷받침**.
 2. **seg 50% 가중** → **dense/seg 경로가 리더보드를 지배.** balancing이 seg를 *절대 희생 못함*(local-global tension의 무게가 seg 쪽). **voxel task 2·4 인프라(sliding-window/NSD) 최우선.**
 3. **120초/case 추론** → 모델 *efficiency가 제약*. 큰 ViT 추론속도 검증 필수(작은 모델 findings와 정합). **Phase A에서 추론시간 측정.**

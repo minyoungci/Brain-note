@@ -3,6 +3,15 @@
 > 현재 라인의 상태·가설·결과를 여기에 누적. 핸드오프 시 이 파일로 상태 전달. 최신이 위.
 > 과거 라인 기록은 `docs/DECISION_LOG.md`·`docs/ledgers/`·`insight/`에 보존됨.
 
+## 2026-06-22 — 디렉토리 내부 분석 산출물 점검
+- 요청: 현재까지 진행한 디렉토리 내부 분석 결과 확인.
+- 확인 파일: `experiments/korean_clinical_original_parse_eda.ipynb`, `experiments/build_korean_clinical_original_parse_eda_nb.py`, `experiments/apoe_mri_qc_jpg/`.
+- Git 상태: `experiments/...` 산출물은 untracked, `CLAUDE.md`와 `SCRATCHPAD.md`는 modified 상태. 기존 산출물은 수정하지 않았고 이 점검 기록만 추가.
+- 노트북 출력 요약: full manifest `(13022, 141)`, Korean manifest `(2196, 93)`; Korean rows는 AJU 1287, KDRC 909. 원본 clinical 파싱은 AJU BL 1322행, AJU TFU 295행, KDRC 576행이며 key missing 0.
+- raw-manifest 대조: AJU session 1287/1287 match, KDRC 534/909 match, KDRC unmatched 375행은 `demo_source` 결측 구조와 연결됨. 비교 테이블의 핵심 raw-derived vs manifest mismatch는 0.
+- APOE-MRI QC: `dx_session` 기준 eligible 2056행, T1w path exists 2056/2056, duplicate consortium+subject+session key 0. 클래스별 JPG 5개(`CN`, `MCI`, `AD`, `OtherDementia`, `Other`)와 `apoe_mri_qc_index.csv` 존재 확인.
+- 이미지 직접 view는 sandbox bwrap 오류로 실패했으나, PIL로 JPEG dimensions/pixel stats 확인: 각 JPG는 `(1365,3432)` 또는 `(1365,2574)` 크기이며 grayscale std 약 64-69, extrema `(0,255)`로 비어 있거나 단색인 파일은 아님.
+
 ## 2026-06-18 — Korean 원본 clinical 파싱/EDA 노트북 생성
 - 용량 해석 보정: 사용자가 지적한 대로 현재까지 일반 경로 스캔으로 확인한 visible 큰 트리 합계는 `df`의 12T 사용량에 못 미침. `/home/vlm`은 GPFS 15T 중 12T 사용, inode는 33M 중 32M 사용(98%). 따라서 현재 보고값은 "접근 가능한 visible subtree의 apparent-size"이며, 실제 `df` 차이는 GPFS quota/fileset/snapshot/deleted-open file/권한 없는 트리/블록 accounting 차이까지 확인해야 함. 긴 `find` 스캔은 GPFS I/O에서 D-state로 멈춰 종료 처리.
 - 추가 용량 조사: `df`의 15T/12T는 GPFS 파일시스템 전체 사용량이며, visible subtree apparent-size와 1:1 대응하지 않을 수 있음. 접근 가능한 큰 데이터 트리 기준으로는 `/home/vlm/data/FOMO300K`가 약 2134.2G로 최대. 내부 top: `PT030_OpenNeuro` 1115.1G, `PT020_HCP_Wu_Minn` 328.7G, `PT018_HBN` 222.3G. `/home/vlm/data/preprocessed_official/v2` cohort 합산은 약 370G대(AJU 85.4G, KDRC 65.5G, OASIS 60.6G 등). raw는 약 786.2G.

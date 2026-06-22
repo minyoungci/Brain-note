@@ -1,77 +1,56 @@
-# SCRATCHPAD — FOMO26 현재 상태 (매 게이트 업데이트)
+# SCRATCHPAD — FOMO26 현재 상태 (단일 LIVE 상태, 매 게이트 갱신)
 
-> 최종 업데이트: 2026-06-20. 단계: **pretrain 전처리 결정 확정 — 파일럿 재검증 + 디스크 정리 대기.**
+> 최종 업데이트: 2026-06-22. 단계: **전처리·학습env·monitor 완료. thesis=단일ckpt×이질 7-task(seg+cls+reg) Pareto 체계연구(II+III, 챌린지 제출=first-author) 확정 → 다음 = 내부 eval harness + 7-task 파이프라인.**
 
-## 🔒 전처리 결정 확정 (2026-06-20)
-- **목표 = full 300K 전체 전처리 → foundation** (subset 회귀 아님; thesis "300K 규모 입증"과 정합).
-- **전처리 = 공식 Yucca 4단계만**(crop_to_nonzero / volume_wise_znorm[0,1] / 1mm·RAS / save). **N4·QC·modality 제외**(미구현·도메인갭·compute) → ablation-only.
-- **저장 dtype = float16**(출력 [0,1], bf16 학습보다 정밀 → 무손실. round-trip<5e-4 검증 예정). 원 dtype(f32/f64)은 파일럿 실측 [VERIFY].
-- **스트리밍 = zip풀기→전처리→임시 nii.gz만 삭제(zip 유지)**. per-volume라 출력 bit-identical.
-- **디스크**: gpfs 단일 4.0T 여유(공유), `/` overlay 사용불가(ephemeral+무권한). FOMO300K raw=2.3T. ⚠️ `hee`(2.4T)·`hyerin`(565G)=**동료 추정, 건드리지 말 것**. `data/raw`(ADNI+PET/AJU)=옛 AD raw, du 15분 timeout=다TB, **mtime 최근(Jun19~20)→활성 여부 확인 후 삭제**. `preprocessed_official`(875G)=옛 AD 전처리(명백 폐기가능).
-- ✅ **파일럿 검증 PASS(2026-06-20)**: float16 왕복 err=2.44e-04, 실측 12.8MB/scan(f16).
-- ✅ **드라이버+2라운드 감사 GO**(`d200cac`): 안전장치 11종, manifest CSV, H2 출력동등성 확인.
-- ⚠️ **dry-run이 잡은 커버리지 버그(수정완료)**: zip의 56%(45,377/81,195)가 깊이4 중첩(`PT030_OpenNeuro/ds*/sub-*/ses.zip`, 880 ds). 기존 `PT/sub-*/` 순회는 **PT030 전체(최대 파티션) 누락**. → `os.walk` 임의깊이 + 경로기반 유일 scan_basename(`{zip_id}__{member}`)으로 수정·검증(PT030 66,405 포착, 중복0, PT001 회귀없음).
-- **실제 모달리티 분포**(깊이3만 집계): anat 98,796 / dwi 65,371(4D, 제외) / other 1,651. anat 정규4종(T1/T2/FLAIR/PD)=82,349, 그외 anat 16,447(T1c 12,358·MP2RAGE·gre 등). **PT030 포함 진짜 총수는 full dry-run 재집계 중.**
-- **scope 미결정**: "full 300K"=① canonical 4종 vs ② all-anat(+T1c/MP2RAGE 등) — thesis 규모주장·디스크 좌우. dwi/func(4D)는 SSL 부적합으로 제외 확정.
-- **디스크**: f16 ~12.8MB/scan. 현재 여유 ~4.4T. hee/hyerin 불가침. all-anat~2.3TB라 정리 없이 수용(disk guard 100GB floor).
-- 🔒 **결정(2026-06-20)**: scope=**all-anat 3D (182,404)**, RSS 실측 worker당 1.66GB→32 worker 안전(~53GB/1TB), **full run launch 승인**.
-- ✅ **H3 RSS 측정**: 7T/HighRes 최대 파티션 worker당 peak 1.66GB → 32 worker OK.
-- 🔁 **scope 정정(2026-06-20): DWI 포함으로 변경.** "300K"=전체 3D 볼륨 306,207(anat 182,404 + dwi 118,509 + perf 5,294). ⚠️ 앞서 "dwi=4D 제외"는 **오판** — FOMO300K dwi는 **b값별 3D 볼륨**(dwi_bval0/900/1200, 실측 40/40 3D)이라 동일 파이프라인 처리가능. 근거: ① 공식 pretrain=single-channel modality-agnostic ② downstream Task1(infarct)/Task2(meningioma)가 dwi_b1000·ADC 입력 사용 → dwi 사전학습 정합. dwi f16 ~4.5MB → +0.54TB. **scope=anat+dwi≈300K, ~2.9TB**(여유 4.5T 충분). perf(asl 4D/cbf 정량맵)는 제외 유지.
-- 드라이버 `--categories`(default anat,dwi) 추가. anat-only run(22,784) 정지→anat+dwi resume 재시작(완료분 skip+dwi 추가).
-- 🔁 **DWI 큐레이션 확정(2026-06-20, 사용자 결정)**: 실용=b1000로 큐레이션·all-b 중단 / 전처리=4단계 primary·최소전처리는 Phase-A ablation. 드라이버 `--dwi-bval-min/max`(기본 800~1200) 추가 → b0·고b drop, 진단 DWI 대역+trace만. (검증: PT008 curated 95 vs all-b 392 = ~24%.)
-- ⚠️ 이전 all-b run서 처리된 out-of-band dwi(b0/고b ~6K npy)는 manifest에 잔존(무해 ~0.03TB) → **학습 데이터리스트는 manifest를 b값 필터**(anat + dwi b800-1200)로 구성.
-- ✅ **전처리 완료(2026-06-21)**: out=`/home/vlm/data/FOMO300K_preprocessed`. **학습 코퍼스 226,908 볼륨** = anat 181,965 + dwi-b1000대역 44,943, **3.20TB(f16)**, error 2(PT030 상수볼륨 정상격리), 36/36 파티션. manifest=학습셋 일치(out-of-band 7,129/79GB 삭제, 백업 `manifest_allruns_backup.csv`). detached(setsid) 실행으로 완주(중간 외부kill 1회→resume). 무결성 독립검증 PASS(중복0·dtype f16·범위[0,1]·manifest↔disk 일치).
-- ✅ **학습 env 구축 완료(2026-06-21)**: numpy2/torch ABI 문제 = 사실 **2중 충돌**(numpy 브릿지 깨짐 + torch 2.2.2가 B200 sm_100 미지원, "no kernel image"). baseline `torch<2.3` 핀 ↔ B200(torch≥2.7) 상호배타. → 전처리 `.venv`(torch2.2, 완료) 보존하고 **신규 학습 env `.venv-train`**(torch 2.12.1+cu130, numpy2.4.6, MONAI 1.5.2) uv로 구성. 검증 PASS: numpy↔torch·B200 bf16 matmul·np→GPU→Conv3d·8 GPU·MONAI 전부 OK. [[fomo-env-split]]
-- 다음: SSL 사전학습 코드 셋업(`.venv-train/bin/python` 사용). ⚠️ 남은 점검 ① Task1/2 finetune full vs frozen ② Phase-A [A1] corpus-composition + 전처리형태 ablation([[docs/02_architecture_method]] ④).
-- ✅ **research-critic + literature-scout 검증(2026-06-20) — DWI 형태**: 비평="consistency=DWI필수"는 비약. 문헌=brain FM 전부 구조중심(all-b DWI 선례0), 큐레이션>규모(DINOv2), FM관행=최소전처리, DWI표준=b1000 trace, norm=percentile-clip+z. **결론: ① 학습 DWI=b1000-family로 큐레이션(b0/고b drop), ② 전처리 더 최소화(DWI native·percentile-clip) 검토, ③ ablation(조성×전처리)=novelty(선례無).** ADC는 corpus에 없음(per-b-value만). 운영: 전처리 all-DWI 유지(유연풀, b값태그)+학습 혼합비 샘플링; 해상도/norm 변형은 Phase-A DWI 재처리. b값실측: b0 32%·b1000-family ~23%·고b≥1500 27%. [[docs/02_architecture_method]] ④.
-- ⚠️ **학습 전 미해결**: ① numpy2/torch ABI 불일치(.venv, 전처리 무해/torch 학습 전 점검) ② Task1/2 finetune full-backbone vs frozen(등록 후 config) ③ 선행 DWI-fraction ablation 유무(literature-scout).
+## ✅ 완료
+- **전처리 완료**: 학습 코퍼스 **226,793 볼륨**(구조 anat 181,315 + DWI b800–1200 44,943 + orphan 535 미분류), 3.2TB float16, 36/36 파티션, error 2(정상격리). out=`/home/vlm/data/FOMO300K_preprocessed`. 전수정합·대량로드 검증 PASS. (DWI b1000 큐레이션 + 정량맵 650 삭제 완료.) → [[docs/02_data]]
+- **학습 env**: `.venv-train`(torch 2.12.1+cu130, B200 sm_100 검증). 전처리 `.venv`(torch2.2)는 B200 학습 불가(numpy ABI+커널). → [[fomo-env-split]]
+- **설계 골격 확정** + 후보 A/B/C 문서·figure(백본 3 + 사전학습 3 + 디코더 1). → [[docs/03_architecture_method]] · `docs/figures/`
+- ✅ **실험별 구조·figure 매핑 확정(2026-06-22)**: 공통 코어 잠금 + Phase A arm(A/B/C)↔figure 매핑 단일출처화([[docs/03_architecture_method]] §8). figure 7종 실물 검증. *승자는 Phase A가 결정*(지금 못박지 않음). gap: ②③ figure 미반영, C는 native 디코더, Asparagus=CNN네이티브(C먼저).
+- ⚠️ **thesis 2개 후보 탈락(2026-06-22) → 전략 재결정 중**: ① Conflict-Aware(cosine balancing) = conflict pilot서 **cos≈0·창발없음 자체 falsify**. ② SSL Decoder-Transfer(C) = **S3D(CVPR2025, DKFZ) 선점**(같은 brain MRI·full U-Net MAE·decoder 전이 ablation·저데이터 곡선; 마진 +0.42 작음). → [[docs/01_prior_research]] §F. method-novelty 공간 레드오션. **무게중심 미정.**
+- **근거**: deep-research(2026-06-21)·research-critic·literature-scout 반영 → [[docs/01_prior_research]]
+- ✅ **downstream 데이터 확보(2026-06-22)**: 7 task 전부 다운로드·추출·검증(크기 무결성 정확). subjects T1=21·T2=23·T3=494·T4=40·T5=48, 입력모달 확정(T3=t1w·T4=t2w). `/home/vlm/data/fomo26_downstream/raw/Task_N` + symlink `downstream/taskN/data`. → [[docs/05_downstream_setup]]
+- **docs 정리 완료(2026-06-22)**: 31개 → 00~06 canonical + 인덱스(README). 주제별 단일 출처.
 
-## 현재 단계
-- ✅ 선행연구 3 deep-research + 에이전트 종합 → [[docs/01_prior_research]]
-- ✅ 아키텍처·method 확정(ViT-3DINO) → [[docs/02_architecture_method]]
-- ✅ 규칙 정리 → [[docs/00_challenge_rules]] | 무결성 → [[docs/03_data_integrity]] | 전략 → [[docs/04_strategy_timeline]]
-- ✅ 전처리 파이프라인 검증(파일럿) → [[preprocessing/PREPROCESSING]]
-- ✅ 모니터링 시스템 검증 → `pretrain/monitor.py`
-- ✅ 경고 레지스터 → [[Warning]] (가설·실패모드 W1~W15를 monitor.py 신호·임계·fallback에 묶음)
-- ⏳ **다음 게이트 = FOMO26 등록 → downstream 7 task 데이터 → Phase A pilot**
+## 🔒 확정 vs ⏳ Phase A 미정 (요약 — 상세 [[docs/03_architecture_method]] §2)
+- 🔒 (방향 무관 유효) 백본 family(ViT 주력+ResEnc 안전망)·단일채널·단일체크포인트 / SSL 골격(DINO+MAE+register/Gram/KoLeo+의료aug, **balancing=단순결합 novelty 아님**) / 디코더(conv-stem+UNETR, MAE사전학습→전이, 단 novelty 아님=S3D 선점) / 의료특화 scope / resume 인프라.
+- ⏳ patch 16³vs8³ / dense MAE vs iBOT / ViT vs ResEnc / 백본크기 / aug / modality-embedding / 120초 / downstream specifics. (**thesis novelty 축은 전략 fork에서 결정**.)
 
-## Branch별 상세 status
+## ⏭️ 다음 게이트
+**⓪ CONFLICT PILOT GATE — 1차 실측 완료(2026-06-22, GPU4·ViT-S·2000subset·3000step·bf16)**
+- 결과: cos(∇L_d,∇L_g) mean **+0.017**·median +0.018·**cos<0 43%**·std 0.108 (초기40%→후기44%). 손실 둘 다 감소(1.02→0.55 / 8.22→5.70)=정상학습, collapse/NaN 없음.
+- 해석(비판적): **충돌 실재·빈번하나 aggregate는 near-orthogonal(약함)**. 강충돌(cos<−0.1) ~13%뿐.
+- ⚠️ **aggregate가 전 encoder param을 뭉뚱그림 → thesis(conflict *map*)의 실제 검증 아님.** near-0+43%flip = 국소충돌 평균상쇄 형태일 수 있음.
+- 부수: **data_fraction 71%/GPU 21% = I/O 바운드 실측확인**.
+- **run02 per-layer conflict map(진짜 GATE, 완료)**: 🔴 **cosine 충돌 전 layer 평평(falsify, 이 regime)** — 강충돌 layer 0, 국소충돌 없음 → "conflict map" 동기 figure 부재. 🟢 **magnitude 불균형 깊이-구조적**: |∇dense|/|∇global| 입력 ~1.4 → 깊은층 ~0.16(global ~5.5× 우세), dense=얕은층·global=깊은층. → 메커니즘 PCGrad(cosine) 아니라 GradNorm/uncertainty(magnitude). ⚠️ ViT-S·3000step 초기 proxy → cosine 충돌 후반/대규모 창발 가능(완전사망 단정 전 재확인). → `experiments/conflict_pilot/run02_*/summary.md`
+- **run03 장기 30k step(창발 검증, 완료)**: 후반에도 평평(aggregate cos<0 52%→42% **상승 없음**, 깊은층 L05~07 평평 유지) → **cosine 충돌 가설 결정적 기각**(3k·30k 2 regime + 창발 부재). magnitude 불균형은 robust·심화(|∇dense|/|∇global| 입력 ~0.8 → 깊은층 0.05~0.07, global 15~20× 우세). 잔여 캐비엇 ViT-S(ViT-L 아님)이나 평평궤적상 규모창발 저확률. → `experiments/conflict_pilot/run03_*/summary.md`
+- ⏭️ **(C도 S3D 선점으로 탈락)** → 전략 fork 아래.
 
-### 전처리
-| branch | status | 다음 |
-|---|---|---|
-| pretrain-prep | **드라이버 `preprocess_fomo300k.py` 빌드+실측+감사 완료**. 4단계/float16/스트리밍/안전장치 9종/manifest CSV. code-auditor 라운드1 지적(C1~3/H1~3/M1) 반영, 재감사 중 | ① 재감사 통과 확인 → ② disk 정리(preprocessed_official, 승인 후) → ③ 최대파티션 RSS 측정(H3) → ④ full 실행 |
-| downstream-prep | 미착수 | 등록 후 run_preprocessing.py per task |
+## ⏭️ 전략 확정: II+III (2026-06-22)
+**thesis = "하나의 SSL ckpt+디코더가 seg(50%)·cls·reg 이질 task를 *동시* Pareto-good하게 만드는 recipe는 무엇·왜"** — 챌린지 제출 시스템 = first-author 체계연구(한 노력 두 산출). S3D=seg-only라 미점유, pilot 충돌부재=공존 positive 근거. fairness(I)=보조 ablation. decoder-transfer/balancing=상속(novelty 아님, S3D/표준 인용). → [[docs/03_architecture_method]] §1.
+- (탈락: Conflict-Aware 자체 falsify, Decoder-transfer S3D 선점, IV negative-results는 fallback)
 
-### method (Phase A에서 검정)
-| branch | status | 검정할 가설 |
-|---|---|---|
-| 백본 ViT-DINO | 확정(3DINO 검증) | ⚠️ **최우선**: 우리 데이터서 수렴·probe·**120초 추론** |
-| ① balancing (A~D) | 설계 완료 | *unvalidated* — well-tuned λ 넘나? (equal-λ 아님) |
-| ② cross-seq recon | 설계 완료 | single-modal 넘나? (modality-inv는 금지) |
-| ③ scanner-invariance | 설계 완료 | seg(50%) 안 깎고 Task7 올리나? |
-| dense: iBOT vs MAE | ablation 설계 | head-to-head(선행 없음) |
-| Gram anchoring | 강등 | ablation으로만(MedDINOv3 −0.04) |
+### 로드맵 (II+III)
+1. ✅ **내부 eval harness 빌드+실측(2026-06-22)** — `pretrain/eval_harness.py`, cls/reg/seg(voxel proxy) subject-disjoint. 🔴 **run01(random encoder)이 confound 노출**: seg voxelAUROC 0.84~0.99(=위치 shortcut)·cls Task5 0.95(=site confound). → **모든 내부 eval은 random baseline 대비 Δ로** 측정(절대값 금지). 작은-n(task1·2·4 ≤40) 고분산 주의. W13: ID 네임스페이스 불일치 → ID-match N/A(provenance 의존). → `experiments/eval_harness/`. ⏳ v2: multi-seed·진짜 Dice·위치통제.
+2. **학습 하네스** — monitor ✅ / 남음: checkpoint·resume·supervisor(Phase A서 kill/NaN 테스트).
+3. **baseline 재현** — S3D/ResEnc-L MAE/OpenMind 프로토콜(= 우리가 넘을 바 + firsthood 인용).
+4. **Phase A recipe bake-off** — A/B/C 백본 × dense형 × corpus 조성 → "7 이질 task Pareto 지배 recipe" 1개.
+5. **7-task finetune 파이프라인** — 챌린지 제출(공저) = 동시에 체계연구 데이터.
+- ✅ 자산: monitor·conflict pilot 프레임·experiments 구조·226K 코퍼스·downstream 7task·8×B200.
 
-### downstream task (셋업·명령은 [[docs/05_downstream_setup]])
-| task | dataset ID | split | 다운로드 | 전처리 | baseline | novel |
-|---|---|---|---|---|---|---|
-| 1 infarct cls | CLS002 | 75_15_10 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 2 meningioma seg ⭐25% | SEG009 | 40_10_50 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 3 brain age reg | REGR002 | 75_15_10 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 4 trigeminal seg ⭐25% | SEG010 | 40_10_50 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 5 polymicrogyria cls | CLS003 | 75_15_10 | ⬜ | ⬜ | ⬜ | ⬜ |
-| 6 linear probe (no-FT) | =Task1 | 75_15_10 | — | ⬜ | ⬜ | ⬜ |
-| 7 fairness (no-FT) | =Task6 | 75_15_10 | — | ⬜ | ⬜ | ⬜ |
-- 다운로드: erda `sid.erda.dk/sharelink/fmeuvo1EdF` (~6GB). split=config 기본(PDF 80/10/10 아님).
-- ⚠️ **공식 baseline 모델=ResEnc U-Net(CNN)** → ViT 쓰려면 Asparagus custom model 등록(통합 마찰). Phase A 결정.
+### Tier 0 (학습 직전 선행, [[docs/04_strategy_plan]] §7)
+1. ✅ **novelty prior-art pass** 완료(2026-06-22) → Conflict-Aware 재정의. (남은 [VERIFY]: 3DINO 손실식·Galileo §3 원문 직독)
+2. **내부 평가 하네스** — subject-disjoint + global/dense probe (챌린지 검증 3회뿐).
+3. **학습 하네스** — ✅ 모니터(monitor.py+resources.py, 7대 카테고리·자동STOP/WARN·리소스/I/O진단/disk guard) **검증완료**(test_monitor.py 23 PASS, 2026-06-22) / ⏳ 남음: checkpoint·resume·supervisor 구현·검증(Phase A서 kill/NaN 테스트).
+4. (병행) FOMO26 등록 → ✅ downstream 7 task 데이터 확보.
+→ baseline 재현 → Phase A 후보 bake-off → Phase B full run.
 
-## 열린 결정 / 리스크
-- novelty 무게중심: ① balancing(borderline) vs ③ fairness(가장 열림) — Phase A 결과로 확정.
-- seg(2,4)=리더보드 50% → 인프라 최우선.
-- 8/21 마감 ~9주 → 공저 안전판 먼저.
+## ⚠️ 학습 전 미해결 (등록/데이터 필요)
+- Task1~5 full-backbone vs frozen finetune (Task6/7만 frozen 확정) → dilution/디코더 설계에 영향.
+- Task4/5 입력 모달·제출 컨테이너 형식·few-shot N — 등록 후 확인. → [[docs/05_downstream_setup]]
+- W13 pretrain↔downstream subject overlap=0 (downstream 데이터 시).
 
 ## 핸드오프 노트
-- 환경: `.venv`(yucca2.2.6/torch2.2), 공식 코드 `baseline-codebase/`.
-- git: AD 작업은 태그 `exploratory-v1/rtssl-v1/experiments-v1/fomo-planning-v1` 보존. 현재 working tree = FOMO only.
-- 데이터: FOMO300K `/home/vlm/data/FOMO300K`(minyoung2 밖).
+- git: AD 작업은 태그 `exploratory-v1/rtssl-v1/experiments-v1/fomo-planning-v1` 보존. 현 tree = FOMO only.
+- 실행: 학습/GPU는 `.venv-train/bin/python` (전처리만 `.venv`). bf16 필수.
+- 위험/모니터는 [[docs/06_risk_register]](W1~15 + monitor.py).
