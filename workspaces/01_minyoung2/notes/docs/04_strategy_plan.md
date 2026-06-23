@@ -20,7 +20,8 @@
 - **Phase B(1회, 8×B200)**: 검증된 recipe만 full(226,793)·full epoch 스케일업.
 - 조기경보: monitor.py STOP/WARN([[06_risk_register]])로 학습 *중* 중단/조정.
 
-## 5. 학습 인프라 (Multi-day run 필수 — 전처리서 외부kill 경험)
+## 5. 학습 인프라 (Multi-day run 필수 — 전처리서 외부kill 경험) — ✅ 구현+실험검증(2026-06-22)
+- 구현: `pretrain/train.py`(full-state ckpt·atomic·resume) + `pretrain/supervisor.py`(분류형) + `pretrain/test_resume.py`(실험). **검증 통과**: resume bit-exact(CPU)·B200 bf16 안정·GPU resume(cuda RNG)·NaN→STOP halt·crash→자동재개. 실험이 버그 2개 적발(torch2.12 `weights_only`·cuda RNG device).
 - **분류형 복구**: 외부죽음(노드/OOM/세션) → **최신 ckpt 자동재개** / 발산·붕괴(monitor STOP) → **정지+근인분석**(무지성 재시작=crashloop 금지, "낙관적 재시작 금지").
 - **전체상태 체크포인트**: model + **EMA teacher** + optimizer + scheduler + RNG + 데이터 샘플러 위치 + balancing 상태(σ_d/σ_g) + monitor baseline. (일부만 저장 = 사실상 처음부터.)
 - **atomic write**(`*.tmp`→os.replace, last-N+best) · **setsid 세션독립**(PPID=1) · supervisor 래퍼(bounded retry).
