@@ -9039,3 +9039,1742 @@
 ### Next recommended action
 - Request exact approval for the bounded B1A smoke command in
   `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260624_002039_gpu4_fixed.md`.
+
+## 2026-06-24 — B1A smoke pre-execution readiness check
+
+### Task
+- Verify that the bounded B1A GPU4 smoke command is still safe to launch once
+  Min gives exact approval.
+
+### Research question
+- Before running the first real smoke training job, are the plan, split,
+  preview evidence, loader, output path, and validators still consistent?
+
+### What I inspected
+- `research_gsure/03_baselines/B1_SMOKE_COMMAND_PLAN_20260623_080846_b1a_unet3d_dice_bce_bc16_d4_smoke.md`
+- `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260624_002039_gpu4_fixed.md`
+- `research_gsure/03_baselines/outputs/20260623_064056_b1_gpu_preview_ucsd_192x224x160/preview_summary.json`
+- `research_gsure/02_audits/outputs/loco_split_manifest.csv`
+- `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+- `research_gsure/03_baselines/scripts/validate_b1_smoke_result.py`
+
+### Decision / action
+- Confirmed the planned smoke output directory does not already exist.
+- Confirmed the larger preview patch remains the intended B1A smoke setting:
+  `192x224x160@0.50`, bf16, scratch random initialization.
+- Confirmed official LOCO split counts and zero leakage-group overlap.
+- Ran CPU-only runner/validator checks and an actual-manifest `dry-run
+  --load-one` for the UCSD heldout smoke setup.
+- Did not execute GPU smoke training.
+
+### Result
+- Smoke output path: absent, so no overwrite collision detected.
+- Preview evidence:
+  - patch: `192x224x160`
+  - max reserved GPU memory: `5474.0 MiB`
+  - UCSD tile count: `12`
+  - output shape: `256x256x256`
+- LOCO split counts:
+  - MU-Glioma-Post: test 203 / train 1411
+  - UCSD-PTGBM: test 178 / train 1436
+  - UPENN-GBM: test 611 / train 1003
+  - UTSW: test 622 / train 992
+  - leakage-group overlap: 0 for all heldout folds
+- GPU state at check time:
+  - GPU4: `0 MiB` used, `0%` utilization
+- Validation:
+  - `py_compile`: PASS
+  - `train_b1_segmentation.py --synthetic-self-test`: PASS
+  - `validate_b1_smoke_result.py --self-test`: PASS
+  - `plan_b1_next_action.py --self-test`: PASS
+  - actual-manifest dry-run load-one: PASS
+
+### Interpretation
+- The B1A smoke command is pre-execution ready from the CPU/readiness side.
+- This still does not prove training quality, Dice, OOF prediction quality, or
+  G-SURE reliability performance.
+- The next scientifically meaningful step remains the bounded GPU4 smoke run,
+  followed immediately by smoke artifact validation.
+
+### Insight tags
+- ✅ SUCCESS: B1A smoke pre-execution checks pass without output collision.
+- ⚠️ RISK: Earlier quick checks failed because I assumed wrong JSON/CSV keys
+  (`inference` is a list and the split column is `split_role`). I corrected the
+  checks against the actual schema.
+- 🧪 NEXT: Run the exact bounded GPU4 smoke only after Min approval, then run
+  `validate_b1_smoke_result.py`.
+- 🔁 DO NOT REPEAT: Do not infer final segmentation performance from preview or
+  smoke readiness.
+- 📌 MIN DECISION: Smoke execution is the next approval gate.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/B1_SMOKE_COMMAND_PLAN_20260623_080846_b1a_unet3d_dice_bce_bc16_d4_smoke.md`
+  - `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260624_002039_gpu4_fixed.md`
+  - `research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.md`
+- Commands:
+  - `test ! -e research_gsure/03_baselines/outputs/20260623_080846_b1a_unet3d_dice_bce_bc16_d4_smoke_b1_smoke_UCSD-PTGBM_192x224x160`
+  - `python -m py_compile research_gsure/03_baselines/scripts/train_b1_segmentation.py research_gsure/03_baselines/scripts/validate_b1_smoke_result.py research_gsure/03_baselines/scripts/check_b1_autoresearch_status.py research_gsure/03_baselines/scripts/plan_b1_next_action.py`
+  - `python research_gsure/03_baselines/scripts/train_b1_segmentation.py --synthetic-self-test --patch-shape 32,32,32`
+  - `python research_gsure/03_baselines/scripts/validate_b1_smoke_result.py --self-test`
+  - `python research_gsure/03_baselines/scripts/plan_b1_next_action.py --self-test`
+  - `python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode dry-run --manifest research_gsure/02_audits/outputs/loco_split_manifest.csv --heldout-dataset UCSD-PTGBM --patch-shape 192,224,160 --overlap 0.50 --batch-size 1 --architecture unet3d --base-channels 16 --depth 4 --loss dice_bce --max-train-rows 32 --max-val-rows 2 --val-fraction 0.10 --foreground-prob 0.67 --seed 20260623 --load-one`
+- Metrics:
+  - status stage before launch: `ready_for_smoke_approval`
+  - smoke outputs: not present
+  - training checkpoints: `0/4`
+  - prediction manifests: `0/4`
+  - segmentation evaluation summaries: `0`
+
+### Remaining uncertainty
+- Smoke training runtime, loss trajectory, validation Dice sanity, and checkpoint
+  validity remain unknown until the approved GPU job is run.
+
+### Next recommended action
+- Execute the exact GPU4 B1A smoke command from the preflight packet after Min's
+  explicit approval, then validate the smoke directory before any full LOCO fit.
+
+## 2026-06-24 — B1A smoke code-path review and output-safety patch
+
+### Task
+- Review the B1A smoke execution path before GPU approval and fix any concrete
+  pre-smoke safety issue.
+
+### Research question
+- Does the smoke runner enforce GPU4, train/validation/test boundaries, and
+  output safety strongly enough that the first smoke job will not contaminate
+  the baseline chain?
+
+### What I inspected
+- `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+- `research_gsure/03_baselines/scripts/validate_b1_smoke_result.py`
+- `research_gsure/03_baselines/B1_SMOKE_COMMAND_PLAN_20260623_080846_b1a_unet3d_dice_bce_bc16_d4_smoke.md`
+
+### Decision / action
+- Confirmed the smoke path uses only outer-train rows for the internal
+  train/validation split.
+- Confirmed held-out test rows are counted and explicitly not used for
+  validation.
+- Confirmed CUDA execution requires `CUDA_VISIBLE_DEVICES=4`.
+- Confirmed smoke validator requires `cuda_visible_devices=4`, bf16, scratch
+  initialization, expected architecture/loss/capacity, finite losses, finite
+  validation Dice, checkpoint presence, and absence of OOF/prediction artifacts.
+- Patched `fit_or_smoke_run` to delay `out_dir.mkdir(...)` until after
+  device/GPU guard, manifest read, split checks, model creation, and dataloader
+  construction. This prevents an early failed launch from leaving an empty
+  smoke output directory that blocks the approved run.
+
+### Result
+- Smoke output directory is still absent.
+- Current stage remains `ready_for_smoke_approval`.
+- B1A plan-chain remains PASS.
+- No GPU training was executed.
+
+### Interpretation
+- The code path is safer for the first smoke run: an environment or early
+  precondition failure is less likely to leave a stale output directory.
+- This is an execution-safety patch, not a model-performance improvement.
+- It does not produce Dice, OOF predictions, or reliability evidence.
+
+### Insight tags
+- ✅ SUCCESS: Found and fixed a narrow pre-smoke output-safety issue.
+- ⚠️ RISK: `research_gsure/` is still untracked, so `git diff` does not show
+  file-level diffs there; direct file inspection is required until the research
+  directory is added to git.
+- 🧪 NEXT: Run the approved GPU4 B1A smoke command, then validate the smoke
+  output before any full LOCO fit.
+- 🔁 DO NOT REPEAT: Do not manually delete stale output directories to recover
+  from failed launches without recording why the stale artifact exists.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+  - `research_gsure/03_baselines/scripts/validate_b1_smoke_result.py`
+- Commands:
+  - `python -m py_compile research_gsure/03_baselines/scripts/train_b1_segmentation.py research_gsure/03_baselines/scripts/validate_b1_smoke_result.py`
+  - `python research_gsure/03_baselines/scripts/validate_b1_smoke_result.py --self-test`
+  - `python research_gsure/03_baselines/scripts/check_b1_autoresearch_status.py`
+  - `test ! -e research_gsure/03_baselines/outputs/20260623_080846_b1a_unet3d_dice_bce_bc16_d4_smoke_b1_smoke_UCSD-PTGBM_192x224x160`
+  - `python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode dry-run --manifest research_gsure/02_audits/outputs/loco_split_manifest.csv --heldout-dataset UCSD-PTGBM --patch-shape 192,224,160 --overlap 0.50 --batch-size 1 --architecture unet3d --base-channels 16 --depth 4 --loss dice_bce --max-train-rows 32 --max-val-rows 2 --val-fraction 0.10 --foreground-prob 0.67 --seed 20260623 --load-one`
+  - `python research_gsure/03_baselines/scripts/train_b1_segmentation.py --synthetic-self-test --patch-shape 32,32,32`
+  - `python research_gsure/03_baselines/scripts/validate_b1_plan_chain.py`
+  - `git diff --check`
+- Metrics:
+  - status stage: `ready_for_smoke_approval`
+  - smoke output exists: false
+  - checkpoints: `0/4`
+  - prediction manifests: `0/4`
+
+### Remaining uncertainty
+- The smoke job still needs actual GPU execution to measure runtime, loss
+  trajectory, validation Dice sanity, and checkpoint validity.
+
+### Next recommended action
+- Execute the exact GPU4 B1A smoke command after Min approval and run
+  `validate_b1_smoke_result.py` on the smoke directory.
+
+## 2026-06-24 — Post-smoke transition guard review
+
+### Task
+- Review the CPU-only transition from a completed B1A smoke run to full LOCO
+  fit approval.
+
+### Research question
+- If B1A smoke succeeds, will Autoresearch require enough evidence before
+  allowing the expensive four-fold full-fit stage?
+
+### What I inspected
+- `research_gsure/03_baselines/scripts/plan_b1_post_smoke_transition.py`
+- `research_gsure/03_baselines/scripts/plan_b1_fit_commands.py`
+- `research_gsure/03_baselines/scripts/validate_b1_smoke_result.py`
+- `research_gsure/03_baselines/scripts/validate_b1_fit_results.py`
+
+### Decision / action
+- Confirmed `plan_b1_post_smoke_transition.py` validates the smoke directory
+  with the same expected B1A config used by the full-fit planner.
+- Confirmed it also requires status checker stage
+  `smoke_passed_ready_for_full_fit_approval`.
+- Confirmed it generates the full-fit approval packet only after those checks
+  pass.
+- Confirmed it rejects non-GPU4 and checks that the generated full-fit plan has
+  exactly four `CUDA_VISIBLE_DEVICES=4` commands.
+- No code patch was needed in this review.
+
+### Result
+- `py_compile`: PASS
+- `plan_b1_post_smoke_transition.py --self-test`: PASS
+- `plan_b1_fit_commands.py --self-test`: PASS
+- Current real-state post-smoke transition correctly returns `BLOCKED` because
+  the B1A smoke directory does not exist and the status checker is still
+  `ready_for_smoke_approval`.
+- B1A plan-chain remains PASS.
+- No GPU training was executed.
+
+### Interpretation
+- The smoke-to-full-fit gate is behaving correctly: it does not allow full
+  LOCO training from a missing or invalid smoke output.
+- The next required evidence is still a real B1A smoke output, not another
+  planner artifact.
+
+### Insight tags
+- ✅ SUCCESS: Post-smoke guard blocks the current pre-smoke state and passes its
+  positive/negative self-tests.
+- ⚠️ RISK: Full-fit execution remains untested until a real smoke output
+  passes validation.
+- 🧪 NEXT: Run B1A smoke after approval, validate it, then run the post-smoke
+  guard to generate a full-fit approval packet.
+- 🔁 DO NOT REPEAT: Do not launch four full-fit commands from
+  `plan_b1_fit_commands.py` directly; use the post-smoke transition guard after
+  smoke validation.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/plan_b1_post_smoke_transition.py`
+  - `research_gsure/03_baselines/scripts/plan_b1_fit_commands.py`
+  - `research_gsure/03_baselines/scripts/validate_b1_smoke_result.py`
+  - `research_gsure/03_baselines/scripts/validate_b1_fit_results.py`
+- Commands:
+  - `python -m py_compile research_gsure/03_baselines/scripts/plan_b1_post_smoke_transition.py research_gsure/03_baselines/scripts/plan_b1_fit_commands.py research_gsure/03_baselines/scripts/validate_b1_smoke_result.py research_gsure/03_baselines/scripts/validate_b1_fit_results.py`
+  - `python research_gsure/03_baselines/scripts/plan_b1_post_smoke_transition.py --self-test`
+  - `python research_gsure/03_baselines/scripts/plan_b1_fit_commands.py --self-test`
+  - `python research_gsure/03_baselines/scripts/plan_b1_post_smoke_transition.py`
+  - `python research_gsure/03_baselines/scripts/check_b1_autoresearch_status.py`
+  - `python research_gsure/03_baselines/scripts/validate_b1_plan_chain.py`
+  - `git diff --check`
+- Metrics:
+  - current status stage: `ready_for_smoke_approval`
+  - post-smoke real-state status: `BLOCKED`
+  - smoke exists: false
+  - checkpoints: `0/4`
+
+### Remaining uncertainty
+- The full-fit guard has not been run on a real smoke artifact because no smoke
+  artifact exists yet.
+
+### Next recommended action
+- Execute the exact GPU4 B1A smoke command after Min approval and then run
+  `plan_b1_post_smoke_transition.py` only after `validate_b1_smoke_result.py`
+  passes.
+
+## 2026-06-24 — B1A UCSD held-out fit-probe result
+
+### Task
+- Run a non-smoke B1A 3D U-Net segmentation fit on GPU4 and evaluate the
+  held-out UCSD-PTGBM fold.
+
+### Research question
+- Does a scratch 3D U-Net trained on the other consortia learn a meaningful
+  tumor segmentation mapping on a held-out consortium, enough to justify
+  continuing the G-SURE grounding direction?
+
+### What I inspected
+- GPU4 fit output, prediction manifest, prediction artifacts, and CPU
+  held-out metric evaluation.
+
+### Decision / action
+- Trained B1A for 20 epochs / 64 steps per epoch with bf16 on GPU4.
+- Predicted all UCSD-PTGBM held-out subjects from the trained checkpoint.
+- Validated prediction manifest and all probability-map artifacts.
+- Evaluated per-subject Dice and grouped summaries without held-out threshold
+  tuning.
+
+### Result
+- Fit rows used: 1292.
+- Internal validation rows: 8.
+- Train loss decreased from 0.7998 to 0.6018.
+- Internal validation mean Dice improved to 0.8212 at epoch 20.
+- Held-out UCSD prediction rows: 178.
+- Held-out UCSD overall mean Dice: 0.7570.
+- Held-out UCSD median Dice: 0.8315.
+- Held-out UCSD pooled Dice: 0.8174.
+- Held-out UCSD Dice <= 0.8 failure rate: 41.6%.
+- Lesion-size split:
+  - large: mean Dice 0.8620, failure rate 15.3%.
+  - medium: mean Dice 0.7732, failure rate 35.6%.
+  - small: mean Dice 0.6378, failure rate 73.3%.
+
+### Interpretation
+- This is not a failed baseline. The model learned a useful segmentation
+  mapping and generalizes moderately to UCSD.
+- The main weakness is small-lesion instability and several severe
+  over-/under-segmentation cases, not a basic training or artifact failure.
+- One fold is not enough to claim robustness or choose a final method; the
+  next useful evidence is another LOCO fold under the same regimen.
+
+### Insight tags
+- ✅ SUCCESS: GPU4 bf16 fit, full-volume prediction, manifest validation, and
+  CPU metric evaluation all completed for UCSD.
+- ⚠️ RISK: Small lesions are the dominant failure mode; threshold/loss/patch
+  strategy may need later ablation if this repeats across folds.
+- 💡 INSIGHT: Median Dice is much higher than mean Dice, so the fold contains a
+  tail of severe failures that should be visually audited before claiming
+  grounding quality.
+- 🧪 NEXT: Continue the same B1A regimen on another held-out consortium before
+  changing architecture or loss, because the first fold is viable rather than
+  clearly broken.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_0134_b1a_unet3d_dice_bce_bc16_d4_fitprobe_UCSD-PTGBM_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0236_b1a_unet3d_dice_bce_bc16_d4_fitprobe_predict_UCSD-PTGBM_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0250_b1a_unet3d_dice_bce_bc16_d4_fitprobe_eval_UCSD-PTGBM/`
+- Commands:
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode fit ... --heldout-dataset UCSD-PTGBM ...`
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode predict ... --heldout-dataset UCSD-PTGBM ...`
+  - `python research_gsure/02_audits/scripts/validate_oof_prediction_manifest.py --prediction-manifest ... --heldout-dataset UCSD-PTGBM --check-files`
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/evaluate_b1_segmentation_predictions.py --prediction-manifest ...`
+- Metrics:
+  - UCSD mean Dice 0.7570; median Dice 0.8315; pooled Dice 0.8174.
+  - UCSD failure rate Dice <= 0.8: 41.6%.
+  - Small lesion mean Dice 0.6378.
+
+### Remaining uncertainty
+- Whether this performance holds on MU-Glioma-Post, UPENN-GBM, and UTSW.
+- Whether the severe UCSD failures reflect small lesion size, post-treatment
+  anatomy, label/mask quality, thresholding, or patch-context limits.
+
+### Next recommended action
+- Launch the next single-GPU4 LOCO fold under the same B1A regimen and compare
+  consortium-level failure modes before introducing a new variant.
+
+## 2026-06-24 — B1A MU held-out result and FP diagnostic
+
+### Task
+- Continue B1A fit-probe on the MU-Glioma-Post held-out fold and diagnose the
+  first clear failure pattern.
+
+### Research question
+- Is the B1A segmentation baseline failing because it cannot learn tumor
+  segmentation, or because its probability maps are poorly calibrated and
+  over-segment small lesions?
+
+### What I inspected
+- MU fit log, fit validator output, held-out prediction manifest/artifacts,
+  CPU metric summary, worst per-subject cases, and a diagnostic threshold sweep
+  on UCSD and MU predictions.
+
+### Decision / action
+- Trained the same scratch 3D U-Net B1A regimen on the MU held-out split.
+- Predicted all 203 held-out MU subjects on GPU4.
+- Validated prediction manifest and all prediction artifacts.
+- Evaluated held-out Dice on CPU.
+- Ran a diagnostic threshold sweep over existing probability maps. This is not
+  a final threshold-tuned result.
+
+### Result
+- MU fit rows used: 1270.
+- MU held-out test rows not used during validation: 203.
+- Train loss decreased from 0.8011 to 0.6034.
+- Internal validation mean Dice at epoch 20: 0.7825.
+- MU held-out mean Dice at threshold 0.5: 0.6690.
+- MU held-out median Dice at threshold 0.5: 0.7513.
+- MU held-out pooled Dice at threshold 0.5: 0.7394.
+- MU held-out Dice <= 0.8 failure rate: 63.6%.
+- Lesion-size split at threshold 0.5:
+  - large: mean Dice 0.8263, failure rate 23.5%.
+  - medium: mean Dice 0.7340, failure rate 68.7%.
+  - small: mean Dice 0.4477, failure rate 98.5%.
+- Worst MU cases show severe over-segmentation: several small-lesion cases have
+  predicted/GT volume ratios above 10x, with one above 300x.
+- Diagnostic threshold sweep:
+  - UCSD best overall was around threshold 0.6: mean Dice 0.7670.
+  - MU improved as threshold increased: threshold 0.5 mean Dice 0.6690,
+    threshold 0.8 mean Dice 0.7315, threshold 0.9 mean Dice 0.7377.
+  - MU small lesions remained weak even at high threshold, but improved from
+    mean 0.4477 at 0.5 to 0.5954 at 0.9.
+
+### Interpretation
+- The baseline is learning, but MU exposes a stronger false-positive /
+  threshold-calibration problem than UCSD.
+- This is not primarily a GPU/runtime/model-collapse failure.
+- A direct architecture-size change is not the first reasonable response.
+- The next controlled experiment should target FP suppression and calibration,
+  with `dice_focal` as the first available no-code-change training ablation.
+- `dice_tversky` as currently implemented is a poor first response to this
+  specific failure because alpha=0.3/beta=0.7 penalizes false negatives more
+  than false positives.
+
+### Insight tags
+- ✅ SUCCESS: Second GPU4 fold fit/predict/eval completed with validated
+  artifacts.
+- ❌ FAILURE: B1A threshold-0.5 held-out MU performance is weak, especially for
+  small lesions.
+- ⚠️ RISK: Held-out threshold sweep is diagnostic only; it cannot be used as a
+  final tuned threshold without train-only threshold selection.
+- 💡 INSIGHT: The failure pattern is mostly FP over-segmentation on small
+  lesions, not lack of training convergence.
+- 🧪 NEXT: Run a MU-fold `dice_focal` controlled ablation under the same
+  architecture/capacity/patch regimen to test FP suppression.
+- 🔁 DO NOT REPEAT: Do not respond to this failure by simply increasing model
+  size before testing calibration/FP-sensitive loss.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_0256_b1a_unet3d_dice_bce_bc16_d4_fitprobe_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0402_b1a_unet3d_dice_bce_bc16_d4_fitprobe_predict_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0416_b1a_unet3d_dice_bce_bc16_d4_fitprobe_eval_MU-Glioma-Post/`
+- Commands:
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode fit ... --heldout-dataset MU-Glioma-Post ... --loss dice_bce`
+  - `python research_gsure/03_baselines/scripts/validate_b1_fit_results.py --fit-dir ... --heldout MU-Glioma-Post ...`
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode predict ... --heldout-dataset MU-Glioma-Post ...`
+  - `python research_gsure/02_audits/scripts/validate_oof_prediction_manifest.py --prediction-manifest ... --heldout-dataset MU-Glioma-Post --check-files`
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/evaluate_b1_segmentation_predictions.py --prediction-manifest ...`
+- Metrics:
+  - UCSD threshold 0.5: mean Dice 0.7570; median 0.8315; pooled 0.8174.
+  - MU threshold 0.5: mean Dice 0.6690; median 0.7513; pooled 0.7394.
+  - MU threshold 0.9 diagnostic: mean Dice 0.7377; median 0.8096.
+
+### Remaining uncertainty
+- Whether FP suppression improves true held-out performance or merely shifts
+  threshold sensitivity.
+- Whether MU failures are driven by small lesion size, post-treatment anatomy,
+  mask quality, or scanner/preprocessing differences.
+- Whether train-only threshold calibration can choose a robust threshold across
+  consortia.
+
+### Next recommended action
+- Start the MU-fold `dice_focal` ablation before launching more B1A folds,
+  because MU revealed a concrete failure mode that a targeted loss variant can
+  test.
+
+## 2026-06-24 — B1B dice_focal MU ablation
+
+### Task
+- Test whether a focal-loss variant reduces MU held-out false-positive
+  over-segmentation relative to B1A `dice_bce`.
+
+### Research question
+- Under the same model, patch size, split, seed, and epoch budget, does
+  `dice_focal` improve MU held-out segmentation performance and small-lesion
+  failure patterns?
+
+### What I inspected
+- `train_b1_segmentation.py` loss definitions.
+- Failed first B1B run logs.
+- Patched training checkpoint behavior.
+- Completed B1B fit summary, validator output, held-out prediction manifest,
+  prediction artifacts, CPU evaluation, paired subject deltas, and threshold
+  sensitivity.
+
+### Decision / action
+- Found first B1B `dice_focal` run stopped after epoch 10 without
+  `checkpoint_last.pt` or `fit_summary.json`; logs through epoch 10 were finite
+  and shape-safe.
+- Patched `fit` mode to save `checkpoint_epoch_XXX.pt` after every validation
+  epoch, preserving the final `checkpoint_last.pt` behavior.
+- Validated the patch with `py_compile`, `train_b1_segmentation.py
+  --synthetic-self-test`, `validate_b1_fit_results.py --self-test`, and
+  `git diff --check`.
+- Restarted B1B `dice_focal` MU fold on GPU4 and completed 20 epochs.
+- Predicted all 203 MU held-out subjects and validated manifest/artifacts.
+- Evaluated B1B against the existing B1A MU held-out output.
+
+### Result
+- B1B fit:
+  - train rows: 1270.
+  - held-out MU rows not used for validation: 203.
+  - train loss: 0.5397 to 0.4744.
+  - final internal validation mean Dice: 0.7787.
+  - best internal validation mean Dice: 0.7957.
+  - `validate_b1_fit_results.py`: valid.
+- B1B held-out MU at threshold 0.5:
+  - mean Dice: 0.6935 vs B1A 0.6690.
+  - median Dice: 0.7615 vs B1A 0.7513.
+  - pooled Dice: 0.7596 vs B1A 0.7394.
+  - Dice <= 0.8 failure rate: 58.6% vs B1A 63.6%.
+  - small lesion mean Dice: 0.4942 vs B1A 0.4477.
+  - medium lesion mean Dice: 0.7509 vs B1A 0.7340.
+  - large lesion mean Dice: 0.8364 vs B1A 0.8263.
+  - pooled predicted/GT volume ratio: 1.3785 vs B1A 1.4412.
+- Paired subject comparison:
+  - mean Dice delta: +0.0245.
+  - improved subjects: 160/203.
+  - worse subjects: 43/203.
+- B1B MU diagnostic threshold sweep:
+  - threshold 0.5 mean Dice: 0.6935.
+  - threshold 0.6 mean Dice: 0.7197.
+  - threshold 0.7 mean Dice: 0.7398.
+  - threshold 0.8 mean Dice: 0.7539.
+  - threshold 0.9 mean Dice: 0.7505.
+  - small lesion mean Dice improves from 0.4942 at 0.5 to 0.6374 at 0.9.
+
+### Interpretation
+- `dice_focal` is a real improvement over `dice_bce` on the MU held-out fold,
+  but the effect is moderate, not a solved segmentation method.
+- The improvement is consistent with reduced false-positive over-segmentation:
+  pooled predicted/GT volume ratio moved toward 1, and most subjects improved.
+- Small lesions remain the dominant failure mode; even B1B has 97.1% small
+  lesion failure rate at threshold 0.5 and 67.7% at threshold 0.9.
+- Fixed threshold 0.5 is not robust for MU. A train-only calibration/threshold
+  selection protocol is now necessary before judging final fold performance.
+- Probability calibration changed substantially: B1B threshold 0.3 performs
+  extremely poorly, so threshold choice must be handled explicitly and not
+  tuned on held-out test data.
+
+### Insight tags
+- ✅ SUCCESS: A targeted loss ablation improved MU held-out Dice under the
+  same split/model/patch/seed.
+- ❌ FAILURE: Small-lesion segmentation is still weak; focal does not solve the
+  core reliability problem.
+- ⚠️ RISK: Held-out threshold sweep is diagnostic only and must not be reported
+  as a tuned final score.
+- ⚠️ RISK: GPU4 was briefly shared by another process during the B1B fit, so
+  wall-clock timing after epoch 16 is not comparable to earlier runs.
+- 💡 INSIGHT: The next credible improvement is train-only threshold/calibration
+  and/or a more explicitly FP-aware loss, not just increasing model capacity.
+- 🧪 NEXT: Implement/evaluate train-only threshold selection using train
+  consortium validation predictions, then compare B1A/B1B with the same
+  threshold policy.
+- 🔁 DO NOT REPEAT: Do not use held-out MU threshold 0.8/0.9 as a final tuned
+  result; it was used only to diagnose calibration.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+  - `research_gsure/03_baselines/outputs/20260624_0426_b1b_unet3d_dice_focal_bc16_d4_fitprobe_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0453_b1b_unet3d_dice_focal_bc16_d4_fitprobe_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0605_b1b_unet3d_dice_focal_bc16_d4_fitprobe_predict_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0618_b1b_unet3d_dice_focal_bc16_d4_fitprobe_eval_MU-Glioma-Post/`
+- Commands:
+  - `python -m py_compile research_gsure/03_baselines/scripts/train_b1_segmentation.py research_gsure/03_baselines/scripts/validate_b1_fit_results.py`
+  - `python research_gsure/03_baselines/scripts/train_b1_segmentation.py --synthetic-self-test --patch-shape 32,32,32`
+  - `python research_gsure/03_baselines/scripts/validate_b1_fit_results.py --self-test`
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode fit ... --loss dice_focal`
+  - `python research_gsure/03_baselines/scripts/validate_b1_fit_results.py --fit-dir ... --expected-loss dice_focal ...`
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode predict ... --loss dice_focal`
+  - `python research_gsure/02_audits/scripts/validate_oof_prediction_manifest.py --prediction-manifest ... --heldout-dataset MU-Glioma-Post --check-files`
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/evaluate_b1_segmentation_predictions.py --prediction-manifest ...`
+- Metrics:
+  - B1A MU mean Dice 0.6690; B1B MU mean Dice 0.6935.
+  - B1A MU pooled Dice 0.7394; B1B MU pooled Dice 0.7596.
+  - B1A MU small lesion mean Dice 0.4477; B1B 0.4942.
+
+### Remaining uncertainty
+- Whether B1B improvement generalizes to UCSD, UPENN, and UTSW.
+- Whether train-only threshold calibration can recover the diagnostic
+  threshold gains without leaking held-out information.
+- Whether severe small-lesion failures are annotation quality, post-treatment
+  anatomy, thresholding, or architecture/context limits.
+
+### Next recommended action
+- Add a train-only threshold/calibration evaluation harness before launching
+  more full LOCO folds or larger architecture variants.
+
+## 2026-06-24 — B1B MU Train-Only Threshold Calibration
+
+### Task
+- Calibrate the B1B `dice_focal` MU held-out segmentation baseline without
+  using MU held-out metrics for threshold selection.
+
+### Research question
+- Can the over-segmentation failure in MU be reduced by a leakage-safe
+  threshold policy, before changing architecture?
+
+### What I inspected
+- B1B MU internal-validation prediction manifest.
+- Threshold-selection outputs.
+- Fixed-threshold and calibrated MU evaluation summaries.
+
+### Decision / action
+- Added and used an internal-validation prediction path for the outer-train
+  validation subset only.
+- Selected threshold from UCSD/UPENN/UTSW internal-validation predictions.
+- Applied the selected threshold to the already-generated MU test prediction
+  manifest and evaluated held-out MU once.
+
+### Result
+- Internal-validation rows: 141 total.
+  - UCSD-PTGBM: 16.
+  - UPENN-GBM: 62.
+  - UTSW: 63.
+  - MU-Glioma-Post: 0.
+- Artifact validation errors: 0.
+- Selected threshold: 0.9.
+- Internal-validation threshold curve:
+  - t=0.5 mean Dice 0.7673, pooled Dice 0.8246, pred/GT volume ratio 1.3003.
+  - t=0.8 mean Dice 0.8340, pooled Dice 0.8675, pred/GT volume ratio 0.9993.
+  - t=0.9 mean Dice 0.8357, pooled Dice 0.8559, pred/GT volume ratio 0.8750.
+- Held-out MU result with threshold 0.9:
+  - Mean Dice: 0.7505.
+  - Median Dice: 0.8099.
+  - Pooled Dice: 0.7926.
+  - Dice <= 0.8 failure rate: 43.8%.
+  - Pooled precision: 0.8698.
+  - Pooled recall: 0.7280.
+  - Pooled pred/GT volume ratio: 0.8369.
+- Comparison to B1B fixed threshold 0.5:
+  - Mean Dice: 0.6935 -> 0.7505.
+  - Pooled Dice: 0.7596 -> 0.7926.
+  - Failure rate: 58.6% -> 43.8%.
+  - Small lesion mean Dice: 0.4942 -> 0.6374.
+  - Medium lesion mean Dice: 0.7509 -> 0.8035.
+  - Large lesion mean Dice: 0.8364 -> 0.8113.
+- Paired subjects:
+  - Improved: 141/203.
+  - Worse: 62/203.
+  - Mean paired delta: +0.0569 Dice.
+
+### Interpretation
+- The largest confirmed MU improvement so far comes from leakage-safe
+  calibration/thresholding, not a deeper architecture.
+- B1B probabilities are over-inclusive at threshold 0.5 on MU; threshold 0.9
+  reduces false positives and substantially helps small/medium lesions.
+- The cost is lower recall and worse large-lesion Dice. This is not a free
+  improvement; the next method must manage the precision/recall tradeoff rather
+  than blindly pushing thresholds higher.
+- Because the threshold was selected from non-MU internal-validation data, this
+  is a valid held-out MU estimate under the current fit-probe protocol.
+
+### Insight tags
+- ✅ SUCCESS: Train-only threshold calibration improved held-out MU mean Dice
+  by +0.0569 over B1B fixed threshold 0.5.
+- ✅ SUCCESS: The small-lesion failure rate dropped materially, consistent with
+  reduced false-positive over-segmentation.
+- ⚠️ RISK: Threshold 0.9 under-segments some large lesions; recall dropped from
+  0.9034 to 0.7280.
+- ⚠️ RISK: This is still one held-out consortium. The threshold policy must be
+  tested across other LOCO folds before becoming the default claim.
+- 💡 INSIGHT: A publishable grounding/segmentation method should likely include
+  calibration-aware or size-aware constraints, not only a new backbone.
+- 🧪 NEXT: Run the same train-only threshold calibration on UCSD, then decide
+  whether to launch a size-aware/Focal-Tversky variant.
+- 🔁 DO NOT REPEAT: Do not compare future models only at threshold 0.5; use the
+  same train-only calibration protocol for fair comparison.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+  - `research_gsure/03_baselines/scripts/select_threshold_from_predictions.py`
+  - `research_gsure/03_baselines/outputs/20260624_0630_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0640_b1b_mu_internal_val_threshold_selection/`
+  - `research_gsure/03_baselines/outputs/20260624_0645_b1b_unet3d_dice_focal_bc16_d4_fitprobe_eval_MU-Glioma-Post_internal_val_threshold/`
+- Commands:
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/select_threshold_from_predictions.py --calibration-prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/evaluate_b1_segmentation_predictions.py --prediction-manifest ...`
+- Metrics:
+  - B1B fixed threshold MU mean Dice 0.6935.
+  - B1B internal-validation threshold MU mean Dice 0.7505.
+  - B1B internal-validation threshold MU small lesion mean Dice 0.6374.
+
+### Remaining uncertainty
+- Whether the same threshold policy helps UCSD/UPENN/UTSW.
+- Whether threshold 0.9 is stable or only selected because the threshold grid is
+  coarse.
+- Whether a size-aware objective can recover large-lesion recall while keeping
+  small-lesion precision.
+
+### Next recommended action
+- Validate code changes, then run B1B UCSD internal-validation threshold
+  calibration using the already-trained UCSD B1A/B1B availability check. If B1B
+  UCSD is not trained yet, prioritize either B1B UCSD or a size-aware loss
+  variant on MU based on compute availability.
+
+## 2026-06-24 — Longitudinal Feasibility Audit for Reliability Direction
+
+### Task
+- Check whether unused repeated MRI units are sufficient to support a
+  longitudinal-consistency reliability/grounding research direction.
+
+### Research question
+- Can repeated tumor MRI timepoints provide a label-free signal for
+  segmentation reliability, beyond single-timepoint QC/error-map prediction?
+
+### What I inspected
+- `research_gsure/00_context/DATA_PREMISE.md`
+- `research_gsure/02_audits/outputs/candidate_cohort_manifest_draft.csv`
+- `research_gsure/02_audits/outputs/unit_selection_review.csv`
+- `research_gsure/02_audits/outputs/subject_level_cohort_manifest_draft.csv`
+- `research_gsure/02_audits/outputs/loco_split_manifest.csv`
+
+### Decision / action
+- Do not use the official LOCO split manifest alone for this audit, because it
+  intentionally keeps one primary unit per subject.
+- Count repeated units from candidate/included unit-level manifests instead.
+- Treat this as read-only feasibility evidence, not a model result.
+
+### Result
+- Candidate cohort before subject-level unit selection:
+  - 2,135 imaging units from 1,636 subjects.
+  - 245 multiunit subjects.
+  - 499 adjacent subject-timepoint pairs.
+  - 976 all within-subject pairs.
+- Included unit-level review after exclusions:
+  - 2,070 imaging units from 1,614 subjects.
+  - 204 multiunit subjects.
+  - 456 adjacent subject-timepoint pairs.
+  - 930 all within-subject pairs.
+- Included multiunit distribution:
+  - MU-Glioma-Post: 203 subjects, 594 units, 155 multiunit subjects,
+    391 adjacent pairs, max 6 units/subject.
+  - UCSD-PTGBM: 178 subjects, 243 units, 49 multiunit subjects,
+    65 adjacent pairs, max 4 units/subject.
+  - UPENN-GBM: 611 subjects, no included multiunit subjects.
+  - UTSW: 622 subjects, no multiunit subjects.
+- Quality gate:
+  - MU adjacent pairs with modality/mask geometry match and nonzero masks:
+    391/391.
+  - UCSD adjacent pairs with modality/mask geometry match and nonzero masks:
+    65/65.
+- Timing semantics:
+  - MU has `days_from_diagnosis_to_mri` for 591/594 included units.
+    Adjacent pair gaps n=388, median 77 days, mean 87.2 days, max 1109 days,
+    one nonpositive gap.
+  - UCSD has ordered unit IDs, but no `days_from_diagnosis_to_mri`; treatment
+    offset columns need a separate semantics audit before temporal claims.
+
+### Interpretation
+- The longitudinal direction is feasible and should not be dismissed.
+- The usable repeated-timepoint signal is mainly MU plus UCSD. It is not a
+  four-consortium longitudinal resource.
+- The most defensible research framing is not "longitudinal segmentation model
+  improves Dice" alone. That space has prior work. The defensible gap is:
+  repeated timepoint disagreement as a label-free reliability/grounding signal
+  for segmentation QC under domain shift.
+- A reviewer will attack temporal registration and true biological change vs
+  segmentation error. Any method must explicitly separate "expected tumor
+  evolution" from "implausible prediction instability."
+
+### Insight tags
+- ✅ SUCCESS: Longitudinal feasibility passed: 204 included multiunit subjects
+  and 456 adjacent pairs are available.
+- ✅ SUCCESS: Adjacent MU/UCSD pairs pass basic shape-affine-mask availability.
+- ⚠️ RISK: Longitudinal data are concentrated in MU and UCSD, so a method may
+  become post-treatment-cohort-specific.
+- ⚠️ RISK: UCSD temporal semantics are not yet clear enough for a temporal
+  loss or temporal evaluation claim.
+- ⚠️ RISK: Prior work exists on temporal consistency for longitudinal
+  segmentation; novelty must be reliability/QC from disagreement, not merely
+  temporal segmentation.
+- 💡 INSIGHT: This is a stronger technical research axis than another plain
+  U-Net loss tweak, because it uses a data property that B1 currently discards.
+- 🧪 NEXT: Build a CPU-only longitudinal pair manifest/audit with temporal
+  order, pair gap, volume-change sanity, and registration feasibility before
+  defining any longitudinal loss.
+- 🔁 DO NOT REPEAT: Do not split repeated subject units across train/test for
+  segmentation training or reliability labels.
+
+### Evidence
+- Files:
+  - `research_gsure/00_context/DATA_PREMISE.md`
+  - `research_gsure/02_audits/outputs/candidate_cohort_manifest_draft.csv`
+  - `research_gsure/02_audits/outputs/unit_selection_review.csv`
+  - `research_gsure/02_audits/outputs/subject_level_cohort_manifest_draft.csv`
+- Commands:
+  - `python - <<'PY' ... DictReader candidate/unit manifests ... PY`
+  - Web scout queries for longitudinal segmentation consistency and
+    segmentation QC/calibration prior work.
+- Metrics:
+  - Included MU adjacent pairs: 391.
+  - Included UCSD adjacent pairs: 65.
+  - Included total adjacent pairs: 456.
+
+### Remaining uncertainty
+- Whether registration between adjacent timepoints is already available or must
+  be computed.
+- Whether UCSD unit order corresponds to actual scan chronology under treatment
+  offset metadata.
+- Whether longitudinal disagreement predicts held-out Dice/error maps better
+  than lesion size, predicted volume, or site.
+
+### Next recommended action
+- Complete the current UCSD B1B fold, then build a read-only longitudinal pair
+  manifest and run control analyses:
+  1. pair count and time-gap lock,
+  2. mask-volume change distribution,
+  3. naive registration/overlap feasibility,
+  4. site/size-only controls for reliability.
+
+## 2026-06-24 — B1B UCSD Fold, Calibration, and Direction Fork Risk
+
+### Task
+- Complete the B1B `dice_focal` UCSD-PTGBM held-out fold and compare it with
+  B1A plus train-only threshold calibration.
+
+### Research question
+- Does the MU improvement from `dice_focal` and train-only threshold
+  calibration generalize to a second LOCO fold?
+
+### What I inspected
+- B1B UCSD fit logs/checkpoints.
+- B1B UCSD held-out prediction manifest and artifacts.
+- B1B UCSD fixed-threshold and train-calibrated metrics.
+- B1A UCSD metrics for direct comparison.
+- Two-fold size/site control using available per-subject metrics.
+
+### Decision / action
+- First UCSD B1B run at `20260624_0627_*` is invalid for interpretation:
+  it accidentally used default `steps_per_epoch=4`.
+- Re-ran UCSD B1B with the valid protocol:
+  `steps_per_epoch=64`, `max_val_rows=8`, 20 epochs, bf16 on GPU4.
+- Used `checkpoint_last.pt` first for protocol consistency with MU.
+- Generated UCSD held-out predictions and evaluated fixed threshold 0.5.
+- Generated outer-train internal-validation predictions and selected a
+  train-only threshold.
+- Ran a diagnostic held-out threshold sweep only to understand calibration; it
+  is not a final score.
+
+### Result
+- Valid UCSD B1B fit:
+  - Fit rows: 1292.
+  - Held-out test rows not used: 178.
+  - Loss: 0.5395 -> 0.4724.
+  - Validation mean Dice by epoch: 2=0.7098, 4=0.6903, 6=0.7510,
+    8=0.7271, 10=0.7951, 12=0.6735, 14=0.7644, 16=0.8186,
+    18=0.7827, 20=0.8096.
+  - Fit artifact validation: passed.
+- UCSD B1B fixed threshold 0.5:
+  - Mean Dice: 0.7246.
+  - Median Dice: 0.8053.
+  - Pooled Dice: 0.7716.
+  - Dice <= 0.8 failure rate: 47.8%.
+  - Small lesion mean Dice: 0.5667.
+  - Pred/GT volume ratio: 1.2115 overall, 2.3899 for small lesions.
+- UCSD B1A fixed threshold 0.5:
+  - Mean Dice: 0.7570.
+  - Median Dice: 0.8315.
+  - Pooled Dice: 0.8174.
+  - Dice <= 0.8 failure rate: 41.6%.
+  - Small lesion mean Dice: 0.6378.
+- B1B fixed vs B1A fixed on UCSD:
+  - Mean paired delta: -0.0324 Dice.
+  - Improved: 47/178.
+  - Worse: 131/178.
+- UCSD diagnostic held-out threshold sweep, not final:
+  - t=0.5 mean Dice 0.7246.
+  - t=0.6 mean Dice 0.7497.
+  - t=0.7 mean Dice 0.7614.
+  - t=0.8 mean Dice 0.7511.
+  - t=0.9 mean Dice 0.7081.
+- UCSD train-only threshold selection:
+  - Internal-validation rows: 144.
+  - Datasets: MU 20, UPENN 70, UTSW 54, UCSD 0.
+  - Selected threshold: 0.8.
+  - Artifact validation errors: 0.
+- UCSD B1B with train-only threshold 0.8:
+  - Mean Dice: 0.7511.
+  - Median Dice: 0.8222.
+  - Pooled Dice: 0.7957.
+  - Dice <= 0.8 failure rate: 44.9%.
+  - Precision/recall: 0.9203 / 0.7008.
+  - Small lesion mean Dice: 0.6897.
+  - Medium lesion mean Dice: 0.7470.
+  - Large lesion mean Dice: 0.8176.
+- UCSD B1B calibrated vs fixed:
+  - Mean paired delta: +0.0265 Dice.
+  - Improved: 97/178.
+  - Worse: 81/178.
+  - Small lesion mean delta: +0.1230.
+  - Large lesion mean delta: -0.0410.
+- UCSD B1B calibrated vs B1A fixed:
+  - Mean paired delta: -0.0059 Dice.
+  - Improved: 76/178.
+  - Worse: 102/178.
+- Two-fold early control, B1B fixed threshold 0.5:
+  - Failure rate: MU 58.6%, UCSD 47.8%.
+  - Site-as-MU AUC for failure: 0.554.
+  - Small-lesion indicator AUC for failure: 0.756.
+  - `-gt_volume_ml` AUC for failure: 0.866.
+  - `abs(log(pred/GT volume ratio))` AUC for failure: 0.893
+    (diagnostic only because it uses GT).
+- Two-fold control, B1B train-calibrated:
+  - Mean Dice: 0.7508.
+  - Failure rate: 44.4%.
+  - MU mean Dice/failure: 0.7505 / 43.8%.
+  - UCSD mean Dice/failure: 0.7511 / 44.9%.
+  - Site-as-MU AUC for failure: 0.494.
+  - Small-lesion indicator AUC for failure: 0.629.
+  - `-gt_volume_ml` AUC for failure: 0.676.
+  - `-pred_volume_ml` AUC for failure: 0.735.
+  - `mean_prob_gap_inv` AUC for failure: 0.866.
+  - `abs(log(pred/GT volume ratio))` AUC for failure: 0.840
+    (diagnostic only because it uses GT).
+
+### Interpretation
+- `dice_focal` is not a reliable cross-consortium improvement over
+  `dice_bce`. It helped MU but hurt UCSD at fixed threshold.
+- Train-only threshold calibration is real and important: it recovered much of
+  the UCSD loss and strongly improved small lesions, but it did not clearly beat
+  B1A on UCSD.
+- Calibration trades recall for precision. On both MU and UCSD, small lesions
+  improve while large lesions can worsen. A single global threshold is too
+  blunt.
+- The immediate method gap is not "invent another loss"; it is adaptive,
+  size-aware, or image-specific operating point selection under LOCO shift.
+- The early control says failure is heavily explained by lesion size/volume.
+  Any reliability model must beat lesion-size and predicted-volume baselines.
+- After train-only calibration, site/fold failure imbalance largely disappears
+  between MU and UCSD, but case-level probability separation remains highly
+  predictive of failure. This supports adaptive calibration/reliability more
+  than another global threshold.
+- The longitudinal direction is feasible, but it conflicts with the
+  4-consortium LOCO claim:
+  - longitudinal signal exists mainly in MU and UCSD,
+  - UPENN and UTSW have no included multiunit subjects,
+  - using longitudinal consistency as a primary method signal would make the
+    evidence base post-treatment/MU-heavy rather than four-consortium LOCO.
+
+### Insight tags
+- ✅ SUCCESS: UCSD B1B valid spe64 run completed and passed artifact validation.
+- ✅ SUCCESS: Train-only calibration selected a higher threshold and improved
+  UCSD B1B from 0.7246 to 0.7511 mean Dice.
+- ❌ FAILURE: B1B did not beat B1A on UCSD after fair train-only calibration.
+- ❌ FAILURE: The accidental `steps_per_epoch=4` UCSD run is invalid and must
+  not be used for claims.
+- ⚠️ RISK: A global high threshold helps small lesions but damages large-lesion
+  recall.
+- ⚠️ RISK: Lesion size explains failure very strongly; reliability novelty is
+  weak unless it beats size/volume controls.
+- ⚠️ RISK: Longitudinal consistency and four-consortium LOCO are not naturally
+  compatible in this dataset.
+- 💡 INSIGHT: The most defensible near-term technical direction is
+  image-/case-adaptive calibration or size-aware thresholding, evaluated against
+  B1A/B1B and size/volume controls.
+- 🧪 NEXT: Run no-new-training controls on calibrated two-fold outputs, then
+  decide whether to prioritize:
+  1. LOCO adaptive calibration / reliability,
+  2. longitudinal MU+UCSD reliability as a separate post-treatment fork.
+- 🔁 DO NOT REPEAT: Do not treat `dice_focal` as the default winner based on MU
+  alone.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_0635_b1b_unet3d_dice_focal_bc16_d4_fitprobe_UCSD-PTGBM_192x224x160_spe64/`
+  - `research_gsure/03_baselines/outputs/20260624_0749_b1b_unet3d_dice_focal_bc16_d4_fitprobe_predict_UCSD-PTGBM_192x224x160_spe64/`
+  - `research_gsure/03_baselines/outputs/20260624_0805_b1b_unet3d_dice_focal_bc16_d4_fitprobe_eval_UCSD-PTGBM_spe64/`
+  - `research_gsure/03_baselines/outputs/20260624_0826_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UCSD-PTGBM_192x224x160_spe64/`
+  - `research_gsure/03_baselines/outputs/20260624_0838_b1b_ucsd_internal_val_threshold_selection/`
+  - `research_gsure/03_baselines/outputs/20260624_0842_b1b_unet3d_dice_focal_bc16_d4_fitprobe_eval_UCSD-PTGBM_internal_val_threshold_spe64/`
+- Commands:
+  - `CUDA_VISIBLE_DEVICES=4 python ... train_b1_segmentation.py --mode fit ... --heldout-dataset UCSD-PTGBM --loss dice_focal --steps-per-epoch 64`
+  - `python ... validate_b1_fit_results.py --fit-dir ... --expected-steps-per-epoch 64`
+  - `CUDA_VISIBLE_DEVICES=4 python ... train_b1_segmentation.py --mode predict ...`
+  - `python ... validate_oof_prediction_manifest.py --heldout-dataset UCSD-PTGBM --check-files`
+  - `python ... validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python ... evaluate_b1_segmentation_predictions.py --prediction-manifest ...`
+  - `python ... select_threshold_from_predictions.py --calibration-prediction-manifest ...`
+- Metrics:
+  - UCSD B1A fixed mean Dice: 0.7570.
+  - UCSD B1B fixed mean Dice: 0.7246.
+  - UCSD B1B train-calibrated mean Dice: 0.7511.
+  - MU B1B train-calibrated mean Dice: 0.7505.
+
+### Remaining uncertainty
+- Whether B1A also benefits from the same train-only calibration; current B1A
+  comparison is fixed threshold only.
+- Whether best-validation checkpoint selection would improve B1B without test
+  leakage.
+- Whether adaptive per-image thresholding can beat fixed train-calibrated
+  threshold and simple size/volume controls.
+- Whether longitudinal reliability should become a separate fork rather than
+  part of the LOCO paper.
+
+### Next recommended action
+- Do not launch another segmentation loss ablation yet.
+- First run CPU-only controls on the available calibrated two-fold outputs:
+  lesion-size, predicted-volume, mean probability gap, and site indicators for
+  failure detection.
+- Then choose the next fork:
+  LOCO adaptive calibration/reliability if the goal remains an AI conference
+  method paper; longitudinal MU+UCSD reliability only if Min accepts a narrower
+  post-treatment framing.
+
+## 2026-06-24 — B1A train-calibrated MU completed and B1A/B1B two-fold comparison
+
+### Task
+- Finish the B1A MU train-only threshold calibration path and compare B1A/B1B
+  under the same calibrated evaluation protocol.
+
+### Research question
+- Is `dice_focal` itself a meaningful segmentation improvement, or is the main
+  observed gain explained by train-only threshold calibration and lesion-size
+  effects?
+
+### What I inspected
+- B1A MU internal-val prediction artifacts.
+- B1A MU train-only threshold selection output.
+- B1A/B1B fixed and train-calibrated per-subject metrics for MU and UCSD.
+- Simple failure-control AUCs using site, lesion size, predicted volume,
+  probability gap, false-negative rate, and GT-dependent diagnostic volume
+  mismatch.
+
+### Decision / action
+- Validated the B1A MU internal-val prediction manifest and probability maps.
+- Selected the B1A MU threshold from outer-train internal validation only.
+- Evaluated the adjusted MU heldout manifest at the selected threshold.
+- Recomputed two-fold B1A/B1B comparisons and failure-control diagnostics.
+
+### Result
+- B1A MU calibration selected threshold 0.9.
+- B1A MU fixed -> calibrated:
+  - Mean Dice: 0.6690 -> 0.7377.
+  - Pooled Dice: 0.7394 -> 0.7859.
+  - Failure rate Dice<=0.8: 63.5% -> 44.8%.
+  - Precision/recall: 0.626/0.902 -> 0.829/0.747.
+- B1A UCSD calibration selected threshold 0.8.
+- Two-fold calibrated comparison:
+  - B1A calibrated mean Dice: 0.7447, pooled Dice: 0.7883, failure: 44.9%.
+  - B1B calibrated mean Dice: 0.7508, pooled Dice: 0.7939, failure: 44.4%.
+  - B1B-B1A calibrated paired delta:
+    - MU: +0.0127 mean Dice.
+    - UCSD: -0.0014 mean Dice.
+- Failure controls after calibration:
+  - B1A calibrated site-as-MU AUC for failure: 0.499.
+  - B1B calibrated site-as-MU AUC for failure: 0.494.
+  - B1A calibrated `mean_prob_gap_inv` AUC for failure: 0.825.
+  - B1B calibrated `mean_prob_gap_inv` AUC for failure: 0.866.
+  - B1A calibrated `-pred_volume_ml` AUC for failure: 0.736.
+  - B1B calibrated `-pred_volume_ml` AUC for failure: 0.735.
+
+### Interpretation
+- The main robust effect is train-only threshold calibration, not the
+  `dice_focal` loss. B1B is only marginally better than B1A after fair
+  calibration and is effectively tied on UCSD.
+- Calibration removes most two-fold site/fold failure imbalance but does not
+  solve case-level failure. Probability separation and predicted-volume
+  controls remain strong.
+- A new segmentation loss is unlikely to be the most informative next step.
+  The method gap is image-/case-adaptive operating point prediction and
+  reliability/error grounding, evaluated against size and probability controls.
+
+### Insight tags
+- ✅ SUCCESS: B1A MU train-only calibration completed without test leakage.
+- ✅ SUCCESS: B1A and B1B are now compared under the same calibrated protocol
+  for MU and UCSD.
+- ❌ FAILURE: `dice_focal` is not a strong standalone improvement over
+  `dice_bce`.
+- ⚠️ RISK: Probability-gap and predicted-volume controls already predict
+  segmentation failure strongly; a reliability model must beat these baselines.
+- 💡 INSIGHT: The next AI-method direction should be adaptive calibration /
+  reliability, not another global loss variant.
+- 🧪 NEXT: Build the smallest no-new-training adaptive-threshold baseline
+  using internal-val-derived calibration features, then test it against fixed
+  train-calibrated thresholds and simple size/volume controls.
+- 🔁 DO NOT REPEAT: Do not promote B1B based on MU-only or fixed-threshold
+  results.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_0915_b1a_unet3d_dice_bce_bc16_d4_internal_val_predict_MU-Glioma-Post_192x224x160/`
+  - `research_gsure/03_baselines/outputs/20260624_0925_b1a_mu_internal_val_threshold_selection/`
+  - `research_gsure/03_baselines/outputs/20260624_0928_b1a_unet3d_dice_bce_bc16_d4_fitprobe_eval_MU-Glioma-Post_internal_val_threshold/`
+- Commands:
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/select_threshold_from_predictions.py --calibration-prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/evaluate_b1_segmentation_predictions.py --prediction-manifest ...`
+- Metrics:
+  - B1A calibrated two-fold mean Dice: 0.7447.
+  - B1B calibrated two-fold mean Dice: 0.7508.
+  - B1A/B1B calibrated failure rates: 44.9% / 44.4%.
+  - B1A/B1B calibrated site-as-MU failure AUCs: 0.499 / 0.494.
+
+### Remaining uncertainty
+- Whether best-validation checkpoint selection changes B1A/B1B ordering.
+- Whether adaptive thresholding improves the large-lesion recall loss caused
+  by high global thresholds.
+- Whether a reliability head can add information beyond probability gap and
+  predicted volume.
+
+### Next recommended action
+- Stop loss-function ablation for now.
+- Run a CPU-only adaptive-threshold baseline before any new GPU training.
+- Keep longitudinal reliability as a separate fork unless Min explicitly
+  chooses the narrower post-treatment framing.
+
+## 2026-06-24 — Uncertainty vs volume gate for reliability direction
+
+### Task
+- Run the decisive no-new-training gate: does deployable entropy uncertainty
+  predict low-Dice failure better than a simple predicted-volume baseline?
+
+### Research question
+- Is there enough uncertainty signal beyond lesion/predicted-volume proxies to
+  justify a reliability/calibration method direction?
+
+### What I inspected
+- B1A/B1B calibrated MU and UCSD test manifests.
+- Existing probability maps and target masks.
+- Per-subject Dice sanity against the official B1A/B1B calibrated evals.
+
+### Decision / action
+- Stopped the secondary adaptive-threshold CPU probe because the newer priority
+  is the uncertainty-vs-volume gate.
+- Ran a CPU-only entropy/volume feature extraction over existing calibrated
+  probability maps.
+- Discarded the first uncertainty gate run because target masks were read
+  without canonical orientation, causing near-zero Dice.
+- Re-ran the gate with `nib.as_closest_canonical()` for both probability maps
+  and target masks.
+
+### Result
+- Corrected output:
+  - `research_gsure/03_baselines/outputs/20260624_1035_uncertainty_vs_volume_gate_canonical/`
+- Invalid output, do not use:
+  - `research_gsure/03_baselines/outputs/20260624_1015_uncertainty_vs_volume_gate/`
+- Dice sanity matched prior evals:
+  - B1A MU calibrated mean Dice: 0.7377, failure 44.8%.
+  - B1A UCSD calibrated mean Dice: 0.7525, failure 44.9%.
+  - B1B MU calibrated mean Dice: 0.7505, failure 43.8%.
+  - B1B UCSD calibrated mean Dice: 0.7511, failure 44.9%.
+- Pooled two-fold AUROC for failure:
+  - B1A primary `mean_entropy_pred_mask`: 0.669.
+  - B1A predicted-volume baseline `-pred_voxels`: 0.736.
+  - B1A exploratory `mean_entropy_all`: 0.744.
+  - B1B primary `mean_entropy_pred_mask`: 0.699.
+  - B1B predicted-volume baseline `-pred_voxels`: 0.735.
+  - B1B exploratory `mean_entropy_all`: 0.779.
+- Fold-wise AUROC:
+  - B1B primary entropy: MU 0.819, UCSD 0.845.
+  - B1B predicted-volume baseline: MU 0.720, UCSD 0.756.
+
+### Interpretation
+- The preregistered primary pooled entropy feature does not beat predicted
+  volume, so a naive pooled entropy-reliability claim is not strong enough.
+- However, B1B primary entropy beats predicted volume within both folds. The
+  failure is pooled cross-fold calibration/scale, not absence of uncertainty
+  signal.
+- Exploratory whole-volume mean entropy beats predicted volume for B1B pooled
+  AUC, but it was not the primary feature and may partially track foreground
+  extent or site-specific output scale.
+- The method direction is still alive, but it should be reframed precisely:
+  reliability calibration under consortium shift, not generic uncertainty
+  estimation and not segmentation-loss tuning.
+
+### Insight tags
+- ✅ SUCCESS: The no-new-training gate found usable uncertainty signal in B1B
+  within each heldout fold.
+- ❌ FAILURE: Primary pooled `mean_entropy_pred_mask` does not beat predicted
+  volume without cross-fold calibration.
+- ❌ FAILURE: The first uncertainty gate run was invalid because target masks
+  were not canonicalized.
+- ⚠️ RISK: Exploratory entropy wins can be feature-fishing unless locked before
+  additional folds.
+- ⚠️ RISK: Only MU and UCSD are evaluated so far; UPENN/UTSW are required
+  before making a four-consortium claim.
+- 💡 INSIGHT: The real technical gap is scale-calibrated reliability under
+  consortium shift: raw uncertainty is informative within folds but not
+  directly comparable across folds.
+- 🧪 NEXT: Stop loss sweeps. Implement a locked reliability/calibration
+  evaluation protocol with mandatory controls:
+  predicted volume, entropy-only, fold-calibrated entropy, and simple
+  calibration model; then run remaining LOCO folds.
+- 🔁 DO NOT REPEAT: Do not use non-canonical raw target arrays for probability
+  map evaluation.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_1035_uncertainty_vs_volume_gate_canonical/uncertainty_volume_features.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1035_uncertainty_vs_volume_gate_canonical/uncertainty_vs_volume_auc_summary.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1035_uncertainty_vs_volume_gate_canonical/uncertainty_vs_volume_decision.md`
+  - `research_gsure/03_baselines/outputs/20260624_1035_uncertainty_vs_volume_gate_canonical/uncertainty_vs_volume_gate_report.json`
+- Commands:
+  - CPU-only Python feature extraction from calibrated prediction manifests.
+  - CPU-only decision summary generation from the AUC summary CSV.
+- Metrics:
+  - B1B primary fold mean AUC: 0.832.
+  - B1B predicted-volume fold mean AUC: 0.738.
+  - B1B primary pooled AUC: 0.699.
+  - B1B predicted-volume pooled AUC: 0.735.
+  - B1B exploratory mean-entropy-all pooled AUC: 0.779.
+
+### Remaining uncertainty
+- Whether entropy scale can be calibrated using train/internal-val only.
+- Whether UPENN and UTSW show the same within-fold uncertainty signal.
+- Whether TTA uncertainty adds value beyond entropy; no TTA artifacts exist
+  yet, and measuring TTA requires additional inference.
+
+### Next recommended action
+- Treat the reliability direction as conditionally alive.
+- Do not run more segmentation loss variants.
+- Next, design the locked reliability-calibration protocol before further GPU
+  work:
+  primary score, fold calibration rule, volume controls, and stop rule for
+  remaining LOCO folds.
+
+## 2026-06-24 — Reliability calibration gate preliminary result on two folds
+
+### Task
+- Lock and execute the CPU-only C0/C1 reliability calibration gate on existing
+  B1A/B1B MU and UCSD calibrated probability maps.
+
+### Research question
+- Does train-only reliability calibration beat the deployable predicted-volume
+  baseline for subject-level segmentation failure detection?
+
+### What I inspected
+- Existing reliability metric and OOF prediction contracts.
+- The corrected canonical uncertainty-vs-volume gate output.
+- B1A/B1B internal-val calibration manifests and heldout calibrated test
+  manifests for MU and UCSD.
+
+### Decision / action
+- Added `RELIABILITY_CALIBRATION_PROTOCOL_20260624.md`.
+- Added a CPU-only evaluator:
+  `research_gsure/03_baselines/scripts/evaluate_reliability_calibration_gate.py`.
+- Ran synthetic self-test.
+- Ran the real C0/C1 gate on B1A/B1B MU and UCSD.
+- Ran 5,000 fold-stratified subject-level bootstrap resamples for AUROC/AUPRC
+  deltas against predicted volume.
+
+### Result
+- Output:
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/`
+- Decision file:
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_decision.md`
+- B1B pooled two-fold:
+  - V0 predicted volume: AUROC 0.735, AUPRC 0.671.
+  - C0 z entropy: AUROC 0.822, AUPRC 0.813.
+  - C1 entropy+volume: AUROC 0.910, AUPRC 0.908.
+- Bootstrap deltas vs V0:
+  - B1B C0 AUROC delta: +0.087, 95% CI [0.014, 0.161].
+  - B1B C1 entropy+volume AUROC delta: +0.174, 95% CI [0.128, 0.223].
+  - B1B C0 AUPRC delta: +0.142, 95% CI [0.052, 0.228].
+  - B1B C1 AUPRC delta: +0.237, 95% CI [0.167, 0.301].
+
+### Interpretation
+- Corrected later: the reliability direction does not yet pass a method gate.
+- C0 is a monotonic transform within each fold, so fold-level AUROC is identical
+  to raw entropy. Its pooled gain reflects cross-fold entropy scale correction,
+  not a new model mechanism.
+- The actual signal is that B1B raw entropy beats predicted volume within both
+  MU and UCSD folds.
+- C1 is much stronger but is a subject-level supervised QC predictor in the
+  DeVries/QCResUNet baseline family, not a visual grounding method.
+- This supports a benchmark/calibration-first direction under consortium shift.
+- It still does not support a four-consortium claim because UPENN and UTSW B1B
+  calibrated folds are missing.
+
+### Insight tags
+- ✅ SUCCESS: B1B raw entropy beats predicted volume within MU and UCSD folds.
+- ✅ SUCCESS: B1B C1 entropy+volume shows strong subject-level failure
+  detection in the two-fold gate.
+- ❌ FAILURE: Segmentation loss sweep remains closed; this result does not
+  revive loss tuning.
+- ⚠️ RISK: Current evidence is only two heldout folds.
+- ⚠️ RISK: C0 pooled improvement is a score-scale correction, not method
+  novelty.
+- ⚠️ RISK: C1 is not visual grounding; voxel-level ERR/FP/FN localization must
+  beat QCResUNet-style baselines before any method claim.
+- 💡 INSIGHT: The publishable method angle is not "uncertainty works" but
+  "uncertainty must be calibrated under consortium shift and controlled against
+  predicted-volume shortcuts."
+- 🧪 NEXT: Generate/evaluate B1B calibrated predictions for UPENN and UTSW,
+  then rerun this gate on all four LOCO folds.
+- 🔁 DO NOT REPEAT: Do not make method claims from MU+UCSD only.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/RELIABILITY_CALIBRATION_PROTOCOL_20260624.md`
+  - `research_gsure/03_baselines/scripts/evaluate_reliability_calibration_gate.py`
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_auc_summary.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_bootstrap_summary.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_decision.md`
+- Commands:
+  - `python -m py_compile research_gsure/03_baselines/scripts/evaluate_reliability_calibration_gate.py`
+  - `python research_gsure/03_baselines/scripts/evaluate_reliability_calibration_gate.py --synthetic-self-test`
+  - `python research_gsure/03_baselines/scripts/evaluate_reliability_calibration_gate.py --out-dir ...`
+  - fold-stratified subject bootstrap from `reliability_calibration_test_scores.csv`
+- Metrics:
+  - B1B C0 vs V0 AUROC delta: +0.087 [0.014, 0.161].
+  - B1B C1 vs V0 AUROC delta: +0.174 [0.128, 0.223].
+
+### Remaining uncertainty
+- Whether UPENN and UTSW reproduce the same reliability-calibration gain.
+- Whether voxel-level reliability/error maps beat entropy and QC baselines.
+- Whether TTA uncertainty adds value beyond calibrated entropy; no TTA
+  prediction artifacts exist yet.
+
+### Next recommended action
+- Do not run new loss variants.
+- Recommended fork is benchmark/calibration first.
+- Prepare B1B UPENN and UTSW runs only if Min approves the next GPU/long
+  inference steps or if the conditional method fork remains active.
+- Before GPU, use the prepared command plan that targets GPU4, records output
+  paths, and states expected runtime and stop criteria.
+
+## 2026-06-24 — C0/C1 interpretation corrected after critical review
+
+### Task
+- Correct the reliability-gate interpretation after Min identified that C0
+  fold-calibrated entropy is monotonic within fold and therefore cannot change
+  fold-level AUROC.
+
+### Research question
+- What does the MU+UCSD reliability result actually support: method novelty,
+  benchmark/calibration, or neither?
+
+### What I inspected
+- `SCRATCHPAD.md`.
+- `research_gsure/03_baselines/RELIABILITY_CALIBRATION_PROTOCOL_20260624.md`.
+- `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_decision.md`.
+- Aborted scores-only bootstrap marker directory.
+- Running processes for G-SURE reliability/training commands.
+
+### Decision / action
+- Accepted Min's correction.
+- Updated the completed decision artifact to frame C0 as cross-fold
+  score-scale normalization, not a method signal.
+- Updated the protocol so C0 is an evaluation/calibration correction and C1 is
+  explicitly a DeVries/QCResUNet-family subject-level QC baseline.
+- Marked the interrupted scores-only bootstrap directory as aborted.
+- No GPU training or inference was launched.
+
+### Result
+- Corrected fact:
+  - Within MU and UCSD folds, C0 AUROC equals raw entropy AUROC.
+  - Pooled C0 improvement over raw entropy is caused by fixing cross-fold score
+    scale mismatch.
+- Still-valid signal:
+  - B1B raw entropy beats predicted volume within both MU and UCSD folds.
+  - B1B C1 entropy+volume remains strong for subject-level failure prediction,
+    but it is a supervised QC baseline, not visual grounding.
+
+### Interpretation
+- The current evidence supports a benchmark/calibration-first paper direction.
+- It does not yet support a new visual-grounding method claim.
+- The method fork should remain conditional on two additional checks:
+  four-fold reproduction on UPENN/UTSW and voxel-level ERR/FP/FN localization
+  beating QCResUNet-style baselines.
+
+### Insight tags
+- ✅ SUCCESS: The overclaim was caught before being promoted into the research
+  narrative.
+- ❌ FAILURE: The earlier statement that "C0 passes the method gate" was
+  overstated.
+- ⚠️ RISK: C1 can look impressive while still being an expected subject-level
+  QC baseline.
+- 💡 INSIGHT: The defensible contribution is currently consortium-shift
+  calibration and shortcut-controlled reliability benchmarking.
+- 🧪 NEXT: Build the benchmark/calibration outline and required result table
+  checklist before launching more GPU work.
+- 🔁 DO NOT REPEAT: Do not treat monotonic per-fold score normalization as a new
+  model mechanism.
+- 📌 MIN DECISION: Min identified the within-fold monotonicity issue and pushed
+  the project away from overclaiming.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/RELIABILITY_CALIBRATION_PROTOCOL_20260624.md`
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_decision.md`
+  - `research_gsure/03_baselines/outputs/20260624_1125_reliability_calibration_gate_scores_only_bootstrap/RUN_ABORTED.md`
+- Commands:
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `ps -eo pid,ppid,stat,etime,cmd | rg 'evaluate_reliability_calibration_gate|run_b1|predict|train|python'`
+- Metrics:
+  - B1B MU fold: V0 0.720, raw entropy 0.819, C0 0.819.
+  - B1B UCSD fold: V0 0.756, raw entropy 0.845, C0 0.845.
+  - B1B pooled: raw entropy 0.699, C0 0.822, C1 0.910.
+
+### Remaining uncertainty
+- Whether UPENN and UTSW reproduce the within-fold entropy signal.
+- Whether voxel-level ERR/FP/FN localization beats QCResUNet-style baselines.
+- Whether a benchmark/calibration paper is the best target, or whether the
+  method fork is worth GPU budget after explicit approval.
+
+### Next recommended action
+- Lock the benchmark/calibration fork as the default next direction.
+- Prepare a paper-style result checklist: four-fold LOCO, V0/U0/C0/C1, site and
+  lesion-size controls, voxel-level diagnostics, and stop rules.
+
+## 2026-06-24 — B1B remaining LOCO GPU command plan prepared
+
+### Task
+- Prepare the next GPU execution plan needed to extend the B1B
+  reliability-calibration gate from MU+UCSD to all four LOCO folds.
+
+### Research question
+- Can the B1B C0/C1 reliability-calibration gain over predicted volume survive
+  when UPENN and UTSW are added?
+
+### What I inspected
+- Current workspace state, git status, branch, and GPU status.
+- Official LOCO manifest counts.
+- Existing valid B1B MU/UCSD fit, prediction, threshold, and reliability-gate
+  outputs.
+- Prior B1B training logs and GPU memory summaries.
+
+### Decision / action
+- Did not launch GPU work.
+- Created a command-preview document for UPENN and UTSW B1B fit/predict/
+  threshold/eval steps.
+- Locked GPU target to `CUDA_VISIBLE_DEVICES=4`.
+- Recommended the first approved execution unit as UPENN fit only.
+
+### Result
+- Command plan:
+  - `research_gsure/03_baselines/B1B_REMAINING_LOCO_COMMAND_PLAN_20260624_100756.md`
+- GPU4 preflight:
+  - NVIDIA B200.
+  - 0 MiB used at inspection time.
+- Remaining fold counts:
+  - UPENN-GBM: train 1003, test 611, internal-val approx 100.
+  - UTSW: train 992, test 622, internal-val approx 99.
+- Prior B1B runtime/memory:
+  - Fit: ~55-63 min for 20 epochs, max reserved ~5.5 GiB.
+  - Predict: max reserved ~2.5 GiB.
+
+### Interpretation
+- The next required evidence is feasible on GPU4, but prediction/evaluation will
+  be IO-heavy because UPENN/UTSW test rows are much larger than MU/UCSD.
+- The correct next action is not more architecture or loss changes; it is
+  completing the missing LOCO folds under the locked B1B protocol.
+
+### Insight tags
+- ✅ SUCCESS: GPU command plan is ready for Min approval.
+- ⚠️ RISK: UPENN/UTSW heldout prediction may take several hours due to ~600+
+  full-volume subjects per fold.
+- ⚠️ RISK: Four-consortium reliability claim remains unproven until these folds
+  complete and pass validators.
+- 🧪 NEXT: After Min approval, run UPENN B1B fit only, validate it, then proceed
+  to prediction/calibration steps.
+- 🔁 DO NOT REPEAT: Do not start UPENN+UTSW all-at-once; run one execution unit
+  and validate before continuing.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/B1B_REMAINING_LOCO_COMMAND_PLAN_20260624_100756.md`
+- Commands:
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `nvidia-smi`
+  - LOCO manifest row-count inspection.
+  - Existing B1B runtime/memory summary inspection.
+- Metrics:
+  - UPENN test rows: 611.
+  - UTSW test rows: 622.
+  - Prior B1B fit max reserved memory: ~5.5 GiB.
+
+### Remaining uncertainty
+- Whether UPENN/UTSW B1B segmentation performance is strong enough for the
+  reliability gate.
+- Whether threshold calibration selects 0.8/0.9 again or drifts differently.
+- Whether C0/C1 remains above predicted-volume baseline on four folds.
+
+### Next recommended action
+- Ask Min to approve the first GPU command:
+  UPENN B1B fit on GPU4.
+
+## 2026-06-24 — Benchmark/calibration paper outline locked
+
+### Task
+- Verify the corrected reliability framing, then lock a claim-first paper
+  outline and result checklist for the benchmark/calibration direction.
+
+### Research question
+- Can the current G-SURE evidence support a defensible benchmark/calibration
+  paper rather than an overstated new method paper?
+
+### What I inspected
+- `research_gsure/03_baselines/RELIABILITY_CALIBRATION_PROTOCOL_20260624.md`
+- `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_decision.md`
+- `SCRATCHPAD.md`
+- `research_gsure/05_reports/REPORT_TEMPLATE.md`
+- `research_gsure/02_audits/outputs/loco_split_summary.csv`
+- `research_gsure/02_audits/outputs/loco_split_audit_report.md`
+- `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_auc_summary.csv`
+- `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_bootstrap_summary.csv`
+
+### Decision / action
+- Accepted the 2 -> 1 order: verify corrected base documents first, then write
+  the outline.
+- Created:
+  `research_gsure/05_reports/BENCHMARK_CALIBRATION_PAPER_OUTLINE_20260624.md`
+- No GPU work was launched.
+- No new experimental claim was added.
+- Corrected an accidental temporary file creation outside the workspace:
+  `/tmp/ignore_me` was created by a malformed patch and immediately deleted.
+
+### Result
+- The paper direction is now locked as benchmark/calibration first.
+- The one-sentence claim is about consortium-shift reliability evaluation being
+  distorted by uncertainty scale mismatch and predicted-volume shortcuts.
+- C0 is explicitly framed as cross-fold scale correction, not a new mechanism.
+- C1 is explicitly framed as a DeVries/QCResUNet-family subject-level QC
+  baseline.
+- The method fork remains conditional on four-fold reproduction plus voxel-level
+  ERR/FP/FN localization beating QC baselines.
+
+### Interpretation
+- This direction is better supported by the current evidence than a visual
+  grounding method claim.
+- The load-bearing missing evidence is no longer "try another loss"; it is
+  four-fold LOCO reproduction, CPU robustness controls, and optional stronger
+  uncertainty/segmenter baselines.
+
+### Insight tags
+- ✅ SUCCESS: The corrected claim is now written in a stable report outline.
+- ⚠️ RISK: Current reliability evidence remains MU+UCSD only.
+- ⚠️ RISK: A reviewer may call the findings obvious unless naive-vs-corrected
+  deltas are clearly quantified.
+- 💡 INSIGHT: The paper's value is in preventing unfair reliability evaluation,
+  not in inventing a new uncertainty score.
+- 🧪 NEXT: Run CPU-only threshold-free robustness and site/lesion-size control
+  planning before asking for more GPU work.
+- 🔁 DO NOT REPEAT: Do not revive segmentation loss sweeps as the contribution.
+- 🧯 MITIGATION: Keep V0, U0, C0, C1, volume-only, and oracle diagnostic controls
+  in every final table.
+- 📌 MIN DECISION: Min agreed to benchmark/calibration-first framing.
+
+### Evidence
+- Files:
+  - `research_gsure/05_reports/BENCHMARK_CALIBRATION_PAPER_OUTLINE_20260624.md`
+  - `research_gsure/05_reports/REPORT_TEMPLATE.md`
+  - `research_gsure/02_audits/outputs/loco_split_summary.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_auc_summary.csv`
+- Commands:
+  - `pwd && git status --short && git branch --show-current`
+  - `sed -n '1,260p' research_gsure/03_baselines/RELIABILITY_CALIBRATION_PROTOCOL_20260624.md`
+  - `sed -n '1,220p' research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_decision.md`
+  - `sed -n '1,160p' research_gsure/02_audits/outputs/loco_split_summary.csv`
+  - `sed -n '1,220p' research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_auc_summary.csv`
+- Metrics:
+  - Official LOCO total: 1614 subjects.
+  - Heldout counts: MU 203, UCSD 178, UPENN 611, UTSW 622.
+  - B1B two-fold pooled V0 AUROC: 0.735.
+  - B1B two-fold pooled C0 AUROC: 0.822.
+  - B1B two-fold pooled C1 AUROC: 0.910.
+  - B1B fold-level U0/C0 equality: MU 0.819/0.819, UCSD 0.845/0.845.
+
+### Remaining uncertainty
+- Whether UPENN/UTSW reproduce the reliability findings.
+- Whether threshold-free metrics preserve the conclusion.
+- Whether TTA/ensemble or stronger segmenter baselines are required for the
+  target venue.
+
+### Next recommended action
+- CPU-only: define and run threshold-free robustness plus site/lesion-size
+  control analyses.
+- GPU only after approval: complete UPENN/UTSW B1B if four-fold evidence remains
+  the load-bearing requirement.
+
+## 2026-06-24 — E2/E3 threshold and size controls run
+
+### Task
+- Run CPU-only threshold-free robustness, Dice cutoff sensitivity, site/fold
+  diagnostics, and lesion-size controls on existing MU+UCSD reliability scores.
+
+### Research question
+- Is the two-fold reliability finding merely an artifact of the `Dice <= 0.8`
+  failure threshold, naive site pooling, or lesion-size shortcuts?
+
+### What I inspected
+- `research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_test_scores.csv`
+- Existing reliability calibration evaluator.
+- Current benchmark/calibration outline.
+
+### Decision / action
+- Added CPU-only script:
+  `research_gsure/03_baselines/scripts/evaluate_threshold_size_controls.py`
+- Ran synthetic self-test.
+- Ran real E2/E3 analysis on MU+UCSD B1A/B1B reliability score artifacts.
+- Added decision artifact:
+  `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/threshold_size_control_decision.md`
+- Updated the report outline to mark R5/R6/R7 as two-fold completed.
+- No GPU work was launched.
+- No NIfTI volumes were loaded.
+
+### Result
+- Output directory:
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/`
+- B1B pooled Dice-cutoff sensitivity:
+  - C0 AUROC: 0.837 / 0.831 / 0.822 / 0.842 / 0.902 for cutoffs 0.70/0.75/0.80/0.85/0.90.
+  - C1 AUROC: 0.909 / 0.907 / 0.910 / 0.914 / 0.954.
+  - V0 AUROC: 0.764 / 0.758 / 0.735 / 0.693 / 0.678.
+- B1B continuous Dice-error Spearman:
+  - V0: 0.433.
+  - U0 raw entropy: 0.360.
+  - C0: 0.681.
+  - C1 entropy+volume: 0.823.
+- B1B site/fold separability:
+  - U0 raw entropy site AUC abs: 0.962.
+  - C0 site AUC abs: 0.612.
+  - C1 entropy+volume site AUC abs: 0.525.
+- B1B GT-size diagnostic strata:
+  - small failure rate 0.630, V0/C0/C1 AUROC 0.603/0.880/0.920.
+  - mid failure rate 0.386, V0/C0/C1 AUROC 0.801/0.880/0.918.
+  - large failure rate 0.315, V0/C0/C1 AUROC 0.771/0.765/0.883.
+
+### Interpretation
+- The reliability finding is not killed by Dice cutoff sensitivity or continuous
+  Dice association checks.
+- Raw entropy strongly encodes fold/site scale in MU+UCSD, directly supporting
+  the scale-mismatch claim.
+- Lesion size is a major failure mode, especially for small lesions, but it is
+  not the full explanation.
+- C0 does not beat V0 in the large GT-size stratum, so the final paper must
+  report stratum-specific limitations.
+- C1 remains strong but is still a supervised subject-level QC baseline, not a
+  visual-grounding method.
+
+### Insight tags
+- ✅ SUCCESS: E2 threshold sensitivity supports the benchmark/calibration claim
+  across Dice cutoffs 0.70-0.90.
+- ✅ SUCCESS: E3 confirms raw entropy has severe cross-site score-scale
+  sensitivity.
+- ⚠️ RISK: Current control evidence remains MU+UCSD only.
+- ⚠️ RISK: C0 fails to beat V0 in the large GT-size stratum.
+- 💡 INSIGHT: The strongest punchline is now empirical: naive pooled raw entropy
+  is site-scale confounded, while predicted-volume control is necessary but
+  insufficient.
+- 🧪 NEXT: Complete UPENN/UTSW B1B only with explicit GPU approval, then rerun
+  the same E2/E3 controls on all four folds.
+- 🔁 DO NOT REPEAT: Do not use raw pooled entropy as the headline score.
+- 🧯 MITIGATION: Present size-stratified and site-separability diagnostics in
+  the main benchmark paper tables.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/evaluate_threshold_size_controls.py`
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/threshold_sensitivity_metrics.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/continuous_dice_association.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/site_score_separability.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/lesion_size_stratified_metrics.csv`
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/threshold_size_control_decision.md`
+- Commands:
+  - `python -m py_compile research_gsure/03_baselines/scripts/evaluate_threshold_size_controls.py`
+  - `python research_gsure/03_baselines/scripts/evaluate_threshold_size_controls.py --synthetic-self-test --out-dir research_gsure/03_baselines/outputs/20260624_1205_threshold_size_controls_synthetic`
+  - `python research_gsure/03_baselines/scripts/evaluate_threshold_size_controls.py --scores-csv research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/reliability_calibration_test_scores.csv --out-dir research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls`
+
+### Remaining uncertainty
+- Whether these findings replicate on UPENN and UTSW.
+- Whether TTA/ensemble uncertainty changes the baseline ordering.
+- Whether a stronger segmenter reduces or preserves the same reliability
+  distortions.
+
+### Next recommended action
+- Prepare a concise GPU approval preview for UPENN/UTSW B1B four-fold
+  reproduction, or explicitly defer GPU and produce the current two-fold
+  benchmark draft tables.
+
+## 2026-06-24 — UPENN B1B fit completed on GPU4
+
+### Task
+- Run the approved UPENN-GBM B1B scratch 3D U-Net fit on fixed GPU4 as the first
+  step toward four-fold LOCO reproduction.
+
+### Research question
+- Can the B1B training regimen used for MU/UCSD complete cleanly for the UPENN
+  heldout fold without leakage, runtime failure, or artifact validation failure?
+
+### What I inspected
+- GPU status with `nvidia-smi`.
+- Workspace state with `pwd`, `git status --short`, and
+  `git branch --show-current`.
+- Output directory collision status.
+- Existing B1B remaining LOCO command plan.
+
+### Decision / action
+- Launched the approved fit command:
+  heldout `UPENN-GBM`, GPU4 only, bf16, 20 epochs, 64 steps/epoch.
+- Monitored training through completion.
+- Ran `validate_b1_fit_results.py`.
+- Added result note:
+  `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_UPENN-GBM_192x224x160_spe64/FIT_VALIDATION_RESULT.md`
+
+### Result
+- Fit completed.
+- Validator result: `all_valid=true`.
+- Fit rows used: 903.
+- Internal-val rows used: 8.
+- Held-out UPENN rows not used for validation: 611.
+- Train loss: 0.537342 -> 0.473160.
+- Final internal-val Dice at threshold 0.5:
+  - mean 0.698171.
+  - min 0.146033.
+  - max 0.912800.
+- Shape mismatch count: 0.
+- GPU memory:
+  - max allocated 4084.50 MiB.
+  - max reserved 5474.00 MiB.
+- GPU4 returned to 0 MiB after completion.
+
+### Interpretation
+- The UPENN B1B fit is valid and ready for the next pipeline step.
+- This is still not UPENN held-out performance: no held-out test predictions
+  were written in this fit step.
+- The loss curve improved but plateaued after the middle epochs, consistent
+  with prior B1B behavior.
+
+### Insight tags
+- ✅ SUCCESS: UPENN fit completed and passed validation.
+- ✅ SUCCESS: No held-out UPENN test rows were used for validation.
+- ⚠️ RISK: Internal-val mean Dice is based on only 8 rows, so it is a runtime
+  sanity signal, not a fold performance estimate.
+- ⚠️ RISK: UPENN held-out prediction will be IO-heavy because there are 611 test
+  rows.
+- 💡 INSIGHT: The regimen is operationally feasible on GPU4 with ~5.5 GiB
+  reserved memory.
+- 🧪 NEXT: Preview and approve UPENN outer-train internal-val prediction, then
+  threshold selection and held-out prediction.
+- 🔁 DO NOT REPEAT: Do not interpret this fit-only result as UPENN benchmark
+  evidence.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_UPENN-GBM_192x224x160_spe64/training_log.jsonl`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_UPENN-GBM_192x224x160_spe64/checkpoint_last.pt`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_UPENN-GBM_192x224x160_spe64/fit_summary.json`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_UPENN-GBM_192x224x160_spe64/FIT_VALIDATION_RESULT.md`
+- Commands:
+  - `nvidia-smi`
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode fit ...`
+  - `python research_gsure/03_baselines/scripts/validate_b1_fit_results.py ...`
+
+### Remaining uncertainty
+- UPENN held-out test segmentation performance.
+- UPENN train-only threshold selection.
+- Whether the reliability scale/volume findings reproduce on UPENN.
+
+### Next recommended action
+- Do not infer UPENN benchmark performance yet.
+- If Min approves, run UPENN internal-val prediction next on GPU4 using the
+  existing command plan.
