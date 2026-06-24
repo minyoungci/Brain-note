@@ -159,7 +159,7 @@ Next-action controller:
   post-prediction, and post-evaluation states so Autoresearch does not jump
   straight from artifacts to later decisions.
 - Current latest packet:
-  `research_gsure/03_baselines/B1_NEXT_ACTION_20260623_091123.md`
+  `research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.md`
 - This is the preferred first file to inspect at the start of a B1
   Autoresearch session.
 
@@ -266,7 +266,9 @@ Current status:
 - `192x224x160@0.50` is recommended for the first B1 smoke training command.
 - Smoke training mode is implemented but has not been executed.
 - Latest GPU4 smoke preflight:
-  `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260623_085000_gpu4_fixed.md`.
+  `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260624_002039_gpu4_fixed.md`.
+- Current next action packet:
+  `research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.md`.
 - Fit mode is implemented for post-smoke fold checkpoints, but it must not be
   executed until smoke output passes `validate_b1_smoke_result.py`.
 - Full-fit mode writes `fit_summary.json` alongside `checkpoint_last.pt`; all

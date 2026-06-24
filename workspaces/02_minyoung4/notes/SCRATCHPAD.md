@@ -8968,3 +8968,74 @@
 ### Next recommended action
 - Execute the bounded GPU4 B1A smoke only after exact command approval, then
   validate with `validate_b1_smoke_result.py`.
+
+## 2026-06-24 — B1 Autoresearch current gate refresh
+
+### Task
+- Refresh the current B1 Autoresearch state after the 2026-06-24 GPU4
+  preflight, without launching GPU training.
+
+### Research question
+- Is the baseline chain actually ready for the next scientific step, and what
+  is the next valid action before changing model structure?
+
+### What I inspected
+- Workspace status, B1 status checker, B1 plan-chain validator, the latest
+  GPU4 smoke preflight, and current B1 outputs.
+
+### Decision / action
+- Generated a fresh CPU-only next-action packet:
+  `research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.md`.
+- Kept the stage at `ready_for_smoke_approval`.
+- Did not run GPU training, inference, full-fit, prediction, evaluation,
+  ranking, or variant promotion.
+
+### Result
+- Official split is still valid.
+- GPU preview artifacts are still valid.
+- No smoke output exists.
+- No full-fit checkpoints exist.
+- No prediction manifests exist.
+- No segmentation metric summary exists.
+- The current next valid action remains explicit Min approval for bounded B1A
+  smoke on GPU4.
+
+### Interpretation
+- There is no Dice/result evidence yet to support a claim that the model is good
+  or bad.
+- The project is correctly positioned at the first executable training gate:
+  B1A smoke. Later architecture/loss/capacity variants must wait until B1A has
+  complete OOF segmentation metrics.
+
+### Insight tags
+- ✅ SUCCESS: Current status and next-action artifacts are synchronized.
+- ⚠️ RISK: Autoresearch can look busy while producing no model evidence if it
+  keeps adding planners instead of running the approved training gate.
+- 🧪 NEXT: After exact approval, run the bounded B1A GPU4 smoke command and
+  immediately validate the output with `validate_b1_smoke_result.py`.
+- 🔁 DO NOT REPEAT: Do not start B1B/B1C or G-SURE reliability heads before B1A
+  smoke, full LOCO fit, prediction, and evaluation are complete.
+- 📌 MIN DECISION: GPU4 smoke execution requires explicit approval.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.md`
+  - `research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.json`
+  - `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260624_002039_gpu4_fixed.md`
+- Commands:
+  - `python research_gsure/03_baselines/scripts/check_b1_autoresearch_status.py`
+  - `python research_gsure/03_baselines/scripts/validate_b1_plan_chain.py`
+  - `python research_gsure/03_baselines/scripts/plan_b1_next_action.py --timestamp 20260624_002039 --output-md research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.md --output-json research_gsure/03_baselines/B1_NEXT_ACTION_20260624_002039.json`
+- Metrics:
+  - status stage: `ready_for_smoke_approval`
+  - checkpoint count: `0/4`
+  - prediction manifest count: `0/4`
+  - evaluation valid: `False`
+
+### Remaining uncertainty
+- Real training stability and segmentation performance remain unknown until the
+  smoke and full LOCO gates are executed.
+
+### Next recommended action
+- Request exact approval for the bounded B1A smoke command in
+  `research_gsure/03_baselines/B1A_SMOKE_PREFLIGHT_20260624_002039_gpu4_fixed.md`.
