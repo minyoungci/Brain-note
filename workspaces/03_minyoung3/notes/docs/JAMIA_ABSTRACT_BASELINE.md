@@ -18,7 +18,7 @@ Target journal framing: JAMIA-style biomedical informatics benchmark/evaluation 
 
 **Results:** In the pilot, generic agents over-claimed on 19/90 outputs; checklist prompting reduced this to 3/90. The controller rewrote fixed generic drafts, eliminating observed over-claims (rewrite-stability, 0/90) with lower completeness than checklist prompting (1.878 vs 2.622). In the scaled benchmark, non-planted labels were 70.1% threshold-robust, and 77.1% (216/280) of multi-cohort-judgeable findings received unanimous cross-cohort labels. Hard artifact traps (n=214) were defined as high discovery performance with failed replication; therefore, a discovery-threshold rule had 0% recall by construction. A replication-rule baseline achieved 0.72 recall at 0.99 precision and detected 43% of naturally occurring non-planted traps. Direct-questioned open LLM agents collapsed to near-uniform rejection, contrasting with pilot over-claiming under open-ended generation.
 
-**Discussion:** Claim calibration was sensitive to framing and replication structure; checklist prompting improved but did not solve over-claim control.
+**Discussion:** Claim calibration was sensitive to framing and replication structure; checklist prompting improved but did not fully control over-claiming.
 
 **Conclusion:** ClaimTrap-AD exposes a claim-calibration gap: discovery-threshold rules are blind to replication traps, while replication-aware baselines and LLM agents handle them only partially.
 

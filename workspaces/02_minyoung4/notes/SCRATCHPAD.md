@@ -10778,3 +10778,402 @@
 - Do not infer UPENN benchmark performance yet.
 - If Min approves, run UPENN internal-val prediction next on GPU4 using the
   existing command plan.
+
+## 2026-06-25 — Synthetic self-test quarantine and two-fold evidence lock
+
+### Task
+- Decide between immediate GPU continuation and first cleaning the evidence
+  boundary around the MU+UCSD two-fold benchmark/calibration results.
+
+### Research question
+- Can the current benchmark/calibration framing be recorded without allowing a
+  synthetic self-test fixture or two-fold-only evidence to leak into stronger
+  four-consortium claims?
+
+### What I inspected
+- `pwd`, `git status --short`, and `git branch --show-current`.
+- `research_gsure/05_reports/BENCHMARK_CALIBRATION_PAPER_OUTLINE_20260624.md`
+- `research_gsure/03_baselines/outputs/20260624_1205_threshold_size_controls_synthetic/`
+- `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/`
+- `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/threshold_size_control_decision.md`
+- Current SCRATCHPAD entries around the E2/E3 control run.
+
+### Decision / action
+- Chose option B before further GPU work.
+- Marked `20260624_1205_threshold_size_controls_synthetic` as a script
+  self-test fixture, not a research result.
+- Locked the real MU+UCSD two-fold R5/R6/R7 evidence in the paper outline.
+- Added explicit four-fold break checks before UPENN/UTSW generalization.
+- Did not delete, move, rename, or overwrite the synthetic output directory.
+- Did not launch GPU training or inference.
+
+### Result
+- The outline now separates:
+  - non-evidence self-test fixture:
+    `research_gsure/03_baselines/outputs/20260624_1205_threshold_size_controls_synthetic/`
+  - real two-fold control evidence:
+    `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/`
+- Locked MU+UCSD two-fold evidence:
+  - R5 site/confound: B1B raw entropy site AUC abs 0.962, C0 0.612, C1 0.525.
+  - R6 size strata: small/mid/large V0 vs C0 vs C1 AUROC
+    0.603/0.880/0.920, 0.801/0.880/0.918, 0.771/0.765/0.883.
+  - R7 threshold-free: Spearman with `1 - Dice`: V0 0.433, U0 0.360,
+    C0 0.681, C1 0.823.
+
+### Interpretation
+- Current results support only a MU+UCSD two-fold benchmark/calibration claim.
+- `1205` synthetic outputs are valid for script testing but invalid as evidence.
+- The next scientific test is whether UPENN/UTSW preserve the qualitative
+  pattern or trigger the registered break checks.
+
+### Insight tags
+- ✅ SUCCESS: The paper outline now explicitly excludes the synthetic fixture
+  from research evidence.
+- ✅ SUCCESS: R5/R6/R7 are fixed as MU+UCSD two-fold evidence with concrete
+  numbers.
+- ⚠️ RISK: UPENN/UTSW can still overturn the framing.
+- ⚠️ RISK: High predicted-volume AUROC on remaining folds would make the result
+  look like a volume-shortcut benchmark, not an uncertainty-calibration result.
+- 💡 INSIGHT: The key claim is protocol discipline: train-only calibration plus
+  volume and site controls, not a new QC model.
+- 🧪 NEXT: Prepare explicit GPU approval preview for UPENN internal-val
+  prediction, then held-out prediction/eval, then rerun four-fold controls.
+- 🔁 DO NOT REPEAT: Do not cite `synthetic_scores.csv` outputs or C0 AUC=1.0 as
+  discoveries.
+- 🧯 MITIGATION: Keep every result sentence scoped to "MU+UCSD two-fold" until
+  the four-fold reproduction is done.
+
+### Evidence
+- Files:
+  - `research_gsure/05_reports/BENCHMARK_CALIBRATION_PAPER_OUTLINE_20260624.md`
+  - `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/threshold_size_control_decision.md`
+  - `SCRATCHPAD.md`
+- Commands:
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `rg --files -g '*1205*' -g '*synthetic*' -g '*OUTLINE*' -g 'SCRATCHPAD.md' -g '*1210*'`
+  - `ls -lt research_gsure/03_baselines/outputs`
+  - `ls -la research_gsure/03_baselines/outputs/20260624_1205_threshold_size_controls_synthetic`
+  - `ls -la research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls`
+  - `sed -n '1,220p' research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/threshold_size_control_decision.md`
+
+### Remaining uncertainty
+- UPENN held-out and internal-val predictions are not complete.
+- UTSW fit/predict/eval are not complete.
+- Four-fold C0/C1 gate and E2/E3 controls remain unrun.
+
+### Next recommended action
+- Request GPU approval for UPENN internal-val prediction only, with command
+  preview, expected runtime, GPU/memory risk, output paths, and stop procedure.
+
+## 2026-06-25 — UPENN internal-val predict blocked by fixed GPU4 guard
+
+### Task
+- Run the approved UPENN B1B outer-train internal-val prediction as the next
+  four-fold reproduction step.
+
+### Research question
+- Can UPENN internal-val prediction be generated from the completed UPENN B1B
+  fit without leaking held-out rows or colliding with existing GPU jobs?
+
+### What I inspected
+- `nvidia-smi`
+- `pwd`
+- `git status --short`
+- `git branch --show-current`
+- `research_gsure/03_baselines/B1B_REMAINING_LOCO_COMMAND_PLAN_20260624_100756.md`
+- UPENN fit checkpoint and output directory collision status.
+
+### Decision / action
+- Did not run on GPU4 because GPU4 was occupied by three existing Python
+  processes using about 147,790 MiB total.
+- Tried a conservative single-GPU reroute to idle GPU2 for the same UPENN
+  internal-val prediction command.
+- The command failed immediately because `train_b1_segmentation.py` enforces
+  physical GPU4 via `CUDA_VISIBLE_DEVICES=4`.
+- Confirmed the intended internal-val output directory was not created.
+
+### Result
+- No UPENN internal-val prediction artifacts were produced.
+- Failure occurred before inference started and before output writing.
+- Error:
+  `RuntimeError: B1 GPU execution is fixed to physical GPU 4. Set CUDA_VISIBLE_DEVICES=4; got '2'.`
+
+### Interpretation
+- This is an execution-policy/resource conflict, not a modeling result.
+- It does not rule out the UPENN B1B fold.
+- It does not change the MU+UCSD two-fold evidence lock.
+- The current script cannot safely use idle GPU2 without an explicit code/policy
+  change, which should not be done silently.
+
+### Failure analysis
+- What failed: UPENN internal-val predict launch.
+- Failure type: compute / execution policy.
+- Immediate cause: script-level fixed GPU4 guard rejected `CUDA_VISIBLE_DEVICES=2`.
+- Deeper cause: the command plan assumed GPU4 was free; on 2026-06-25 GPU4 was
+  heavily occupied by other processes.
+- Evidence: `nvidia-smi` showed GPU4 at 147,790 MiB used; traceback raised the
+  fixed-GPU4 runtime error.
+- What this rules out: running this B1 command on GPU2 without modifying the
+  script or policy.
+- What this does not rule out: rerunning the approved command on GPU4 once GPU4
+  is free.
+- Next diagnostic: poll GPU4 availability, then rerun the original GPU4 command
+  only when memory is clear enough.
+- Whether to stop this direction: no; stop only this immediate launch attempt.
+
+### Insight tags
+- ⚠️ RISK: The B1 pipeline is operationally coupled to physical GPU4, so a busy
+  GPU4 blocks progress even when other GPUs are idle.
+- 🧪 NEXT: Wait for GPU4 availability or get explicit Min approval to change the
+  fixed-GPU guard policy.
+- 🔁 DO NOT REPEAT: Do not silently reroute B1 GPU commands to another GPU;
+  the current script rejects it and the plan records GPU4 as fixed.
+- 🧯 MITIGATION: Before retry, run `nvidia-smi` and require GPU4 to have enough
+  free memory for predict.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+  - `research_gsure/03_baselines/B1B_REMAINING_LOCO_COMMAND_PLAN_20260624_100756.md`
+  - `SCRATCHPAD.md`
+- Commands:
+  - `nvidia-smi`
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `CUDA_VISIBLE_DEVICES=2 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode predict --predict-split internal_val ...`
+  - `test -d research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UPENN-GBM_192x224x160_spe64`
+
+### Remaining uncertainty
+- When GPU4 will become available.
+- Whether Min wants to preserve the fixed-GPU4 policy or approve a narrow change
+  to allow GPU2 for this run.
+
+### Next recommended action
+- Wait until GPU4 is free, then rerun the original `CUDA_VISIBLE_DEVICES=4`
+  UPENN internal-val prediction command and validate artifacts.
+
+## 2026-06-25 — UPENN B1B internal-val prediction completed
+
+### Task
+- Run command-plan step 3: UPENN-GBM B1B outer-train internal-validation
+  prediction from the completed UPENN fit checkpoint.
+
+### Research question
+- Can the UPENN B1B fold produce train-only internal-val prediction artifacts
+  needed for later threshold selection without artifact corruption or held-out
+  test leakage?
+
+### What I inspected
+- `nvidia-smi`
+- `pwd`
+- `git status --short`
+- `git branch --show-current`
+- UPENN B1B remaining LOCO command plan.
+- UPENN checkpoint existence and internal-val output directory collision status.
+
+### Decision / action
+- Ran the original fixed-GPU command on physical GPU4 after Min approved step 3.
+- Kept scope to UPENN internal-val prediction only.
+- Did not run UPENN held-out test prediction.
+- Did not run threshold selection or evaluation.
+- Validated prediction artifacts after completion.
+
+### Result
+- Output directory:
+  `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UPENN-GBM_192x224x160_spe64/`
+- Prediction rows: 100.
+- Inference scope: `outer_train_internal_validation`.
+- Outputs written:
+  - `prediction_manifest.csv`
+  - `prediction_summary.json`
+  - `prediction_config.json`
+  - `prediction_command.json`
+  - `probability_maps/*.nii.gz`
+- GPU memory:
+  - max allocated: 1689.680 MiB.
+  - max reserved: 2472.000 MiB.
+- Artifact validation:
+  - rows checked: 100.
+  - errors: 0.
+
+### Interpretation
+- UPENN internal-val prediction artifacts are valid for later train-only
+  threshold selection.
+- This is not UPENN held-out benchmark performance.
+- This does not yet extend the MU+UCSD two-fold reliability claim to UPENN.
+
+### Insight tags
+- ✅ SUCCESS: UPENN internal-val prediction completed and artifact validation
+  found 0 errors across 100 rows.
+- ⚠️ RISK: GPU4 remained busy with unrelated processes, but memory headroom was
+  sufficient for this predict step.
+- ⚠️ RISK: The next UPENN held-out test prediction is larger and has higher IO
+  exposure than this internal-val run.
+- 💡 INSIGHT: The fixed GPU4 policy is operationally workable for predict if
+  memory headroom remains at least a few GiB, but it couples progress to GPU4.
+- 🧪 NEXT: Request/confirm approval for UPENN held-out test prediction, then run
+  artifact validation before threshold selection.
+- 🔁 DO NOT REPEAT: Do not treat internal-val Dice values as held-out UPENN
+  performance.
+- 🧯 MITIGATION: Keep the next step separate: held-out prediction first,
+  threshold selection/eval only after both manifests exist.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UPENN-GBM_192x224x160_spe64/prediction_manifest.csv`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UPENN-GBM_192x224x160_spe64/prediction_summary.json`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UPENN-GBM_192x224x160_spe64/INTERNAL_VAL_PREDICTION_RESULT.md`
+- Commands:
+  - `nvidia-smi`
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `CUDA_VISIBLE_DEVICES=4 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode predict --predict-split internal_val ...`
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_internal_val_predict_UPENN-GBM_192x224x160_spe64/prediction_manifest.csv`
+
+### Remaining uncertainty
+- UPENN held-out test prediction has not been run.
+- UPENN train-only threshold selection has not been run.
+- UPENN held-out evaluation has not been run.
+- Four-fold C0/C1 reliability gate and E2/E3 controls remain unrun.
+
+### Next recommended action
+- Preview and approve UPENN held-out test prediction as a separate GPU step.
+
+## 2026-06-25 — UPENN B1B held-out prediction and evaluation on GPU3
+
+### Task
+- Continue the B1B four-fold reproduction by running UPENN held-out test
+  prediction on physical GPU3, then perform train-only threshold selection and
+  CPU held-out evaluation.
+
+### Research question
+- Does the completed UPENN B1B fold produce valid held-out prediction artifacts
+  and a train-only thresholded segmentation evaluation without leakage or
+  artifact corruption?
+
+### What I inspected
+- `nvidia-smi`
+- `pwd`
+- `git status --short`
+- `git branch --show-current`
+- `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+- `research_gsure/03_baselines/B1B_REMAINING_LOCO_COMMAND_PLAN_20260624_100756.md`
+- UPENN fit checkpoint and held-out output directory collision status.
+
+### Decision / action
+- Min requested GPU3 continuation.
+- Updated `train_b1_segmentation.py` GPU guard to allow approved physical GPUs
+  3 or 4 instead of only GPU4.
+- Ran `python -m py_compile` on the changed script.
+- Ran UPENN held-out test prediction on physical GPU3.
+- Validated OOF prediction manifest with file checks.
+- Validated probability artifacts.
+- Selected threshold from UPENN outer-train internal-val predictions only.
+- Evaluated UPENN held-out test predictions at the selected threshold.
+- Validated evaluation outputs with `--allow-partial` because this is one fold.
+
+### Result
+- Held-out prediction output:
+  `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_predict_UPENN-GBM_192x224x160_spe64/`
+- Prediction rows: 611.
+- GPU: physical GPU3 via `CUDA_VISIBLE_DEVICES=3`.
+- GPU memory:
+  - max allocated: 1689.680 MiB.
+  - max reserved: 2472.000 MiB.
+- OOF manifest validation:
+  - rows: 611.
+  - errors: 0.
+- Artifact validation:
+  - rows checked: 611.
+  - errors: 0.
+- Train-only selected threshold: 0.8.
+- Evaluation rows: 611.
+- UPENN held-out thresholded evaluation at threshold 0.8:
+  - mean Dice: 0.8492609183656702.
+  - median Dice: 0.8735477284328739.
+  - pooled Dice: 0.8713742930736292.
+  - Dice <= 0.8 failure rate: 0.18003273322422259.
+  - pooled pred/GT volume ratio: 1.0154373772412357.
+- Size-stratified failure rates:
+  - large: 0.04411764705882353.
+  - medium: 0.07389162561576355.
+  - small: 0.4215686274509804.
+- Evaluation validator:
+  - `valid=true`.
+  - `errors=[]`.
+
+### Interpretation
+- UPENN held-out segmentation artifacts are now valid for the next reliability
+  calibration step.
+- This is one additional LOCO fold, not yet a four-fold benchmark conclusion.
+- Small lesions remain the dominant failure stratum on UPENN, consistent with
+  the MU+UCSD risk pattern, but reliability C0/C1 controls still need rerun
+  after UTSW is complete.
+- The GPU3 guard change was operational, not a scientific method change.
+
+### Code review and verification
+- What changed: `train_b1_segmentation.py` now allows `CUDA_VISIBLE_DEVICES=3`
+  or `CUDA_VISIBLE_DEVICES=4` for B1 CUDA execution.
+- Why necessary: Min explicitly requested GPU3 and GPU4 was occupied.
+- What could break: downstream text expecting the runtime field
+  `fixed_cuda_visible_devices_required`; the runtime summary now records
+  `allowed_cuda_visible_devices` instead.
+- Hard-coded paths: unchanged except the command output path.
+- Randomness: seed remained `20260623`.
+- Train/test boundaries: prediction used `--predict-split test` for held-out
+  UPENN and threshold selection used internal-val only.
+- Labels: held-out labels were used only for evaluation, not threshold selection.
+- Outputs: new timestamped/plan-scoped output directories were used; no overwrite.
+- Validation run: `py_compile`, OOF manifest validator, artifact validator,
+  threshold selection, evaluation, evaluation validator.
+
+### Insight tags
+- ✅ SUCCESS: UPENN held-out prediction completed on GPU3 and passed artifact
+  validation with 0 errors across 611 rows.
+- ✅ SUCCESS: Train-only threshold selection chose 0.8 and evaluation validation
+  passed.
+- ⚠️ RISK: This is still a single additional held-out fold, not a four-fold
+  reliability claim.
+- ⚠️ RISK: Small UPENN lesions have high failure rate (0.4216), so size controls
+  remain load-bearing.
+- 💡 INSIGHT: GPU3 is operationally safe for this predict workload after the
+  guard change; peak reserved memory was only about 2.5 GiB.
+- 🧪 NEXT: Complete UTSW B1B fit/predict/eval, then rerun four-fold C0/C1 and
+  E2/E3 controls.
+- 🔁 DO NOT REPEAT: Do not tune thresholds on UPENN held-out metrics.
+- 🧯 MITIGATION: Keep UPENN results scoped to one held-out fold until UTSW and
+  four-fold pooled reliability analyses are complete.
+
+### Evidence
+- Files:
+  - `research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_predict_UPENN-GBM_192x224x160_spe64/prediction_manifest.csv`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_predict_UPENN-GBM_192x224x160_spe64/prediction_summary.json`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_predict_UPENN-GBM_192x224x160_spe64/HELDOUT_PREDICTION_RESULT.md`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_upenn_internal_val_threshold_selection/b1b_upenn_internal_val_threshold_selection.json`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_eval_UPENN-GBM_internal_val_threshold_spe64/b1b_fitprobe_upenn_internal_val_threshold_spe64_summary.json`
+  - `research_gsure/03_baselines/outputs/20260624_100756_b1b_unet3d_dice_focal_bc16_d4_fitprobe_eval_UPENN-GBM_internal_val_threshold_spe64/EVAL_VALIDATION_RESULT.json`
+- Commands:
+  - `nvidia-smi`
+  - `pwd`
+  - `git status --short`
+  - `git branch --show-current`
+  - `python -m py_compile research_gsure/03_baselines/scripts/train_b1_segmentation.py`
+  - `CUDA_VISIBLE_DEVICES=3 python research_gsure/03_baselines/scripts/train_b1_segmentation.py --mode predict --predict-split test ...`
+  - `python research_gsure/02_audits/scripts/validate_oof_prediction_manifest.py --prediction-manifest ... --heldout-dataset UPENN-GBM --check-files`
+  - `python research_gsure/02_audits/scripts/validate_prediction_artifacts.py --prediction-manifest ...`
+  - `python research_gsure/03_baselines/scripts/select_threshold_from_predictions.py ... --threshold-grid 0.3,0.4,0.5,0.6,0.7,0.8,0.9`
+  - `python research_gsure/03_baselines/scripts/evaluate_b1_segmentation_predictions.py ...`
+  - `python research_gsure/03_baselines/scripts/validate_b1_evaluation_results.py ... --allow-partial`
+
+### Remaining uncertainty
+- UTSW B1B fit/predict/eval remains incomplete.
+- Four-fold reliability calibration gate has not been rerun.
+- Four-fold threshold-free/site/size controls have not been rerun.
+
+### Next recommended action
+- Prepare a separate approval preview for UTSW B1B fit on GPU3 or GPU4.

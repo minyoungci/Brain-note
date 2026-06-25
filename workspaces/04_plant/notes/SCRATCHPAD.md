@@ -3,6 +3,45 @@
 > 현재 라인의 상태·가설·결과를 여기에 누적. 핸드오프 시 이 파일로 상태 전달. 최신이 위.
 > 과거 라인 기록은 `docs/DECISION_LOG.md`·`docs/ledgers/`·`insight/`에 보존됨.
 
+## 2026-06-25 — JCN 본문 작성 + research-critic 검증 → v2 개정 ★현재
+- 결정: (A) JCN급 한 편 끝까지 + 검증. 생성≠검증 분리 적용.
+- ① 단일 진실원 `experiments/incremental_value/16_manuscript_numbers.py`(모든 수치+figure). figure **눈으로 검증** → Fig4가 WMH를 AT(N) 미보정으로 그려 misleading(WMH raw 유의처럼)한 버그 잡아 *AT(N) 보정 버전*으로 수정.
+- ② 본문 `docs/clinical_paper/MANUSCRIPT.md`(Abstract→Conclusion+Table1·2+legend+refs).
+- ③ research-critic 독립 리뷰: blocking 3·major 8·minor 6. (B1 OR수치 "출처없음"은 critic 오판 — script16 실재, 단 provenance 혼선은 진짜 → script16을 단일원으로 못박아 해소.)
+- v2 개정 반영(검증수치): **연속 SUVR가 quadratic-MMSE서 생존(β−4.25 p0.003)→RTM은 *이진*에만**(M4 완화·강화); **WMH 95%CI −0.49~+0.31 = N효과만 한 효과 배제**(M3 underpowered방어); APOE null(β+0.10 p0.80); 모델별 n(binary252·SUVR251·ADNI309); "generalizes"→"directionally concordant/reproduces"(M2); 선택편향=amyloid 증폭 방향 caveat(M6); Younes/Bachmann/Vemuri/Ye 본문 대조(M7); 다중성=effect-mod family Bonferroni 명시(M5); STROBE 결측·precision(M8).
+- **잔여 🔴(저자만 가능):** IRB 승인번호·동의(B2, desk-reject 트리거)·Fig1 flow counts·refs full citation. 2차 critic 통과 전엔 "submission-ready" 아님.
+
+## 2026-06-25 — ADNI benchmark 실행 + 우위 문헌검증 → delta 재정렬
+- UCBERKELEY 입수(`data/UCBERKELEY_AMY_6MM_30Mar2026.csv`, PTID=subject_id 직접조인 1317/1580). **AJU main·ADNI benchmark**(pooled 아님, 동일모델 따로). 코드 `15_adni_comparator.py`, 통합 `docs/clinical_paper/15_adni_comparator_results.md`.
+- **결과:** N축·**연속 amyloid 부담** 양 코호트 재현(AT(N) **일반화** ✅); 이진 amyloid 양쪽 약(연속>이진); **amyloid×age는 AJU만·ADNI 비재현(반대, age분포 동일)** → age-의존 헤드라인 **폐기**(self-validation 편향 2번째 사례, benchmark가 차단).
+- **lit-scout 검증:** single novel delta **없음**. WMH-null=우위 아님(**Ye2015 Neurology** 한국 SVaD WMH positive 반례)→**경계조건**으로만. 실세계 멀티모달=**Younes2025 Alz&Dem·Bachmann2026 ART18:106** 점유. **유일 빈자리=ADNI↔Asian 종단 head-to-head AT(N) 일반화**(Yim2025 K-ROAD↔ADNI는 횡단). 연속>이진=상식.
+- **방어 delta=묶음:** ①head-to-head 일반화 설계 + ②WMH 경계조건 + ③age 비재현. JCN급 충분, single 포장 시 3 reject(Ye/Younes/Bachmann).
+- **🚫 인용 kill:** "Lee2016 Neurology 한국 amyloid 종단" 특정 실패=hallucination 의심, 사용 금지.
+- docs 갱신: `20_manuscript_outline.md`(title·abstract·R4·delta·limit·인용 전면). 메모리 [[kroad-occupancy-threat]]·[[aju-atn-defended-claim]] 갱신.
+- **천장 확정:** AJU+ADNI=정직한 JCN급, top 불가(데이터 구조 고정). 다음=figure+prose 마감(분석 천장 도달).
+- [VERIFY] Bachmann2026 본문·Ye2015 계수·K-ROAD 종단 임박.
+
+## 2026-06-25 — ADNI→AJU transportability pivot gate: 현재 BLOCKED
+- 요청/논점: ADNI와 AJU가 같은 FS 해마/BrainSegVol 파이프라인이면 **ADNI A+N 예후모델 → AJU transport**가 단일기관 AJU 서술보다 강한 방향인지 검토.
+- 확인: ADNI full manifest 4,742 rows/1,580 subjects, hippo+BrainSegVol 전량 가용. age+MMSE+hippo usable 4,643 rows/1,527 subjects. ADNI longitudinal v2 manifest 4,153 rows/870 subjects, `session_time_unit=date`; >=2 usable MMSE+hippo visits 840 subjects. → **N-only longitudinal은 가능**.
+- 핵심 차단: official full manifest에는 ADNI amyloid scalar 없음. v2 T1-PET pair manifest는 ADNI AV45 references 2,697 rows지만 `pet_target_value` 전부 결측(이미지 reference만, scalar target 아님).
+- 과거 inventory/메모상 원천 `/home/vlm/data/raw/ADNI/PET/UCBERKELEY_AMY_6MM_30Mar2026.csv`(4,728 rows; RID/VISCODE/SCANDATE/TRACER/AMYLOID_STATUS/CENTILOIDS/SUMMARY_SUVR)와 파생 `minyoung2/data/amyloid_label_table.csv`(ADNI~1,202)가 있었으나, 현재 `/home/vlm/data/raw/ADNI` 부재·`/home/vlm/minyoung2/data` empty.
+- ③ 추가 확인: stale note의 **전처리 ADNI PET/SUVR 텐서 1,792개는 실제 존재**. `pet_amyloid` dirs 1,793 subject-sessions/669 subjects, `pet_suvr_*.nii.gz` 1,792, QC json 1,792 all PASS, `global_mean_suvr` median 1.31(range 0.85-2.14), clinical+hippo join usable 1,731 sessions/661 subjects. 단 **비표준 local PET scalar**라 Centiloid/status provenance·threshold 방어 부담 큼 → manuscript A축 주경로로 의도적 deprioritize.
+- 결론: **transportability pivot은 현재 AJU 논문의 자동 업그레이드가 아니라 별도 야심찬 논문.** UCBERKELEY scalar는 “복구 대기”가 아니라 ADNI/LONI 재다운로드+RID/VISCODE/SCANDATE 조인으로 해결 가능한 데이터-acquisition gate. 그래도 amyloid prognostic claim의 선행점유·ADNI≠AJU 외부검증·WMH/vascular finding 비전이성 때문에 scalar가 생겨도 **가치 gate를 다시 통과해야 함**. 현재는 AJU AT(N) line을 독립 merit로 유지. 산출 `docs/clinical_paper/14_adni_transport_feasibility.md` 보정.
+- **KDRC 종단 가용성(반복 미해결 항목) 확정 종결(2026-06-25):** KDRC=909 subjects **전부 ses-1 단일세션, ≥2 MMSE 세션=0 → 횡단 전용.** 종단 예후(ΔMMSE) 외부검증 **불가**. (횡단 multimodal은 풍부: 해마909·amyloid909·**Fazekas662**·WMH·dx.) → **디스크상 Asian 종단 외부코호트 존재 안 함**(ADNI=비Asian+표준 amyloid scalar 부재/비표준 tensor만, OASIS MCI n=41, A4 전부 CN, NACC amyloid 5). 외부검증 질문 **완결(열린 옵션 0)**. 결론: AJU 단일기관 AT(N) 마감, 외부 종단검증=future work. [[korean-data-value]] [[aju-atn-defended-claim]]
+
+## 2026-06-25 — claim 방어/재정식화: AT(N) (N>A≫V, WMH null) ★현재 헤드라인
+- 요청: 새 헤드라인 캐지 말고 **바뀐 claim 방어**. Min 5필수(AT(N)표·MCI-only·이진OR·subtype강등·age simple slope)+추가(selection·RTM·WMH battery) 전부 실행.
+- **"두 독립축(amyloid+vascular)" 사망:** robust 배터리(12)서 vascular OLS p0.008→Huber 0.061/outlier 0.096/이진 0.12-0.75. MCI-only AT(N)서도 Huber p0.18 → **확정 demote.** subtype: 신호=Subcortical VaD(n=7, resid−2.48) 국한, Vascular MCI(n=46) resid−0.31 약.
+- **AT(N) 재정식화(PRIMARY=MCI-only n=252, amyloid+=76):** N(해마/내후각 위축) β−0.72 **p0.001, Huber·outlier·부트스트랩P<0=1.00 = 가장 robust**; A(amyloid) β−1.15 p0.011 robust(Huber0.006); **A–N 독립(VIF1.05)**; WMH(부피·시각·사분위비선형) 전부 null.
+- **amyloid 단서(limitation 명시):** baseline mmse²/ceiling제외서 borderline(p0.063/0.095), 효과 고기능MCI 집중 → ceiling/RTM 완전배제 불가. → amyloid는 **이진 OR(2.6@≤−3,3.4@≤−2)·SUVR(β−5.17,p0.0004)·age 교호**로 방어(연속 β보다 강).
+- **age simple slope(secondary 핵심, figure-ready):** amyloid 효과 65세 −2.54[−3.80,−1.28]→72세 −1.43→80세 −0.17(null), 교호 p0.004(Huber·outlier 통과).
+- **selection bias 실재:** 추적군 경증(MMSE+1.2·CDR-SB−0.5·AD적음 p<0.001) **단 amyloid 균형(p0.31)** → 일반화=경증 memory-clinic MCI 한정.
+- WMH: **Fazekas 286 전부 결측 → "Fazekas null" 폐기**, "wmh_grade_visual 시각등급 null"로 교체.
+- delta 좁힘: real-world Korean MCI + **AT(N) 패턴(N우위·WMH-null·amyloid 나이의존)**. 메소드 novelty 아님, JCN급.
+- 산출: `docs/clinical_paper/13_defense_results.md`(통합), `20_manuscript_outline.md`(title·abstract·R1-6·limit 갱신). 코드 `experiments/incremental_value/12_robustness_battery.py·13_defense_battery.py·14_rtm_robust_resolution.py`.
+- 미해결: amyloid RTM 외부확인(ADNI/KDRC 방향성)·Vemuri2015 정독·age 교호 figure 생성.
+
 ## 2026-06-24 — ΔMMSE 주-outcome 확정 + 나이의존 인사이트
 - 임상의 지적(혈관치매 별개라 "MCI→AD" 오명)·진단필드 4개 불일치·dx_detail baseline고정(0/286)·follow-up 세분 부재 확인 → **outcome을 ΔMMSE(etiology무관)로 전환**. 전환=치매진행(병인불문) 보조+한계.
 - AJU 종단 검증: **2-wave only**(3회+ 0명), 295명 V2, median 1.94yr, 29% 추적, V2 실제 재평가. → "trajectory" 과대포장 금지, "2년 ΔMMSE".

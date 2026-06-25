@@ -15,6 +15,7 @@ MICCAI 2026 Foundation Model Challenge. FOMO300K(라벨없는 3D 뇌 MRI)로 SSL
 | 전략·일정·학습인프라(resume) | [docs/04_strategy_plan.md](docs/04_strategy_plan.md) |
 | downstream 셋업·finetuning | [docs/05_downstream_setup.md](docs/05_downstream_setup.md) |
 | **위험 레지스터**(W1~15)·모니터 spec | [docs/06_risk_register.md](docs/06_risk_register.md) |
+| foundation↔downstream 불일치·해결전략 | [docs/07_downstream_integration_mismatch.md](docs/07_downstream_integration_mismatch.md) |
 | 후보 상세 A/B/C·구조 figure | [docs/arch_candidates/](docs/arch_candidates/) · [docs/figures/](docs/figures/) |
 
 ## 구조

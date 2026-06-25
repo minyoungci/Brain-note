@@ -61,6 +61,16 @@ research_gsure/03_baselines/outputs/20260624_1115_reliability_calibration_gate/
 
 Current evidence is two-fold only: MU and UCSD.
 
+Evidence hygiene:
+
+- `research_gsure/03_baselines/outputs/20260624_1205_threshold_size_controls_synthetic/`
+  is a script self-test fixture from `synthetic_scores.csv`, not a research
+  result. Do not cite its C0 AUC, site diagnostics, or tables as evidence.
+- The locked two-fold control evidence comes from
+  `research_gsure/03_baselines/outputs/20260624_1210_threshold_size_controls/`.
+- All current reliability claims must be worded as MU+UCSD two-fold evidence
+  until UPENN and UTSW prediction/evaluation are completed.
+
 | model | score | scope | AUROC | AUPRC | interpretation |
 | --- | --- | --- | ---: | ---: | --- |
 | B1B | V0 predicted volume | pooled MU+UCSD | 0.735 | 0.671 | deployable shortcut baseline |
@@ -80,6 +90,14 @@ Interpretation:
 - C0 equals U0 within each fold because it is monotonic inside a fold.
 - C0 pooled gain means raw entropy scales are misaligned across folds.
 - C1 is strong, but it is a supervised subject-level QC baseline.
+
+Locked MU+UCSD two-fold controls:
+
+| result id | control | key two-fold observation | interpretation boundary |
+| --- | --- | --- | --- |
+| R5 | site/confound control | B1B raw entropy site AUC abs 0.962; C0 0.612; C1 0.525 | raw pooled entropy is site-scale sensitive |
+| R6 | lesion-size strata | small/mid/large V0 vs C0 vs C1 AUROC: 0.603/0.880/0.920, 0.801/0.880/0.918, 0.771/0.765/0.883 | lesion size is a major failure mode, but not the full explanation |
+| R7 | threshold-free robustness | Spearman with `1 - Dice`: V0 0.433, U0 0.360, C0 0.681, C1 0.823 | the Dice <= 0.8 result is not only a threshold artifact |
 
 ## Research Design Note
 
@@ -179,6 +197,15 @@ Stop making a reliability benchmark claim if UPENN/UTSW show that:
 - C0 pooled behavior is unstable or sign-flipped without a clear scale reason,
 - C1 improvement over volume-only disappears,
 - site or annotation source dominates the reliability scores.
+
+Pre-registered four-fold break checks:
+
+- C2 check: within-fold entropy must remain competitive with the predicted-volume
+  baseline. If UPENN/UTSW show entropy below volume without a clear explanation,
+  the scale-calibration claim weakens.
+- C3 check: if predicted-volume AUROC is about 0.70 or higher and entropy/QC
+  scores do not add stable signal beyond it, the result should be treated as a
+  volume-shortcut finding rather than an uncertainty/calibration finding.
 
 ## Contributions
 
@@ -427,5 +454,6 @@ Until then, the default direction is benchmark/calibration.
 
 ## Next Action
 
-Run CPU-only E2/E3 planning first, then request explicit approval for E1 if the
+The CPU-only MU+UCSD E2/E3 controls are locked as two-fold evidence. Next,
+request explicit GPU approval for UPENN/UTSW B1B prediction/evaluation if the
 paper still needs four-fold completion as the load-bearing evidence.
