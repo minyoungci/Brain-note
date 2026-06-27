@@ -3,7 +3,15 @@
 > 현재 라인의 상태·가설·결과를 여기에 누적. 핸드오프 시 이 파일로 상태 전달. 최신이 위.
 > 과거 라인 기록은 `docs/DECISION_LOG.md`·`docs/ledgers/`·`insight/`에 보존됨.
 
-## 2026-06-25 — JCN 본문 작성 + research-critic 검증 → v2 개정 ★현재
+## 2026-06-27 — 2차 research-critic + 직접 재현검증 → MANUSCRIPT v3 ★현재
+- 결정: (b) 토대검증 후 논문화 진행. 생성≠검증 — critic 주장도 **직접 코드 실행으로 재검증**.
+- **critic BLOCKER 2건 = 절반 오진:** B1 "Table2가 두 모델 stitch(N=이진모델·SUVR=2-pred, 동시 fit 불가)" → **거짓.** 진짜 4-pred 연속모델 `Cf+[suvr,N,vasc,wmh_log]` 직접 fit하니 N−0.598/SUVR−5.173/V−1.030/WMH+0.134 = 현 Table2와 정확 일치(critic은 코드 못 돌려 line105 binary N=−0.699를 −0.60로 오인). B2 "robustness 수치 미체크인" → **참**(script12/14는 전부 *이진* amyloid robustness). 진짜 핵심=정합성 아닌 **재현성**.
+- **재현성 BLOCKER 해소:** `16_manuscript_numbers.py`에 `[TABLE2]`(진짜 단일 연속모델 raw+std β+APOE) + robustness(Huber suvr0.0001/N0.0051·influential·bootstrap 1.000/0.999·quadratic−4.25/0.0032) 블록 추가, `[WMH]`도 연속-amyloid 보정 표준화+CI+visual분포로 교체. 이제 본문 전 수치 script16에서 직접 산출.
+- **토대 점검(중복):** AJU MCI n=252 literal dup 0. cross-subject 동일 FastSurfer 부피 **1쌍(ABD-AJ-0029/0030)** — collapse 후 헤드라인 불변(suvr−5.17→−5.19, p 전부 그대로). 단 *영상 동일·임상 상이* = linkage 적신호 1건 [VERIFY at source]. ([[manifest-leakage-duplicates]]: MCI 종단 프레임엔 1쌍만 생존, 2쌍 아님)
+- **v3 framing 수정(critic 타당분 반영):** ① per-SD 오표기 정정(N raw−0.60 = std −0.53); ② amyloid×age → **exploratory 강등**(연속 p0.043>Bonferroni0.0125, never-pooled라 cohort×interaction 정식검정 불가); ③ WMH de-implementation **권고 철회**, "range-restricted null"로 한정(visual grade3=4/252, CI 하한−0.49≈AT(N)효과 크기); ④ **Ye2015 재특성화**(global 인지선 amyloid만·WMH null = 우리와 일치, 오인용→우리편) + **Bachmann2026 정면대응**(독립 WMH 양성 = 반례, 인구·outcome 차이로 방어); ⑤ §3.5 vascular subtype를 doc13(n=286)→script16(MCI-only: AD+SVD n6 −1.99, Vascular MCI n45 −0.39)로 정정; ⑥ secondary endpoint ΔMMSE≤−3 비유의(OR1.84 p0.084) 명시; ⑦ **제목에서 "but not WMH burden" 드롭**(본문 약화와 모순 제거 — Min veto 가능).
+- **잔여 🔴(저자):** IRB(B2)·Fig1 flow·refs full citation([VERIFY] Bachmann adjusted estimate·Ye vol/page). 3차 critic 미실행.
+
+## 2026-06-25 — JCN 본문 작성 + research-critic 검증 → v2 개정
 - 결정: (A) JCN급 한 편 끝까지 + 검증. 생성≠검증 분리 적용.
 - ① 단일 진실원 `experiments/incremental_value/16_manuscript_numbers.py`(모든 수치+figure). figure **눈으로 검증** → Fig4가 WMH를 AT(N) 미보정으로 그려 misleading(WMH raw 유의처럼)한 버그 잡아 *AT(N) 보정 버전*으로 수정.
 - ② 본문 `docs/clinical_paper/MANUSCRIPT.md`(Abstract→Conclusion+Table1·2+legend+refs).

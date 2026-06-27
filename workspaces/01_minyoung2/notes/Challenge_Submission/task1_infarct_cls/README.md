@@ -63,14 +63,14 @@ modalities=adc,dwi_b1000,flair,t2star
 - [x] 120초/case timing pass
 - [x] final `.sif` sha256 기록
 
-## 2026-06-26 SIF/validator 상태
+## 2026-06-27 SIF/validator 상태
 
 제출 후보 SIF:
 
 ```text
-Challenge_Submission/common/container/builds/fomo26_task1_submission_nopost.sif
-sha256=6d77abf9052149f3c6b3e1b27157987a63e02b2c34612160976f6d608c5d370a
-size=3.9G
+Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif
+sha256=3e4d459a011ecd90187d6a6ce5a3c37915350afb303e2492993a2e5b9437a45d
+size=5.2G
 ```
 
 SIF 빌드 방식:
@@ -89,6 +89,8 @@ Phase 1 PASS
 Phase 2 FAIL: Apptainer instance start failed on this host
 error=Failed to set mount propagation: Permission denied
 ```
+
+위 로그는 Task1-only SIF로 처음 확인한 기록이다. 동일한 Apptainer 런타임 문제가 현재 Task1/3/4/5/6/7 통합 SIF에서도 재현되므로, 최종 제출 전에는 통합 SIF로 Apptainer가 허용된 Linux 노드에서 validator를 다시 실행해야 한다.
 
 판단:
 

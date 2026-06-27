@@ -17,11 +17,25 @@
 - task-specific supervised adaptation을 넣지 않는다.
 - embedding preprocessing은 Task6과 동일해야 한다.
 
+## 제출 route 상태
+
+Task7은 공식 validator task 이름과 출력 계약이 Task6과 동일한 `task6_and_7`이다. 현재 route는 Task6과 같은 frozen foundation embedding을 저장한다.
+
+```text
+route=python /app/predict.py --input /input/image.nii.gz --output /output/output.npy
+embedding_shape=(320,)
+embedding_dtype=float32
+finetune=False
+SIF=Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif
+sha256=3e4d459a011ecd90187d6a6ce5a3c37915350afb303e2492993a2e5b9437a45d
+validator=Phase 0/1 PASS, Phase 2 blocked by host Apptainer mount propagation
+```
+
 ## 제출 전 체크리스트
 
-- [ ] Task6/7 common embedding route 확정
-- [ ] `args.output` 경로에 그대로 저장, 파일명 하드코딩 금지
-- [ ] `.npy` 1D fixed-length output 검증
-- [ ] no-finetune 위반 여부 코드 리뷰
+- [x] Task6/7 common embedding route 확정
+- [x] `args.output` 경로에 그대로 저장, 파일명 하드코딩 금지
+- [x] `.npy` 1D fixed-length output 검증
+- [x] no-finetune 위반 여부 코드 리뷰
 - [ ] container-validator pass
-- [ ] 120초/case timing pass
+- [x] 120초/case timing pass(host smoke)

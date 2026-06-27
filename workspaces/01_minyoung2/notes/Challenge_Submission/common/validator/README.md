@@ -115,22 +115,26 @@ Challenge_Submission/common/validator/logs/
 
 이 워크스테이션에서 `apptainer` 또는 `singularity`가 PATH에 없으면 빌드/검증은 실행할 수 없다. 그 경우 스크립트가 dependency error를 내고 멈춘다. validator 설치 자체는 가능하지만, 실제 container validation은 Apptainer 설치 후 실행한다.
 
-### 2026-06-26 Task1 validator attempt
+### 2026-06-27 Task1/3/4/5/6/7 validator attempt
 
-프로젝트 내부 conda env에 Apptainer 1.4.2를 설치해 Task1 SIF를 검증했다.
+프로젝트 내부 conda env에 Apptainer 1.4.2를 설치해 Task1/3/4/5/6/7 통합 SIF를 검증했다.
 
 ```text
 apptainer=/home/vlm/minyoung2/Challenge_Submission/common/validator/apptainer_env/bin/apptainer
-sif=Challenge_Submission/common/container/builds/fomo26_task1_submission_nopost.sif
+sif=Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif
 manifest=Challenge_Submission/task1_infarct_cls/validation/task1_real_manifest.yaml
-log=Challenge_Submission/common/validator/logs/20260626_053516_task1_fomo26_task1_submission_nopost_nogpu.log
+task1_log=Challenge_Submission/common/validator/logs/20260627_132554_task1_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log
+task3_log=Challenge_Submission/common/validator/logs/20260627_132516_task3_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log
+task4_log=Challenge_Submission/common/validator/logs/20260627_132554_task4_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log
+task5_log=Challenge_Submission/common/validator/logs/20260627_132516_task5_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log
+task6_and_7_log=Challenge_Submission/common/validator/logs/20260627_132533_task6_and_7_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log
 ```
 
 결과:
 
 ```text
 Phase 0 PASS: Linux, Apptainer 1.4.2
-Phase 1 PASS: SIF file, extension, real Task1 inputs
+Phase 1 PASS: SIF file, extension, real task inputs for Task1/3/4/5/6_and_7
 Phase 2 FAIL: container_instance_start
 error=Failed to set mount propagation: Permission denied
 ```
@@ -148,8 +152,48 @@ error=Failed to set mount propagation: Permission denied
 PATH=/home/vlm/minyoung2/Challenge_Submission/common/validator/apptainer_env/bin:$PATH \
 Challenge_Submission/common/validator/validate_sif.sh \
   --task task1 \
-  --sif Challenge_Submission/common/container/builds/fomo26_task1_submission_nopost.sif \
+  --sif Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif \
   --manifest Challenge_Submission/task1_infarct_cls/validation/task1_real_manifest.yaml \
+  --timeout 120 \
+  --no-gpu
+```
+
+```bash
+PATH=/home/vlm/minyoung2/Challenge_Submission/common/validator/apptainer_env/bin:$PATH \
+Challenge_Submission/common/validator/validate_sif.sh \
+  --task task3 \
+  --sif Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif \
+  --manifest Challenge_Submission/task3_brain_age/validation/task3_real_manifest.yaml \
+  --timeout 120 \
+  --no-gpu
+```
+
+```bash
+PATH=/home/vlm/minyoung2/Challenge_Submission/common/validator/apptainer_env/bin:$PATH \
+Challenge_Submission/common/validator/validate_sif.sh \
+  --task task4 \
+  --sif Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif \
+  --manifest Challenge_Submission/task4_trigeminal_seg/validation/task4_real_manifest.yaml \
+  --timeout 120 \
+  --no-gpu
+```
+
+```bash
+PATH=/home/vlm/minyoung2/Challenge_Submission/common/validator/apptainer_env/bin:$PATH \
+Challenge_Submission/common/validator/validate_sif.sh \
+  --task task5 \
+  --sif Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif \
+  --manifest Challenge_Submission/task5_polymicrogyria_cls/validation/task5_real_manifest.yaml \
+  --timeout 120 \
+  --no-gpu
+```
+
+```bash
+PATH=/home/vlm/minyoung2/Challenge_Submission/common/validator/apptainer_env/bin:$PATH \
+Challenge_Submission/common/validator/validate_sif.sh \
+  --task task6_and_7 \
+  --sif Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif \
+  --manifest Challenge_Submission/task6_linear_probe/validation/task6_real_manifest.yaml \
   --timeout 120 \
   --no-gpu
 ```

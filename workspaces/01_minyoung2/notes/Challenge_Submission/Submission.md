@@ -122,11 +122,11 @@ experiments/phase_b/resenc_s3d_wg0.5/latest.pt
 |---|---|---|
 | Task1 Infarct | pretrained AUROC 0.942 vs scratch 0.596, Delta +0.346 | 우선 제출 준비 대상 |
 | Task2 Meningioma | Dice 0.127 vs scratch 0.107, CI 겹침 | 멀티모달 개선 필요 |
-| Task3 Brain Age | Pearson 0.947 vs scratch 0.910, Delta +0.037 | 제출 가능, 차이는 작음 |
+| Task3 Brain Age | Pearson 0.947 vs scratch 0.910, Delta +0.037 | 제출 후보 준비 완료, 차이는 작음 |
 | Task4 Trigeminal | Dice 0.413/NSD 0.786 vs scratch 0.164/0.344 | 우선 제출 준비 대상 |
-| Task5 Polymicrogyria | AUROC 0.986 vs scratch 0.997 | 제출 가능하나 ceiling/site confound 주의 |
-| Task6 Linear Probe | AUROC 0.817 | embedding route 준비 필요 |
-| Task7 Fairness | 로컬 그룹 메타 없음 | Task6와 같은 embedding route, 주최측 평가 |
+| Task5 Polymicrogyria | AUROC 0.986 vs scratch 0.997 | 제출 후보 준비 완료, ceiling/site confound 주의 |
+| Task6 Linear Probe | AUROC 0.817 | frozen embedding route 준비 완료 |
+| Task7 Fairness | 로컬 그룹 메타 없음 | Task6와 같은 frozen embedding route 준비 완료, 주최측 평가 |
 
 ## 5. 제출 전 게이트
 
@@ -140,26 +140,38 @@ Synapse validation attempt를 쓰기 전에 아래를 모두 통과해야 한다
 - [ ] segmentation `.nii.gz`는 원본 입력 공간 shape/affine/header와 일치한다.
 - [ ] Task4 label range가 `{0,1,2}`를 넘지 않는다.
 - [ ] Task2 label range가 `{0,1}`를 넘지 않는다.
-- [ ] Task6/7 `.npy`는 1D fixed-length float embedding이다.
+- [x] Task6/7 `.npy`는 1D fixed-length float embedding이다.
 - [ ] 120초/case 제한 안에서 추론된다.
 - [ ] CPU-only validator 또는 no-gpu validator가 통과한다.
 - [ ] 가능하면 GPU local dry-run도 통과한다.
 - [ ] final `.sif` sha256, build log, validator log가 저장되어 있다.
 
-현재 Task1 상태(2026-06-26):
+현재 Task1/3/4/5/6/7 상태(2026-06-27):
 
 - SIF 빌드 성공:
-  `Challenge_Submission/common/container/builds/fomo26_task1_submission_nopost.sif`
+  `Challenge_Submission/common/container/builds/fomo26_task1_task3_task4_task5_task6_task7_submission_nopost.sif`
 - SHA256:
-  `6d77abf9052149f3c6b3e1b27157987a63e02b2c34612160976f6d608c5d370a`
-- 공식 validator no-gpu 실행은 Phase 0/1까지 통과했지만 Phase 2에서 호스트 Apptainer 권한 문제로 실패:
+  `3e4d459a011ecd90187d6a6ce5a3c37915350afb303e2492993a2e5b9437a45d`
+- 공식 validator no-gpu 실행은 Task1/3/4/5/6_and_7 모두 Phase 0/1까지 통과했지만 Phase 2에서 호스트 Apptainer 권한 문제로 실패:
   `Failed to set mount propagation: Permission denied`
-- 실패 로그:
-  `Challenge_Submission/common/validator/logs/20260626_053516_task1_fomo26_task1_submission_nopost_nogpu.log`
-- 같은 `predict.py`와 checkpoint를 host Python에서 manual preprocessing 경로로 실행한 Task1 real-data smoke는 통과:
+- 새 SIF validator 로그:
+  `Challenge_Submission/common/validator/logs/20260627_132554_task1_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log`
+  `Challenge_Submission/common/validator/logs/20260627_132516_task3_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log`
+  `Challenge_Submission/common/validator/logs/20260627_132554_task4_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log`
+  `Challenge_Submission/common/validator/logs/20260627_132516_task5_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log`
+  `Challenge_Submission/common/validator/logs/20260627_132533_task6_and_7_fomo26_task1_task3_task4_task5_task6_task7_submission_nopost_nogpu.log`
+- 같은 `predict.py`와 checkpoint를 host Python에서 manual preprocessing 경로로 실행한 real-data smoke는 통과:
   `sub_01_swi=0.999968`, `sub_03_t2s=0.002578`, 각각 120초 제한 이내.
+- Task3 host smoke:
+  `sub-001 t1w -> 71.259161`, label `72`, 출력 `.txt` 숫자 하나.
+- Task4 host smoke:
+  `sub_01 t2w -> host_predict_sub01.nii.gz`, elapsed 14s, output shape `(360,512,512)`, label range `[0,1,2]`.
+- Task5 host smoke:
+  `sub_01 t1 -> 0.000346`, 출력 `.txt` 확률 하나.
+- Task6/7 host smoke:
+  two inputs both output `(320,) float32`, finite, dimension-consistent `.npy`.
 
-해석: Task1 모델/출력 포맷은 준비됐지만, 이 워크스테이션에서는 Apptainer `instance start` 자체가 막혀 local validator 최종 통과를 증명하지 못했다. Synapse 제출 전 Apptainer가 정상 동작하는 별도 노드에서 동일 SIF로 공식 validator를 재실행해야 한다.
+해석: Task1/3/4/5/6/7 모델/출력 포맷은 준비됐지만, 이 워크스테이션에서는 Apptainer `instance start` 자체가 막혀 local validator 최종 통과를 증명하지 못했다. Synapse 제출 전 Apptainer가 정상 동작하는 로컬 Linux/별도 노드에서 동일 SIF로 공식 validator를 재실행해야 한다. Task2는 seg 재실험 대상이라 이 SIF에 아직 route를 넣지 않았다.
 
 ## 6. 우선순위
 
@@ -169,10 +181,10 @@ Synapse validation attempt를 쓰기 전에 아래를 모두 통과해야 한다
 2. **Task4 route 구현**  
    리더보드 가중치 25%이고 foundation 이득이 가장 명확하다. 다만 resample-back과 multiclass 출력 검증이 필요하다.
 
-3. **Task3/5 route 구현**  
+3. **Task3/5 route 구현 완료**  
    Task1과 같은 cls/reg 계열이라 공통 head 추론 경로를 재사용한다.
 
-4. **Task6/7 embedding route 구현**  
+4. **Task6/7 embedding route 구현 완료**  
    finetune 금지 조건을 위반하지 않도록 frozen encoder only로 고정한다.
 
 5. **Task2 개선 및 route 구현**  
