@@ -173,6 +173,34 @@ Synapse validation attempt를 쓰기 전에 아래를 모두 통과해야 한다
 
 해석: Task1/3/4/5/6/7 모델/출력 포맷은 준비됐지만, 이 워크스테이션에서는 Apptainer `instance start` 자체가 막혀 local validator 최종 통과를 증명하지 못했다. Synapse 제출 전 Apptainer가 정상 동작하는 로컬 Linux/별도 노드에서 동일 SIF로 공식 validator를 재실행해야 한다. Task2는 seg 재실험 대상이라 이 SIF에 아직 route를 넣지 않았다.
 
+현재 Task1-v2 상태(2026-06-28):
+
+- Task1 Synapse validation AUROC 0.658 이후 v1 full fine-tuning route를 재검토했다.
+- v2 선택:
+  `DWI + ADC + FLAIR` manual 128 preprocessing -> frozen `wg0.5` foundation global vector -> mean fusion -> 5-seed linear-head ensemble.
+- v2 내부 repeated LOOCV:
+  `AUROC 0.942`, repeat mean `0.931`, repeat min `0.923`.
+- v2는 공식 Task1 CLI 호환을 위해 `--swi`/`--t2s` 입력을 받지만, T2*/SWI feature는 사용하지 않는다. 내부 ablation에서 all4가 더 불안정했기 때문이다.
+- 서버 host Python smoke:
+  `sub-01 --swi -> 0.985124`, `sub-03 --t2s -> 0.009169`.
+- 이 서버에는 `apptainer`/`singularity`가 없어 v2 SIF 직접 생성은 불가하다.
+- 로컬 빌드용 clean context:
+  `Challenge_Submission/common/container/local_build_task1v2/`
+- 단일 다운로드용 tar:
+  `Challenge_Submission/common/container/builds/fomo26_task1v2_local_build_context.tar`
+- tar SHA256:
+  `10daadc8d2426b2ed1b610535858ffd3cb51837cf367708c0f828646b4919426`
+- 로컬에서 빌드할 최종 SIF 경로:
+  `Challenge_Submission/common/container/local_build_task1v2/builds/fomo26_task1v2_task3_task4_task5_task6_task7_submission_nopost.sif`
+- 로컬 빌드/validator 절차:
+  `Challenge_Submission/common/container/local_build_task1v2/README_TASK1V2_LOCAL.md`
+
+Task1 재제출 판단:
+
+- 기존 v1 SIF는 더 이상 Task1 재제출 후보로 쓰지 않는다.
+- Task1-v2 SIF를 로컬에서 빌드하고 `container-validator --task task1` 통과 후에만 다음 validation attempt에 사용한다.
+- validation attempt가 제한되어 있으므로, v2 제출 전 `.sif.sha256`, validator log, 출력 예시를 반드시 저장한다.
+
 ## 6. 우선순위
 
 1. **Task1 route 구현**  

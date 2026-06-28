@@ -36,6 +36,53 @@ sha256=3e4d459a011ecd90187d6a6ce5a3c37915350afb303e2492993a2e5b9437a45d
 size=5.2G
 ```
 
+## Task1-v2 로컬 빌드 후보
+
+Task1 Synapse validation AUROC 0.658 이후, Task1 route는 full fine-tuning v1 대신 frozen foundation feature + small linear-head ensemble 방식의 v2로 교체했다. 이 서버에는 `apptainer`/`singularity`가 없어 새 `.sif`를 직접 만들 수 없으므로, 로컬 빌드용 clean context를 따로 만들었다.
+
+```text
+Challenge_Submission/common/container/local_build_task1v2/
+```
+
+단일 다운로드용 tar도 생성해 두었다.
+
+```text
+Challenge_Submission/common/container/builds/fomo26_task1v2_local_build_context.tar
+sha256=10daadc8d2426b2ed1b610535858ffd3cb51837cf367708c0f828646b4919426
+size=1.5G
+```
+
+로컬에서 이 폴더를 내려받아 빌드한다.
+
+```bash
+cd Challenge_Submission/common/container/local_build_task1v2
+mkdir -p builds
+apptainer build --fakeroot --arch amd64 \
+  builds/fomo26_task1v2_task3_task4_task5_task6_task7_submission_nopost.sif \
+  Apptainer.def
+sha256sum builds/fomo26_task1v2_task3_task4_task5_task6_task7_submission_nopost.sif \
+  | tee builds/fomo26_task1v2_task3_task4_task5_task6_task7_submission_nopost.sif.sha256
+```
+
+예상 최종 SIF 경로:
+
+```text
+Challenge_Submission/common/container/local_build_task1v2/builds/fomo26_task1v2_task3_task4_task5_task6_task7_submission_nopost.sif
+```
+
+서버에서 완료한 v2 host smoke:
+
+```text
+Task1-v2 --swi: sub-01 -> 0.985124
+Task1-v2 --t2s: sub-03 -> 0.009169
+```
+
+상세 절차:
+
+```text
+Challenge_Submission/common/container/local_build_task1v2/README_TASK1V2_LOCAL.md
+```
+
 ## 검증
 
 ```bash
