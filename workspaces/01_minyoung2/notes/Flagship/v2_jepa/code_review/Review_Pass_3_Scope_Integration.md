@@ -12,7 +12,7 @@ Flagship must be separate from challenge/downstream submission work.
 
 Check:
 
-- all new code is under `Flagship/code/`.
+- all new code is under `Flagship/v2_jepa/code/`.
 - no files under `Challenge_Submission/` were touched.
 - no pretraining or downstream production path was modified.
 - model code imports reusable `pretrain.models.ResBlock` and `SimPool`, but does not alter them.

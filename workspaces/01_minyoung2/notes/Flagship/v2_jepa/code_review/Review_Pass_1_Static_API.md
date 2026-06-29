@@ -6,12 +6,12 @@ Date: 2026-06-28
 
 Reviewed files:
 
-- `Flagship/code/brain_jepa/config.py`
-- `Flagship/code/brain_jepa/masking.py`
-- `Flagship/code/brain_jepa/losses.py`
-- `Flagship/code/brain_jepa/model.py`
-- `Flagship/code/smoke_brain_jepa.py`
-- `Flagship/code/tests/test_brain_jepa.py`
+- `Flagship/v2_jepa/code/brain_jepa/config.py`
+- `Flagship/v2_jepa/code/brain_jepa/masking.py`
+- `Flagship/v2_jepa/code/brain_jepa/losses.py`
+- `Flagship/v2_jepa/code/brain_jepa/model.py`
+- `Flagship/v2_jepa/code/smoke_brain_jepa.py`
+- `Flagship/v2_jepa/code/tests/test_brain_jepa.py`
 
 ## Findings
 
@@ -50,7 +50,7 @@ Fix:
 ## Commands
 
 ```bash
-python -m py_compile Flagship/code/brain_jepa/*.py Flagship/code/smoke_brain_jepa.py Flagship/code/tests/test_brain_jepa.py
+python -m py_compile Flagship/v2_jepa/code/brain_jepa/*.py Flagship/v2_jepa/code/smoke_brain_jepa.py Flagship/v2_jepa/code/tests/test_brain_jepa.py
 ```
 
 Result: passed.

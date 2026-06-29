@@ -197,9 +197,9 @@ Potential flagship figures:
 ## Implementation Location
 
 ```text
-Flagship/code/analysis/loss_landscape.py
-Flagship/code/analysis/objective_geometry.py
-Flagship/code/tests/test_loss_geometry.py
+Flagship/v2_jepa/code/analysis/loss_landscape.py
+Flagship/v2_jepa/code/analysis/objective_geometry.py
+Flagship/v2_jepa/code/tests/test_loss_geometry.py
 ```
 
 ## Guardrail

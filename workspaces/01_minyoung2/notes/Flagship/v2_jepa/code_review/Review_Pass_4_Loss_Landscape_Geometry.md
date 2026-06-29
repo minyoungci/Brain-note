@@ -8,9 +8,9 @@ The user asked whether Flagship can support technically novel experiments around
 
 This pass reviews the added analysis utilities:
 
-- `Flagship/code/analysis/loss_landscape.py`
-- `Flagship/code/analysis/objective_geometry.py`
-- `Flagship/code/tests/test_loss_geometry.py`
+- `Flagship/v2_jepa/code/analysis/loss_landscape.py`
+- `Flagship/v2_jepa/code/analysis/objective_geometry.py`
+- `Flagship/v2_jepa/code/tests/test_loss_geometry.py`
 
 ## Implemented Capabilities
 
@@ -72,9 +72,9 @@ Mitigation:
 Commands:
 
 ```bash
-python -m py_compile Flagship/code/brain_jepa/*.py Flagship/code/analysis/*.py Flagship/code/smoke_brain_jepa.py Flagship/code/tests/test_brain_jepa.py Flagship/code/tests/test_loss_geometry.py
-python -m unittest Flagship.code.tests.test_brain_jepa Flagship.code.tests.test_loss_geometry
-python Flagship/code/smoke_brain_jepa.py
+python -m py_compile Flagship/v2_jepa/code/brain_jepa/*.py Flagship/v2_jepa/code/analysis/*.py Flagship/v2_jepa/code/smoke_brain_jepa.py Flagship/v2_jepa/code/tests/test_brain_jepa.py Flagship/v2_jepa/code/tests/test_loss_geometry.py
+python -m unittest Flagship.v2_jepa.code.tests.test_brain_jepa Flagship.v2_jepa.code.tests.test_loss_geometry
+python Flagship/v2_jepa/code/smoke_brain_jepa.py
 ```
 
 Results:

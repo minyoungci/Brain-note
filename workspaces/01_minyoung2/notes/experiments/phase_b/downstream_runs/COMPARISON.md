@@ -58,3 +58,34 @@
 | Wave-D learned scratch | 0.084 | Δ+0.037(여전히 작음) |
 | **Wave-C flair단일 β0.8 (best)** | **0.159** | 멀티모달 불필요, flair에 정보 집중 |
 - **인사이트**: ①learned-fusion≫mean(mean-init 수정 효과)이나 단일 flair 못넘음=멀티모달이 men 안 올림(dwi/t2s 노이즈). ②**Δ-over-scratch 멀티모달서도 +0.037=작음** → 병목은 모달리티 아니라 **학습방식(full-FT가 foundation prior 못살림)**. VISTA3D Δ+0.61 대비 비정상. → **Wave-E=encoder frozen/low-LR(자료 핵심)이 진짜 레버**(Wave-D가 역으로 입증).
+
+## Wave-E (encoder 보존 frozen/lowlr — VISTA3D식, 2026-06-28)
+### trigeminal (tubular/anatomy)
+| 방법 | Dice | scratch | Δ-over-scratch |
+|---|---|---|---|
+| full-FT clDice (Wave-C) | 0.445 | 0.41 | +0.03 |
+| frozen | 0.442 | 0.308 | +0.134 |
+| **lowlr (best)** | **0.450** | 0.308 | **+0.142** |
+### meningioma (lesion/blob)
+| 방법 | Dice | scratch | Δ |
+|---|---|---|---|
+| **full-FT β0.8 (Wave-C best)** | **0.159** | 0.107 | +0.05 |
+| frozen | 0.086 | 0.076 | +0.01 |
+| lowlr | 0.078 | — | — |
+- **결정적 인사이트**: ①trig — 절대성능 0.445→0.450 미세, **그러나 Δ-over-scratch +0.03→+0.14(4배↑)**. full-FT에선 scratch도 encoder 학습해 따라와 "foundation 무용"처럼 보였으나(아티팩트), **frozen하면 scratch=0.308 갇힘 → 우리 foundation prior가 0.13 가치를 함**(VISTA3D Δ+0.61 패턴 확인). ②men — frozen 실패(0.159→0.086), Δ소멸 → foundation prior 무관, lesion-detection은 full-FT 고recall이 답. ③**task-adaptive 처방 확정**: tubular/anatomy=frozen/lowlr, lesion=full-FT. (자료의 "task별 protocol 최적화" 일치.)
+- **최종 seg best**: trig=lowlr clDice EMA 0.450/NSD 0.796 | men=full-FT β0.8 EMA 0.159/NSD 0.137
+
+## Wave-F (men anisotropic-aware 전처리, 2026-06-29)
+⚠️ C2: spacing 달라 절대값을 1mm-iso(0.159)와 직접비교 불가, 같은-grid Δ만 유효
+| 방법 | Dice | scratch | Δ-over-scratch |
+|---|---|---|---|
+| z=3mm crop128,128,48 | 0.148 | 0.070 | **+0.078** (foundation 살아남음) |
+| z=5mm crop128,128,32(~native) | 0.098 | 0.116 | **−0.018** (domain shift) |
+- **결정적 인사이트**: z의 정도가 **domain shift**를 좌우. z=3(1mm-iso에 가까움)=foundation prior 살아 Δ+0.078, z=5(완전 native)=shift 커 pre<scratch(prior 죽음). **단 어느 쪽도 1mm-iso 0.159 못 넘음=anisotropic 순이득 없음.** 진단(native z=6.5mm, 1mm-iso가 label 3047→12867 가짜 upsampling)은 옳았으나, foundation이 1mm-iso로 pretrain돼 anisotropic은 domain shift→이득 상쇄. **교훈: 전처리는 pretraining과 정합해야(데이터 최적≠모델 정합).** men 최종 best=Wave-C 1mm-iso full-FT β0.8 EMA **0.159**(불변).
+
+## Wave-G 검토 → 멈춤 (men 개선 루프 종료, 2026-06-29)
+- **cascade 비추천 (literature-scout)**: n<30서 cascade가 single-stage 이긴 사례 없음. ①nnU-Net cascade=FOV용(우린 sliding-window 이미) ②BraTS-meningioma n1000도 single-stage 우승 ③유일 small-lesion cascade 성공=218환자/3605종양. FN 전파(final_recall≤stage1_recall) 수학적 보장 → 병목 상류 이동만. (단일 체크포인트 규칙은 "사전학습 체크포인트" 한정이라 cascade 자동위반 아님 — R1 과해석 정정.)
+- **prompt token 무익**: 단일 클래스(meningioma)라 VISTA3D식 class prompt 정보 이득 없음.
+- **frozen+adapter 충돌**: Wave-E서 men=full-FT 검증과 역방향.
+- **blob loss(IPMI2023) = 향후 1순위 미시도 옵션**: instance-level loss로 크기편차1500배·검출병목 직격, drop-in·단일ckpt·추론0. 단 기대이득 작음(MS +5%F1) → 사용자 판단으로 보류.
+- **men 최종 = Wave-C 1mm-iso full-FT Tversky β0.8 + EMA: Dice 0.159 / NSD 0.137** (확정). 천장=n23 few-shot+extra-axial+thick-slice 삼중고(데이터 한계).

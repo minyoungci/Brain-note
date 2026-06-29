@@ -3,6 +3,9 @@
 > 대상: FOMO26 (MICCAI 2026) 단일 체크포인트 foundation model.
 > 이 글은 "그림으로 보는 개요"가 아니라 **코드(`pretrain/models.py`, `pretrain/train.py`)에서 한 줄씩 검증한** 데이터·gradient 흐름 해설이다.
 > 모든 수식·흐름은 실제 학습 루프와 일치한다. 그림은 `figures/modules/`.
+>
+> 📎 **이 문서는 foundation 모델 *자체*의 해부다.** 그 foundation을 7개 downstream 과제에 *어떻게 fine-tuning*했고 어떤 실험을 거쳤는지의 여정은 [`downstream_finetuning_journey.md`](downstream_finetuning_journey.md), Task2 men 저성능 원인 진단은 [`men_task2_diagnosis.ipynb`](men_task2_diagnosis.ipynb)에 있다.
+> §10 downstream 결과는 **R3~Wave-I까지 반영된 최신 수치**다 (초기 full-FT 측정의 "seg=한계" 결론은 정정됨 — §10 이력 참조).
 
 ---
 
@@ -210,20 +213,25 @@ w_global을 0/0.5/1.0으로 셋 학습(각 150k step, 코퍼스 221,376) 뒤 dow
 
 ## 10. 이 모델이 *실제로* 배운 것 — downstream 검증 (Δ-over-random/scratch)
 
-설계를 아는 것과, 그 설계가 *무엇을 학습했는지*는 다르다. proper 전처리(yucca)로 정직하게 측정한 결과:
+설계를 아는 것과, 그 설계가 *무엇을 학습했는지*는 다르다. proper 전처리(yucca)로 정직하게 측정한 **최신 결과(R3~Wave-I 반영)**:
 
 | downstream | 지표 | 사전학습 | 베이스라인 | Δ | 해석 |
 |---|---|---|---|---|---|
-| **brain age** (reg, n=494) | pearson | **0.867** | random 0.541 | **+0.326** (CI분리) | ✅ **강한 진짜 신호** |
-| infarct (cls, n=21) | AUROC | 0.817 | random 0.481 | +0.336 | ⚠️ 방향양수·검정력부족 |
+| **brain age** (reg, n=494) | pearson | **0.867** | random 0.541 | **+0.326** (CI분리) | ✅ **강한 진짜 신호** (global morphometry) |
+| **infarct** (cls, n=21) | AUROC | **0.942** | scratch 0.519 | **+0.346** | ✅ **few-shot서 강함** (scratch 실패, n작아 CI주의) |
+| **trigeminal** (seg, n=40) | Dice | **0.450** | scratch(frozen) 0.308 | **+0.142** | ✅ **encoder 보존시 명백** (full-FT의 +0.011은 아티팩트) |
+| meningioma (seg, n=23) | Dice | 0.159 | scratch 0.107 | +0.052 | 🟡 **데이터 한계**(thick-slice 6.5mm·n23, 모델 아님 — `men_task2_diagnosis.ipynb`) |
 | polymicrogyria (cls, n=48) | AUROC | 0.946 | random 0.868 | +0.078 | 🔴 대부분 site confound |
-| trigeminal (seg, n=40) | Dice | 0.432 | **scratch 0.421** | +0.011 | 🔴 from-scratch 동급 |
-| meningioma (seg, n=23) | Dice | 0.317 | **scratch 0.312** | +0.005 | 🔴 from-scratch 동급(둘 다 floor 근처) |
 
 **무엇을 말하나:**
-- **global 축(특히 morphometry=brain age)에서 이 foundation은 명백한 가치**가 있다 — InfoNCE-global이 실제로 전역 구조 표현을 학습했다는 직접 증거.
-- **dense/seg 축에서는 well-tuned from-scratch를 못 넘는다** — 인코더가 복원으로 국소 디테일을 배웠어도, *그 이득이 seg 전이로 이어지지는 않는다*(scratch nnU-Net이 같은 전처리에서 이미 강함). 이것이 우리 thesis가 정량화하려는 **global-유용 / dense-한계의 Pareto trade-off**다.
-- 방법 교훈: **전처리와 random/scratch 베이스라인이 결론을 바꾼다.** 구 resize 전처리에서는 trigeminal이 "+0.047 positive transfer"로 *보였지만*, 그건 scratch를 망가뜨린 아티팩트였다. proper 전처리에서 scratch가 0.421로 따라오자 이득은 사라졌다.
+- **세 축에서 foundation 가치가 명확하다**: ① global morphometry(brain age, InfoNCE-global이 전역 구조 학습) ② few-shot cls(infarct, scratch가 실패하는 저데이터서 강함) ③ tubular/anatomy seg(trigeminal, encoder 보존시 Δ+0.14). → **"1개만 되는 모델"이 아니다.** 구조가 결함이면 이 셋부터 random 수준이어야 한다.
+- **정밀 법칙: foundation 가치 = from-scratch가 *실패*하는 곳에서 크다.** few-shot(infarct)·encoder-보존 미세구조 seg(trigeminal). 데이터 충분 reg(brain age도 finetune시 Δ붕괴)·confound(polymicro)에선 작아 보인다.
+- **"안 되는" task는 구조 결함이 아니라 task별 다른 원인**이다 — meningioma=데이터 한계(thick-slice·few-shot, ipynb로 인과 진단), polymicro=site confound(random도 0.87). 구조가 원인이면 *모든* task가 같은 방식으로 실패해야 하나, 그렇지 않다. **같은 구조가 trig 0.45 vs men 0.159 = 차이는 데이터, 모델 아님.**
+- **task-adaptive 처방**: tubular/anatomy seg는 frozen/lowlr(foundation prior 보존), lesion seg는 full-FT. 만능 단일 레시피는 없다.
+- 방법 교훈: **전처리·random/scratch 베이스라인·encoder 보존 여부가 결론을 바꾼다.** ① 구 resize 전처리의 trigeminal "+0.047"은 scratch를 망가뜨린 아티팩트. ② full-FT의 seg Δ≈0도 아티팩트(scratch가 encoder까지 학습해 따라옴) — frozen하면 진짜 Δ가 드러난다.
+
+> ### 이력 (정정 경위)
+> 이 표의 **초기 버전**(2026-06-25)은 full-finetune 기준이라 trigeminal Δ+0.011·meningioma Δ+0.005로 "seg는 from-scratch 못 넘음 → global유용/dense한계 Pareto"로 결론했었다. **그 프레임은 폐기됐다**: Wave-E(encoder 보존)에서 trigeminal scratch가 0.421→0.308로 주저앉아 Δ+0.14가 드러났고(full-FT는 scratch도 encoder 학습해 Δ를 가렸음), meningioma는 Wave-I controlled ablation으로 데이터 한계임이 규명됐다. 전체 여정·수치는 [`downstream_finetuning_journey.md`](downstream_finetuning_journey.md), men 진단은 [`men_task2_diagnosis.ipynb`](men_task2_diagnosis.ipynb).
 
 ---
 

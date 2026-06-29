@@ -1,72 +1,67 @@
 # Flagship Research Workspace
 
-이 폴더는 FOMO challenge 제출물과 분리된 **foundation model 기술 novelty 검증 및 논문용 figure/table 제작 공간**이다.
+이 폴더는 challenge 제출물과 분리된 foundation-model 연구 공간이다. 이제 작업 축을 명확히 둘로 나눈다.
 
-## 분리 원칙
+## Directory Split
 
-- `Challenge_Submission/`은 제출 컨테이너, validator, downstream task별 제출 준비만 다룬다.
-- `Flagship/`은 지금까지의 challenge downstream 성능 개선과 무관하게, foundation model 자체의 기술적 novelty와 강점을 보여주는 figure/table을 준비한다.
-- 이 폴더에는 challenge 제출용 `.sif`, raw data, private label dump를 저장하지 않는다.
-- challenge 결과는 필요한 경우 motivation/background로만 인용하고, `Flagship`의 주된 성공 기준으로 삼지 않는다.
-
-## 현재 중심 가설
+Current active work:
 
 ```text
-ResEnc + S3D-style anti-leakage dense branch + InfoNCE global branch is a
-technically defensible 3D brain MRI foundation model design because it solves
-three foundation-level problems: masked skip leakage, dense-global objective
-imbalance, and CNN global representation collapse.
+ACTIVE: Flagship/v1_evidence/ decoder replacement only
+PARKED: Flagship/v2_jepa/ Brain-JEPA experiments, until explicitly resumed
 ```
 
-## 현재 모델 요약
+| Path | Scope | Do not mix with |
+|---|---|---|
+| `Flagship/v1_evidence/` | 현재 학습된 `ResEnc + S3D-style dense + InfoNCE-global` foundation의 증거, figure/table, decoder 교체 실험 | 새 JEPA foundation pretraining |
+| `Flagship/v2_jepa/` | Brain-JEPA 3D multimodal foundation v2 후보. 현재는 보류 상태이며 실험 실행하지 않음 | 기존 foundation decoder 교체 실험 |
 
-- Foundation checkpoint: `experiments/phase_b/resenc_s3d_wg0.5/latest.pt`
-- Architecture: ResEnc shared encoder + S3D-style masked dense reconstruction + InfoNCE global contrastive branch
-- Selected variant: `wg0.5`, because it balances dense/seg and global cls/reg transfer
-- Downstream task results are not the organizing axis of this folder.
-- The organizing axis is: architecture, objective design, failure mode analysis, pretraining diagnostics, and paper-ready visual evidence.
+## v1_evidence
 
-## 문서 구성
+`v1_evidence`는 기존 foundation model을 버리지 않는다. 핵심 작업은 다음이다.
+
+- 기존 foundation novelty evidence 정리
+- S3D anti-leakage dense branch / InfoNCE global branch 분석
+- Task2 실패에서 얻은 인사이트를 반영한 decoder replacement 실험
+- `S3D-VistaAdapter`: current foundation encoder + new prompt-conditioned segmentation decoder
+
+Main entry:
 
 ```text
-Flagship/
-├── README.md
-├── 00_project_brief.md
-├── Risk_Register.md
-├── Decision_Log.md
-├── Scope.md
-├── plans/
-│   ├── Plan_A_Methods_Conference.md
-│   ├── Plan_B_External_Consortium_SCI.md
-│   ├── Plan_C_FewShot_Segmentation.md
-│   └── Plan_D_Brain_JEPA_3D_Multimodal.md
-├── experiments/
-│   ├── Experiment_Matrix.md
-│   ├── Baselines_and_Statistics.md
-│   ├── Foundation_Novelty_Matrix.md
-│   └── Task2_R4_Frozen_Protocol.md
-├── figures/
-│   └── Figure_Plan.md
-├── tables/
-│   └── Table_Plan.md
-└── manuscript/
-    └── Outline.md
+Flagship/v1_evidence/README.md
+Flagship/v1_evidence/code/s3d_vista_adapter/
+Flagship/v1_evidence/plans/Plan_F_S3D_VistaAdapter.md
 ```
 
-## 가장 중요한 다음 산출물
+## v2_jepa
 
-Challenge 제출 성능이 아니라, foundation model 자체의 novelty를 설명하는 figure/table packet을 먼저 완성한다.
+`v2_jepa`는 기존 model의 decoder만 바꾸는 실험이 아니다. 완전히 별도의 next foundation candidate다.
+현재 지시 기준으로는 실행하지 않고 보관만 한다.
 
-Priority packet:
+- Brain-JEPA 3D multimodal SSL objective
+- context encoder / EMA target encoder
+- latent prediction and collapse diagnostics
+
+Main entry:
 
 ```text
-Figure 1. Overall architecture: ResEnc + S3D-style dense + InfoNCE global
-Figure 2. Anti-leakage S3D dense branch: re-mask/submanifold-style mechanism
-Figure 3. Dense-global objective balance and collapse prevention
-Figure 4. Pretraining diagnostics: leakage, collapse, gradient/objective behavior
-Table 1. Module-by-module novelty and design rationale
-Table 2. Ablation matrix for foundation-level claims
-Plan D. Brain-JEPA 3D Multimodal as the next foundation-model candidate
+Flagship/v2_jepa/README.md
+Flagship/v2_jepa/code/brain_jepa/
+Flagship/v2_jepa/plans/Plan_D_Brain_JEPA_3D_Multimodal.md
 ```
 
-Downstream/few-shot results may later support the paper, but they do not define the scope of `Flagship`.
+## Rule
+
+새 실험을 만들 때 먼저 질문한다.
+
+```text
+기존 foundation을 증명하거나 decoder만 바꾸는가? -> v1_evidence
+새 foundation pretraining objective/model을 만드는가? -> v2_jepa
+```
+
+현재 실행 규칙:
+
+```text
+JEPA 실험은 명시적으로 재개 지시가 있을 때만 실행한다.
+그 전까지 모든 실행/검증/후속 구현은 v1_evidence decoder replacement에 한정한다.
+```

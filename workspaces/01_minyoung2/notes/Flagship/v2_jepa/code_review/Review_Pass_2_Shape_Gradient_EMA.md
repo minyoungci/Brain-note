@@ -9,7 +9,7 @@ Date: 2026-06-28
 Command:
 
 ```bash
-python -m unittest Flagship.code.tests.test_brain_jepa
+python -m unittest Flagship.v2_jepa.code.tests.test_brain_jepa
 ```
 
 Result:
@@ -37,7 +37,7 @@ Covered:
 Command:
 
 ```bash
-python Flagship/code/smoke_brain_jepa.py
+python Flagship/v2_jepa/code/smoke_brain_jepa.py
 ```
 
 Result:
@@ -57,7 +57,7 @@ loss: finite
 Command:
 
 ```bash
-CUDA_VISIBLE_DEVICES='' python Flagship/code/smoke_brain_jepa.py
+CUDA_VISIBLE_DEVICES='' python Flagship/v2_jepa/code/smoke_brain_jepa.py
 ```
 
 Result:
