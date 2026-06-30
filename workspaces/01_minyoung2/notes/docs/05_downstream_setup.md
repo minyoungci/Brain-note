@@ -2,6 +2,8 @@
 
 > ⭐ **공식 내용** (PDF 가이드 + erda 실제 파일 + GitHub Asparagus config 실제 기본값 통합). split 비율은 PDF 80/10/10이 아니라 **config 실제 기본값**으로 보정됨. 규칙은 [[00_challenge_rules]], 우리 모델은 [[03_architecture_method]].
 
+> ⚠️ **(2026-06-30) 셋업·모달·n(T1=21·T2=23·T3=494·T4=40·T5=48)은 여전히 유효한 참조다.** 단 **Asparagus는 미채택**(우리 custom 파이프라인 사용, [[fomo26-downstream-decision]]). 실제 finetuning *결과*와 task별 best 레시피는 **[[downstream_finetuning_journey]]** + `experiments/phase_b/downstream_runs/COMPARISON.md`, 제출은 [[fomo26-submission-container]].
+
 ## ⓘ Task별 입력 모달리티·샘플수 (실데이터 확정 2026-06-22)
 다운로드·추출·검증 완료 (`/home/vlm/data/fomo26_downstream/raw/Task_N`, repo symlink `downstream/taskN/data`):
 | Task | subjects | 입력 모달(실데이터) | 라벨 |

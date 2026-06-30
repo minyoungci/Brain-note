@@ -58,7 +58,7 @@ C3의 brain age(외부·대륙간)가 AAAI-grade로 올리는 레버다.
 
 ```text
 - dense seg SOTA 주장하지 않음 (protocol-dependent·modest).
-- anti-leakage를 method novelty로 주장하지 않음 (SparK 동치, probe 동어반복).
+- anti-leakage를 method novelty로 주장하지 않음 (dense branch는 SparK의 sparse-conv를 dense+re-mask로 근사 — 연산은 비등가하나 기여로 주장 안 함; probe 동어반복).
 - ResEnt>ViT 일반 우월 주장하지 않음 (우리 세팅 한정).
 ```
 
@@ -129,11 +129,16 @@ Table_External_Transfer.csv, Figure_Site_Disjoint.png
 
 과대주장 금지:
 ```text
-S3D/L_dense/anti-leakage는 novelty가 아니다 (SparK 동치, probe 동어반복).
+S3D/L_dense/anti-leakage는 novelty가 아니다 (dense+re-mask는 SparK sparse-conv의 근사 — 연산은 비등가하나 기여로 주장 안 함; ConvMAE 인용; probe 동어반복).
 ```
-주장하는 것:
+주장하는 것 (positive technical method, headline=TC2, 검증중):
 ```text
-단일 dense-global 3D brain MRI foundation의 전이를 objective balance와 protocol로 통제해 규명하고,
-protocol-adaptive 배포 레시피를 외부 multi-site로 검증한다.
+대규모(FOMO300K, 226,793 volumes·36-source) 3D brain MRI foundation에서
+(TC2, headline) FINDING: objective balancing 시 effective rank가 transfer와 *분리*(rank 단조↓ vs inverted-U)
+   → naive rank/RankMe 선택 실패. METHOD: 이를 극복하는 라벨-프리 기준 C로 transfer-최적 가중치 선택을
+   leave-one-task-out regret로 검증(C 존재=Phase 0 GO/NO-GO). ★"rank로 최적 선택" 주장 금지.
+(TC1) scratch-convergence 진단 기반 budget/protocol-adaptive transfer.
+(TC3 = shortcut-통제 외부평가 = 검증 rigor). 외부검증=[PENDING], 완료형 금지.
+delta vs RankMe/α-ReQ = model 순위가 아니라, objective-balance에서 rank 실패를 보이고 극복하는 C를 selection으로 검증.
 ```
 Task2는 central proof가 아니라 few-shot lesion + task-adaptive protocol 필요성의 사례로만.

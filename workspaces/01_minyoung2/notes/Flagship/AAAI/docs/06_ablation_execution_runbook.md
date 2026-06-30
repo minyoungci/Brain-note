@@ -5,6 +5,23 @@
 이 문서는 AAAI 제출용 증거(C1 protocol-adaptive / C2 objective balance+rank / C3 external)를
 실행·추적하는 운영 계획이다. dense branch(SparK-style)는 detail이며 증명 대상이 아니다.
 
+## ★ 활성 워크스트림: TC2 라벨-프리 selection (2026-06-30)
+
+> headline 후보 = "라벨 없이 effective-rank류 지표로 objective-balance 최적점 선택". 단일출처 로그·산출물 =
+> `results/tc2_labelfree_selection/`(그 안 README.md), 전체 결과 맵 = `results/RESULTS_INDEX.md`.
+
+- **critic F1(검증됨)**: rank(RankMe)는 단조↓(14.86→12.93→11.65) vs transfer inverted-U(0.599→**0.792**→0.683)
+  = **decoupling** → rank 기반 선택은 wg0(틀림) 선택. "rank로 최적선택"은 **거짓, 주장 금지**.
+- **Phase 0+0.5 (완료, GPU)** — `scripts/phase0_labelfree_screen.py`. frozen feature에 라벨-프리 지표 스크리닝.
+  **α-ReQ = peak@wg0.5(2.41→4.08→3.00), 4/4 fit-range robust(R²≈0.99) = 유일 강후보**(rank류·silhouette=단조).
+  DECISION=GO(잠정, 3점). 결과 `tc2_labelfree_selection/phase0_screen.json`.
+- **Phase 1 (진행 중)** — wg0.25(GPU2)/wg0.75(GPU3) 재학습 → 5-grid. 재현 config는 기존 `.log`에서 복구
+  (★`--global_mode infonce` = 기본 dino 아닌 trap). 완료 시 `scripts/phase0_labelfree_screen.py` 재실행 →
+  `phase1_5point.json`. **결정적 검정 = α-ReQ argmax == transfer argmax(5점)?** → GO(selector)/NO-GO(decoupling).
+  - **내성(SSH·크래시)**: 학습은 tty-detached. `scripts/resume_phase1.sh watch`(detached watchdog, 10분마다
+    checkpoint서 자동 재개, 둘 다 DONE이면 자동 종료). 수동 재개도 동일 스크립트.
+- **Phase 2 (대기, 외부 데이터 후)** — leave-one-task-out regret로 selection *절차* 검증.
+
 ## 현재 상태 (DONE vs TODO)
 
 ### DONE (추가 GPU 불필요)

@@ -2,19 +2,30 @@
 
 ## 목표
 
-AAAI target paper의 목표는 단일 dense-global 3D brain MRI foundation 체크포인트를 대상으로
-**"무엇이 전이되고, 어떻게 배포해야 하는가"** 를 통제된 실험으로 규명하는 것이다.
-새 사전학습 방법을 발명했다고 주장하지 않는다(아래 SparK positioning 참조).
+이 논문은 **대규모(FOMO300K, 전처리 후 226,793 volumes·36-source) 3D brain MRI foundation 사전학습
+regime을 위한 두 가지 positive technical method**를 제안하고 외부 multi-site로 검증한다:
+
+1. **TC2 (headline, 검증중) — 라벨-프리 objective-balance 선택**: dense+global 결합 SSL에선 effective rank가
+   transfer와 *분리*(rank 단조↓ vs transfer inverted-U)되어 naive rank/RankMe 선택이 *실패*함을 보이고,
+   이를 극복하는 라벨-프리 기준 C로 transfer-최적 가중치를 고르는 selection 절차(C 존재는 Phase 0이 GO/NO-GO).
+2. **TC1 — budget-adaptive transfer protocol**: scratch-convergence 진단으로 task·라벨예산별
+   fine-tuning protocol을 처방 → naive full-FT가 *가리는* foundation 우위를 회복(동급 이상·저비용,
+   Δ-over-scratch +0.03→+0.134).
+
+스케일은 *novelty 자체가 아니라 이 method가 필요·유효해지는 regime*이다: 226,793-volume 규모에선
+체크포인트마다 라벨 튜닝이 불가능하므로 **라벨-프리 선택(TC2)이 필수**가 되고, 36-source multi-site이므로
+**shortcut-통제 평가(TC3)가 검증 rigor**로 요구된다. 새 backbone/loss는 주장하지 않는다(SparK positioning 참조).
 
 Working title 후보:
 
 ```text
-What Transfers from a Single-Checkpoint 3D Brain MRI Foundation Model?
-A Controlled Study of Objective Balance and Protocol-Dependent Transfer
+Label-Free Objective-Balance Selection and Budget-Adaptive Transfer
+for Large-Scale 3D Brain MRI Foundation Models
 ```
 
 ```text
-Protocol-Adaptive Transfer for Single-Checkpoint Dense-Global 3D Brain MRI Foundation Models
+What to Tune Without Labels: Rank-Guided Objective Balancing for
+Single-Checkpoint Dense-Global 3D Brain MRI Foundation Pretraining
 ```
 
 ## 풀어야 하는 문제 (실무자가 실제로 겪는 것)
@@ -27,7 +38,7 @@ Protocol-Adaptive Transfer for Single-Checkpoint Dense-Global 3D Brain MRI Found
 
 ## 우리 방법의 위치 (정직한 SparK positioning)
 
-현재 model:
+현재 model (FOMO300K로 사전학습 → 전처리 후 226,793 volumes·36 public sources):
 
 ```text
 ResEnc backbone
@@ -35,30 +46,52 @@ ResEnc backbone
 + global branch (InfoNCE / SimPool)
 + KoLeo
 = single 3D brain MRI SSL checkpoint
+  corpus: FOMO300K → 226,793 preprocessed volumes / 36 public sources
+          (OpenNeuro 46%·HBN·HCP·BraTS·OASIS1·2·IXI… / ADNI 미포함 = 외부검증 disjoint)
 ```
 
 dense branch에 대한 정직한 위치:
 
 ```text
-우리의 stage-wise re-mask dense conv는 SparK(Tian et al., ICLR 2023)의 submanifold sparse-conv
-masked image modeling과 개념적으로 동치이며(코드 주석도 "SparK식 submanifold-근사 MAE"로 명시),
-ConvMAE/SimMIM 계열과도 가깝다.
-따라서 우리는 이것을 novelty가 아니라 *구현 detail*로 처리하고, SparK/ConvMAE/SimMIM을 인용한다.
-기여는 method가 아니라, 이 체크포인트가 3D brain MRI에서 무엇을·어떻게 전이하는지에 대한 분석과 배포 레시피다.
+우리의 dense branch는 dense conv + stage-wise re-mask로 SparK(Tian et al., ICLR 2023)의
+submanifold sparse-conv masked image modeling을 *근사*한다.
+★ 개념은 같으나 연산은 동일하지 않다(NOT equivalent, only approximate):
+  - SparK = 진짜 submanifold sparse convolution(active site만 계산, active set 고정).
+  - 우리 = sparse-conv 라이브러리 없이 dense conv를 돌린 뒤 매 stage masked 위치를 re-zero
+           → normalization(BN/GN이 zero 포함)·경계에서 SparK와 비등가.
+이 dense masked-conv 변형은 ConvMAE/MCMAE(Gao et al., 2022)·SimMIM 계열과 더 가깝다.
+설계 의도(왜 이렇게 했나): skip을 보존해 누수 없이 dense decoder 전이를 3D U-Net foundation에
+  사전학습하기 위함(skip-free MAE의 negative-transfer 회피). 이는 의도적 design choice다.
+→ 정직한 위치: 이 연산 차이는 *분명히 존재하지만*(SparK와 동일하지 않음을 본문에 명시),
+   "3D에 적용했다"만으로는 novelty가 되지 않는다(3D masked-CNN pretraining 자체가 선행연구).
+   따라서 우리는 이것을 **primary method 기여로 주장하지 않고** minor design detail로 처리하며,
+   정확한 prior art(SparK + ConvMAE/SimMIM)를 인용한다.
+   기여는 method가 아니라, 이 체크포인트가 3D brain MRI에서 무엇을·어떻게 전이하는지에 대한
+   분석과 배포 레시피(TC1/TC2/TC3)다.
 ```
 
 약한/강한 claim 구분:
 
 - 약한(쓰지 않음): `we propose a new anti-leakage masked reconstruction loss`
-- 강한(쓰는 것): `we characterize when and how a SparK-style single dense-global checkpoint transfers in 3D brain MRI, and give a protocol-adaptive deployment recipe validated across external multi-site cohorts`
+- 강한(목표, 일부 검증중): `we show that effective rank decouples from transfer under joint dense+global objective balancing (so RankMe-style rank selection fails), and develop a label-free criterion that locates the transfer optimum, validated as a selection procedure (leave-one-task-out regret); plus a budget/protocol-adaptive transfer method — for large-scale (FOMO300K) single-checkpoint 3D brain MRI foundation models. (External multi-site validation: in progress, not yet claimed.)`
 
 ## AAAI 기술적 기여 (TC1/TC2/TC3) — 증거 스트림 C1/C2/C3
 
-> 기술적 novelty = backbone(SparK 인용)이 아니라 **TC1 scratch-convergence 진단·protocol-adaptive method /
-> TC2 objective-balance·rank 기반 checkpoint 선택 / TC3 shortcut-통제 평가 framework**. 아래 Claim C1/C2/C3는
-> 각 TC를 뒷받침하는 *증거 스트림*이다(TC1↔C1, TC2↔C2, TC3↔C3).
+> **Positive technical novelty (headline)** = backbone(SparK 인용)이 아니라:
+> - **TC2 (headline method, 검증중) — 라벨-프리 objective-balance 선택**: FINDING — dense+global 결합에선
+>   effective rank가 transfer와 *분리*(rank 단조↓ vs transfer inverted-U)되어 naive rank/RankMe 선택이 *실패*.
+>   METHOD — rank가 못 잡는 up-arm까지 따라가는 라벨-프리 기준 C로 transfer-최적 가중치를 고르고 selection 절차
+>   (leave-one-task-out regret)로 검증(C 존재는 Phase 0 GO/NO-GO; 외부검증 [PENDING]). RankMe delta: 그들=label-free
+>   *model 순위* / 우리=objective-balance에서 rank 실패를 보이고 이를 극복하는 C를 selection으로 검증.
+> - **TC1 (method) — budget-adaptive transfer**: scratch-convergence 진단(gap)이 task·라벨예산별 protocol을
+>   처방 → naive full-FT가 가리는 foundation 우위를 회복(동급 이상·저비용, Δ-over-scratch +0.03→+0.134).
+> - **TC3 (validation rigor) — shortcut-통제 외부평가**: 헤드라인이 아니라, 위 두 method가 site/scanner/대륙을
+>   넘어 작동함을 증명하는 *검증층*.
+>
+> 스케일(FOMO300K, 226,793 volumes·36-source)은 *novelty가 아니라 regime*: 이 규모에선 라벨 튜닝 불가→TC2 필수,
+> 36-source multi-site→TC3 필수. 아래 Claim C1/C2/C3는 각 TC의 *증거 스트림*(TC1↔C1, TC2↔C2, TC3↔C3).
 
-### Claim C1 (method-flavored). Protocol-Adaptive Transfer
+### Claim C1 (method). Budget/Protocol-Adaptive Transfer
 
 ```text
 Foundation의 가치는 fine-tuning protocol에 의존한다.
@@ -77,12 +110,19 @@ frozen/low-LR는 그 우위를 드러낸다.
   probe가 full-FT-from-scratch *수준을 회복*(저비용)"이지 "더 낫다"가 아니다. low-LR 0.450은 absolute-best 보조.
 - meningioma Task2(n=23): 방향성("frozen은 lesion 도움 안 됨")만 — 전부 Dice<0.16, CI 겹침. 정량 Δ 안 씀.
 
-### Claim C2 (empirical). Objective Balance & Rank Mechanism
+### Claim C2 (headline method, UNDER CONSTRUCTION). Label-Free Objective-Balance Selection — overcoming rank–transfer decoupling
 
 ```text
-단일 체크포인트의 dense/global 가중치는 effective rank와 semantic linear-probe를 trade off 한다.
-global 가중을 너무 키우면 rank가 붕괴해 global 선형분리마저 손해본다.
-balanced(wg0.5)가 inverted-U 정점이다.
+FINDING (verified): dense+global 결합 SSL에선 effective rank가 transfer와 *분리(decouple)*된다.
+  rank 단조↓(wg0 14.86→0.5 12.93→1 11.65) vs transfer inverted-U(0.599→0.792→0.683).
+  → naive rank/RankMe 선택은 rank-max인 wg0(0.599)을 골라 *틀린다*. (RankMe에 대한 non-obvious 경고)
+METHOD (목표, 검증중): rank가 못 잡는 up-arm까지 따라가 inverted-U 정점에서 extremum을 갖는
+  *라벨-프리 기준 C*(후보: α-ReQ exponent · alignment/uniformity · cluster-quality)를 찾아,
+  selection 절차로 검증한다 — leave-one-task-out에서 ŵ=argmax C가 default·midpoint 대비 regret↓.
+주의(정직): up-arm을 설명하는 'semantic 주입'은 현재 linear-probe(=라벨)로만 측정됨
+  → C 존재 여부는 *미확정*(Phase 0 후보지표 스크리닝이 GO/NO-GO). "rank로 최적 선택"은 주장 안 함.
+delta vs RankMe/α-ReQ: 그들=label-free *model 순위* / 우리=objective-balance에서 rank가 실패함을
+  보이고 이를 극복하는 C를 selection 절차로 검증(존재 시). 외부검증=[PENDING], 완료형 금지.
 ```
 
 필요 증거(audit SOLID):

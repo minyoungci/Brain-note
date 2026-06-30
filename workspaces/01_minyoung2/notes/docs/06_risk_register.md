@@ -34,6 +34,7 @@
 | **W14** | 공유 gpfs | ✅ 전처리 완료(float16 full=3.2TB). 학습 중 ckpt/로그 누적 `df` 감시 + disk guard 100GB. (실측: 타 사용자 12h에 200GB↑ 잠식) |
 | **W15** | 제출 컨테이너 형식(120초/case, 7 task I/O) | env 아닌 *형식*이 진짜 제약 → sanity-check로 최소 제출 조기 검증 |
 | **W16** | 내부 seg eval = crop³ resize 근사 (eval v2 `seg_dice_probe`) | order=0 NN-resize서 작은 병변 손실 → full-res sliding-window 리더보드 Dice의 *근사*. ① n_empty 로깅으로 소실 subject 추적 ② recipe 랭킹은 Δfloor + CI 겹침 보류 규칙(n=23/40 작음, 리뷰어②W1) ③ trigeminal(~1-2voxel)은 patch16 grid6³로 원리적 분리 불가 → 해상도(patch8/ResEnc·고crop)로만 측정 가능. 절대 Dice는 리더보드와 직접 비교 금지. (✅ random encoder seg=0.000으로 위치 confound 제거 검증, 2026-06-23) |
+| **W17** 🔴 | **downstream few-shot 과적합 — 내부/Validator 점수 ≠ hidden test** | **입증됨**: Task1 infarct 로컬 Validator·LOOCV ≈0.94 → 실제 hidden **0.658** 급락. 원인 ①작은 n(T1=21·T5=48·T2=23·T4=40; subject당 cls 라벨 1개=최악) ②full-FT가 few case 외움 ③**선택 과적합**(내부 CV로 하이퍼/모달 튜닝→내부점수 자체가 낙관편향, v2_frozen 0.942도 hidden 미보장). **조치=일반화 우선**: encoder frozen/low-LR·얕은 head·모달축소·강한 정규화(L2/wd/dropout/early-stop)·aug / 내부CV 하이퍼사냥 금지(사전고정)·CI를 상한으로 / 제출은 보수적(더 정규화된 모델, best-of-all이라 무손실). 위험순위 cls(T1·T5)≫소-n seg(T2·T4)>reg(T3)·embedding. **전용 문서 = [[09_downstream_generalization]]**. Task5 frozen-mitigation=미수행(다음). |
 
 ## D. monitor.py — 7대 카테고리 + 사용 (✅ 검증완료 `pretrain/test_monitor.py` 30 checks PASS + code-auditor HIGH/MED 수정 반영: C1 dedup·C2 disk fail-open·C3 grad_conflict·W1 probe누수·W2 AUROC tie·W3 NaN가드·W4 rankme baseline윈도·W8 teacher_temp, 2026-06-22)
 | 카테고리 | metric | 잡는 것 |

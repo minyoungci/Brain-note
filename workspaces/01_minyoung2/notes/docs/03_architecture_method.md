@@ -2,6 +2,8 @@
 
 > 설계의 단일 출처. 근거는 [[01_prior_research]], 데이터는 [[02_data]], 규칙은 [[00_challenge_rules]], 전략/일정은 [[04_strategy_plan]], 위험/모니터는 [[06_risk_register]]. 후보 상세는 `arch_candidates/`, figure는 `figures/`.
 
+> ⚠️ **(2026-06-30) 이 문서는 2026-06-22 pre-Phase-A 설계 문서다 — "확정 vs Phase A 미정" framing은 종료됐다.** 최종 확정 구조(**ResEnc-L + S3D submanifold-MAE + InfoNCE-global, wg0.5**)와 *검증된* downstream 결과·gradient anatomy는 **[[foundation_model_design]]**(LIVE), 현재 상태·제출 남은작업은 **`SCRATCHPAD` 🎯 블록**이 단일 출처. 아래 본문은 설계 의도·근거의 역사 기록으로만 읽을 것.
+
 ## 1. THESIS — Single-Checkpoint Multi-Task Pretraining for Heterogeneous 3D Brain MRI Tasks (2026-06-22 확정, II+III)
 > **하나의 SSL 사전학습 백본+디코더가 seg(50%)·cls·reg 이질 task를 *동시에* Pareto-good하게 만드는 사전학습 recipe는 무엇이며 왜인가** — FOMO26 단일 체크포인트 제약을 정면 연구. **챌린지 제출 시스템 = first-author 체계연구(한 노력, 두 산출).**
 

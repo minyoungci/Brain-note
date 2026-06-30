@@ -2,6 +2,8 @@
 
 > 규칙 [[00_challenge_rules]], 데이터 [[02_data]], 설계 [[03_architecture_method]], 위험/모니터 [[06_risk_register]], 현재 상태 [[SCRATCHPAD]].
 
+> ⚠️ **(2026-06-30) 이 문서는 2026-06-22 pre-Phase-A 계획이다.** Phase A bake-off·Phase B 본학습·7-task downstream·R3 seg 개선이 *모두 완료*됐다. 현재 상태·남은 작업(제출 컨테이너 + 마지막 test 1회)은 **`SCRATCHPAD` 🎯 블록**, AAAI 논문 트랙은 **`Flagship/AAAI/STATE.md`**가 단일 출처. 아래는 초기 전략의 역사 기록.
+
 ## 1. 트랙 전략
 - **Methods 트랙(주력)**: FOMO300K only. ① balancing(공저 게이트의 "의미있는 수정") + ③ fairness(Task6,7, first-author). 단일 백본이 7 task.
 - **Open 트랙(최소)**: 한국 임상데이터 = *단일 ablation만*, 기본 포기(306K의 0.6%, 자원분산). 져도 "소규모 외부데이터 무효" negative 기여.

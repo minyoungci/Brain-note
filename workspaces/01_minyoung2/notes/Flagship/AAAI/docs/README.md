@@ -1,14 +1,17 @@
-# AAAI Flagship Plan: Single-Checkpoint Dense-Global 3D Brain MRI Foundation — What Transfers, and How to Deploy It
+# AAAI Flagship Plan: Label-Free Objective-Balance Selection & Budget-Adaptive Transfer for Large-Scale (FOMO300K) 3D Brain MRI Foundation Models
 
-작성일: 2026-06-29 (최종 갱신: hybrid framing 확정)
+작성일: 2026-06-29 (최종 갱신: positive-technical-first framing 확정)
 
-이 폴더는 FOMO Challenge 제출과 **무관한** AAAI/AI conference target 연구 계획이다. 목적은 우리가 보유한 단일 dense-global 3D brain MRI SSL 체크포인트(ResEnc, S3D dense + InfoNCE/SimPool global)를 대상으로, **무엇이 전이되고 어떻게 배포해야 하는지를 통제된 실험으로 규명**하고 그 결과를 conference paper 수준의 기여로 정리하는 것이다.
+이 폴더는 FOMO Challenge 제출과 **무관한** AAAI/AI conference target 연구 계획이다. 목적은 **대규모(FOMO300K → 전처리 후 226,793 volumes·36 public sources) 3D brain MRI foundation 사전학습 regime을 위한 두 positive technical method를 제안·검증**하는 것이다: **TC2(headline) 라벨-프리 effective-rank objective-balance 선택** + **TC1 budget-adaptive transfer**. 우리가 보유한 단일 dense-global 체크포인트(ResEnc, S3D dense + InfoNCE/SimPool global)가 대상이며, 스케일은 *novelty가 아니라 이 method가 필요·유효해지는 regime*이다(라벨 튜닝 불가→TC2 필수, 36-source→TC3 검증 rigor 필수).
 
 ## 기술적 기여 (Technical Contributions)
 
-**경계(desk-reject 방지)**: 우리는 *새 backbone/loss를 발명했다고 주장하지 않는다.* dense branch(stage-wise
-re-mask submanifold masked conv)는 SparK(Tian et al., ICLR 2023)와 동치이며 **인용된 prior art backbone**으로 처리한다.
-기술적 novelty는 backbone이 아니라, 아래 **3개의 method/diagnostic/framework 기여**에 있다.
+**경계(desk-reject 방지)**: 우리는 *새 backbone/loss를 발명했다고 주장하지 않는다.* dense branch(dense conv +
+stage-wise re-mask)는 SparK(Tian et al., ICLR 2023)의 submanifold sparse-conv masked modeling을 **근사**한다 —
+개념은 같으나 **연산은 동일하지 않고**(SparK=진짜 sparse conv; 우리=dense conv+re-mask, normalization·경계에서 비등가),
+dense 변형은 ConvMAE/MCMAE 계열에 더 가깝다. 이 연산 차이는 *존재하지만* "3D 적용"만으로 novelty가 되지 않으므로
+(3D masked-CNN pretraining 자체가 선행연구) **prior art backbone(SparK + ConvMAE 인용)**으로 처리한다.
+기술적 novelty는 backbone이 아니라, 아래 **positive technical method 2개(TC2 headline·TC1) + 검증 rigor(TC3)**에 있다.
 
 ```text
 TC1 (method+diagnostic) — Scratch-Convergence Diagnostic & Protocol-Adaptive Transfer
@@ -17,10 +20,13 @@ TC1 (method+diagnostic) — Scratch-Convergence Diagnostic & Protocol-Adaptive T
    기여: 진단 지표 gap(task)=Dice_scratch(full-FT) − Dice_scratch(frozen)로 *언제 pretraining이 돕는지*를
         예측하고, task별 protocol(tubular/anatomy=frozen/low-LR, lesion=full-FT)을 처방하는 알고리즘.
 
-TC2 (method+analysis) — Objective-Balance Trade-off & Rank-based Checkpoint Selection
-   단일 dense-global 체크포인트에서 global 가중치는 semantic 정보 주입과 effective-rank를 trade off 한다(2-force).
-   balanced(wg0.5)가 global 전이 inverted-U 정점(정점 CI-분리, n=494). rank 곡선이 down-arm을 설명 →
-   레이블 없이 balance를 고르는 진단 근거.
+TC2 (HEADLINE method, UNDER CONSTRUCTION) — Label-Free Objective-Balance Selection (overcoming rank–transfer decoupling)
+   FINDING(verified): dense+global 결합 SSL에선 effective rank가 transfer와 *분리* —
+     rank 단조↓(14.86→12.93→11.65) vs transfer inverted-U(0.599→0.792→0.683).
+     → naive rank/RankMe는 rank-max wg0(0.599)을 골라 *틀린다*(RankMe에 대한 non-obvious 경고).
+   METHOD(검증중): rank가 못 잡는 up-arm까지 따라가는 라벨-프리 기준 C(α-ReQ·alignment/uniformity·cluster)로
+     transfer-최적 가중치 선택 → leave-one-task-out regret로 검증. C 존재=Phase 0 GO/NO-GO, 외부검증=[PENDING].
+   delta vs RankMe/α-ReQ: 그들=label-free model 순위 / 우리=objective-balance에서 rank 실패를 보이고 극복하는 C 검증.
 
 TC3 (methodology) — Shortcut-Controlled Foundation Evaluation Protocol
    사전학습이 site/scanner를 de-confound하지 *않는*(검증됨: aug=crop+znorm, InfoNCE=crop-불변뿐) 상황에서,
@@ -28,8 +34,8 @@ TC3 (methodology) — Shortcut-Controlled Foundation Evaluation Protocol
    외부 multi-site·대륙간(ADNI→KDRC/AJU) 검증으로 TC2를 봉인.
 ```
 
-> 위치 요약: backbone=SparK(인용), **기여=TC1 진단·처방 method / TC2 balance·rank 선택기준 / TC3 shortcut-통제 평가 framework.**
-> "새 SSL 손실"을 주장하지 않으므로 SparK 중복 desk-reject을 피하고, 기여를 *technical method/diagnostic/methodology*로 명확히 한다.
+> 위치 요약: backbone=SparK-style 근사(SparK+ConvMAE 인용; 연산은 SparK와 비등가), **positive 기여=TC2(headline, 검증중) 라벨-프리 objective-balance 선택(rank↔transfer decoupling 극복) / TC1 budget·protocol-adaptive transfer / TC3 shortcut-통제 외부평가(검증 rigor).**
+> "새 SSL 손실/backbone"을 주장하지 않으므로 SparK 중복 desk-reject을 피하고, 기여를 *positive technical method(TC2·TC1) + 검증 rigor(TC3)*로 명확히 한다.
 
 ## 검증된 핵심 증거 (이 계획의 토대)
 

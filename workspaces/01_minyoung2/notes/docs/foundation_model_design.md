@@ -218,7 +218,7 @@ w_global을 0/0.5/1.0으로 셋 학습(각 150k step, 코퍼스 221,376) 뒤 dow
 | downstream | 지표 | 사전학습 | 베이스라인 | Δ | 해석 |
 |---|---|---|---|---|---|
 | **brain age** (reg, n=494) | pearson | **0.867** | random 0.541 | **+0.326** (CI분리) | ✅ **강한 진짜 신호** (global morphometry) |
-| **infarct** (cls, n=21) | AUROC | **0.942** | scratch 0.519 | **+0.346** | ✅ **few-shot서 강함** (scratch 실패, n작아 CI주의) |
+| **infarct** (cls, n=21) | AUROC | **0.942** ⚠️ | scratch 0.596 | **+0.346** | ✅ 내부선 강하나 ⚠️ **실제 hidden=0.658**(아래) |
 | **trigeminal** (seg, n=40) | Dice | **0.450** | scratch(frozen) 0.308 | **+0.142** | ✅ **encoder 보존시 명백** (full-FT의 +0.011은 아티팩트) |
 | meningioma (seg, n=23) | Dice | 0.159 | scratch 0.107 | +0.052 | 🟡 **데이터 한계**(thick-slice 6.5mm·n23, 모델 아님 — `men_task2_diagnosis.ipynb`) |
 | polymicrogyria (cls, n=48) | AUROC | 0.946 | random 0.868 | +0.078 | 🔴 대부분 site confound |
@@ -229,6 +229,8 @@ w_global을 0/0.5/1.0으로 셋 학습(각 150k step, 코퍼스 221,376) 뒤 dow
 - **"안 되는" task는 구조 결함이 아니라 task별 다른 원인**이다 — meningioma=데이터 한계(thick-slice·few-shot, ipynb로 인과 진단), polymicro=site confound(random도 0.87). 구조가 원인이면 *모든* task가 같은 방식으로 실패해야 하나, 그렇지 않다. **같은 구조가 trig 0.45 vs men 0.159 = 차이는 데이터, 모델 아님.**
 - **task-adaptive 처방**: tubular/anatomy seg는 frozen/lowlr(foundation prior 보존), lesion seg는 full-FT. 만능 단일 레시피는 없다.
 - 방법 교훈: **전처리·random/scratch 베이스라인·encoder 보존 여부가 결론을 바꾼다.** ① 구 resize 전처리의 trigeminal "+0.047"은 scratch를 망가뜨린 아티팩트. ② full-FT의 seg Δ≈0도 아티팩트(scratch가 encoder까지 학습해 따라옴) — frozen하면 진짜 Δ가 드러난다.
+- ⚠️ **내부 지표 ≠ hidden 지표 (제출 전 필독)**: infarct(T1) 내부 LOOCV는 0.942지만 **실제 Synapse hidden validation AUROC = 0.658**(n21 full-FT 과적합). v2_frozen 경로(frozen-encoder + linear, dwi+adc+flair mean, C=0.3)도 LOOCV 0.942이나 **hidden 미검증**. n이 작은 cls(T1 n21·T5 n48)는 내부 점수를 hidden 성능의 증거로 쓰지 말 것. → `Challenge_Submission/Submission.md`, [[fomo26-submission-container]].
+- ℹ️ **frozen-probe 수치 갱신(2026-06-29, `Flagship/AAAI/results/d2_probe`)**: 위 표 brainage/polymicro 행은 06-25 `downstream_feat` probe 기준이다. 최신 d2_probe(동일 n)는 random floor가 더 낮아 Δ가 더 크다 — **brainage wg0.5 0.792 vs random 0.137 (Δ+0.656)**, **polymicro 0.957 vs random 0.608 (Δ+0.349, w_global 단조증가 → confound 재확인)**. 결론(brainage=강한 신호, polymicro=confound)은 불변, 마진만 갱신.
 
 > ### 이력 (정정 경위)
 > 이 표의 **초기 버전**(2026-06-25)은 full-finetune 기준이라 trigeminal Δ+0.011·meningioma Δ+0.005로 "seg는 from-scratch 못 넘음 → global유용/dense한계 Pareto"로 결론했었다. **그 프레임은 폐기됐다**: Wave-E(encoder 보존)에서 trigeminal scratch가 0.421→0.308로 주저앉아 Δ+0.14가 드러났고(full-FT는 scratch도 encoder 학습해 Δ를 가렸음), meningioma는 Wave-I controlled ablation으로 데이터 한계임이 규명됐다. 전체 여정·수치는 [`downstream_finetuning_journey.md`](downstream_finetuning_journey.md), men 진단은 [`men_task2_diagnosis.ipynb`](men_task2_diagnosis.ipynb).

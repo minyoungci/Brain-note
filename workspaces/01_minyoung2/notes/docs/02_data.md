@@ -48,7 +48,7 @@ PYTHONPATH=baseline-codebase/src .venv/bin/python preprocessing/preprocess_fomo3
 ## 5. 무결성 (비타협 — AD 실패 교훈)
 | 원천 | 방어 |
 |---|---|
-| **pretrain↔downstream subject 중복** | FOMO300K(OASIS/ADNI/IXI…) ∩ downstream test = ∅ 를 subject-ID/hash로 **코드 강제 검증**, 겹치면 제외. (등록 후 필수 확인 — W13.) |
+| **pretrain↔downstream subject 중복** | FOMO300K 36-source(OpenNeuro 46%·HBN·HCP·BraTS·OASIS1·2·IXI… — **ADNI/AIBL/NACC/A4/AJU/KDRC 미포함**) ∩ downstream test = ∅ 를 subject-ID/hash로 **코드 강제 검증**, 겹치면 제외. OpenNeuro umbrella가 유일 사각지대(하위까지 hash 대조). (등록 후 필수 — W13.) |
 | split 누수 | pretrain-val / finetune train·val·test 전부 **subject-disjoint**(같은 subject 다른 session도 분리). |
 | normalization | per-volume z-norm(무누수). SSL BatchNorm 금지(batch 누수·collapse) → Instance/GroupNorm. |
 | confound | scanner/demographic은 *train-time 억제(invariance)*만, **inference feature 미사용**. |

@@ -1,6 +1,38 @@
 # SCRATCHPAD — FOMO26 현재 상태 (단일 LIVE 상태, 매 게이트 갱신)
 
-> 최종 업데이트: 2026-06-22. 단계: **전처리·학습env·monitor 완료. thesis=단일ckpt×이질 7-task(seg+cls+reg) Pareto 체계연구(II+III, 챌린지 제출=first-author) 확정 → 다음 = 내부 eval harness + 7-task 파이프라인.**
+> 최종 업데이트: **2026-06-30**. 단계: **전처리·학습·단일ckpt(wg0.5)·7-task downstream·R3 seg개선 모두 완료. 남음 = 최종 제출 컨테이너(Apptainer) + 마지막 test 제출 1회.**
+> (아래 "✅ 완료"·"⏭️ 다음 게이트"·"전략 확정" 섹션은 *06-22 pre-Phase-A 이력*이다. **현재 LIVE 상태는 바로 아래 🎯 블록이 단일 출처.**)
+
+## 🎯 현재 상태 (2026-06-30) — 단일 LIVE 스냅샷
+**단일 제출 ckpt = `experiments/phase_b/resenc_s3d_wg0.5/latest.pt`** — ResEnc-L CNN U-Net + S3D submanifold-MAE(dense, 누수0) + InfoNCE-global(w_global 0.5), 150k step. 구조·objective-balance 상세 = [[docs/foundation_model_design]] + `Flagship/AAAI/results/`.
+
+### 7-task downstream 최종 best (검증, Δ-over-scratch 또는 -random)
+| task | type | best 레시피 | 지표 | pre | base | Δ | n | 출처 |
+|---|---|---|---|---|---|---|---|---|
+| T4 trigeminal | seg | **frozen-enc lowlr + clDice + EMA** | Dice | **0.450** [.412,.486] | 0.308(scr) | **+0.142** | 40 | Wave-E |
+| T2 meningioma | seg | full-FT Tversky β0.8 + EMA | Dice | **0.159** [.075,.256] | 0.107(scr) | +0.052 | 23 | Wave-C |
+| T1 infarct | cls finetune | dwi+adc+flair | AUROC | 0.942 | 0.596(scr) | +0.346 | 21 | overnight |
+| T3 brainage | reg finetune | — | pearson | 0.947 | 0.910(scr) | +0.037 | 494 | overnight |
+| T3 brainage | frozen probe(d2) | wg0.5 | pearson | **0.792** [.762,.819] | 0.137(rand) | **+0.656** | 494 | Flagship d2 06-29 |
+| T5 polymicro | cls / probe | — | AUROC | 0.986 / 0.957 | 0.997 / 0.608(rand) | −0.010 / +0.349 | 48 | overnight / d2 |
+- ⚠️ **T1 0.942는 내부 LOOCV뿐 — 실제 Synapse hidden validation = 0.658**(n21 full-FT 과적합). v2_frozen(frozen-enc+linear, dwi+adc+flair mean C=0.3) LOOCV 0.942이나 **hidden 미검증**. → [[fomo26-submission-container]]
+- ⚠️ **T5 polymicro = site/acquisition confound**(random probe 0.608·w_global 단조증가·metadata sy AUROC 0.842) → Δ-only, peak 증거 아님. → [[shortcut-confound-control]]
+- objective-balance **inverted-U**(frozen probe): brainage wg0→0.5→1 = 0.599→**0.792**→0.683(wg0.5 peak·CI분리). rankme 14.86→12.93→11.65, teacher_entropy 0.852→0.392→0.413.
+
+### 검증된 foundation 가치 법칙
+- **가치 = scratch가 *실패*하는 곳**: few-shot cls(infarct Δ+0.35)·tubular seg(trig frozen Δ+0.14)·global morphometry(brainage frozen Δ+0.66). scratch 학습가능한 곳(dense reg·well-tuned seg)선 ~0.
+- **full-FT가 Δ를 가린다**: scratch도 encoder 학습 → frozen-enc로만 진짜 Δ 노출(trig +0.03 full→+0.14 frozen). **처방: tubular/anat seg=frozen·lowlr, lesion seg(men)=full-FT.**
+- **men 0.159 천장**: 데이터한계(n23+6.5mm thick-slice)+병변형(extra-axial blob)+single-flair 복합. decoder/모델 결함 아님(Wave-I). 단 Wave-I "sufficiency 증명"은 과장이라 정정함(combo 0.379≠men 0.159, 잔여는 병변형/모달). 멀티모달 mean-fusion은 dilution으로 실패(Wave-D), learned-fusion도 단일flair 미달.
+
+### ⏭️ 남은 작업 (제출 트랙)
+1. **최종 제출 컨테이너**(Apptainer, base torch2.11/cuda12.6): task1 v2_frozen + task2 full-FT + task4 frozen-lowlr + task3/5 finetune + task6/7 embedding. B200(sm_100)서 build·GPU테스트 불가 → 로직 B200검증·동일코드·validator --no-gpu. → [[fomo26-submission-container]]
+2. **마지막 test 제출 1회**(2회 중 1회 사용=0.658, best-of-all selection이라 무손실). 모든 개선 번들. ⚠️ best-selection 단위(task-wise vs overall) Submission.md과 확인.
+3. task5 frozen-mitigation 점검(task1형 cls n48 과적합 리스크). → 일반화 원칙 [[docs/09_downstream_generalization]] (W17: 내부 0.94≠hidden 0.658, **일반화 우선**)
+
+### 병렬 트랙 (별도)
+- **Flagship/AAAI**(AAAI-27 논문): TC1✅(frozen +0.134)·TC2✅(inverted-U 0.599→0.792→0.683)·TC3🟡 pre-reg LOCKED 미실행. **외부 raw 데이터 대기 PAUSED**. resume 단일출처 = `Flagship/AAAI/STATE.md`. S3D-Vista adapter(men) F1 frozen 0.116<0.159 → best 못넘음. v2_jepa PARKED. → [[aaai-state-resume]]
+
+---
 
 ## ✅ 완료
 - **전처리 완료**: 학습 코퍼스 **226,793 볼륨**(구조 anat 181,315 + DWI b800–1200 44,943 + orphan 535 미분류), 3.2TB float16, 36/36 파티션, error 2(정상격리). out=`/home/vlm/data/FOMO300K_preprocessed`. 전수정합·대량로드 검증 PASS. (DWI b1000 큐레이션 + 정량맵 650 삭제 완료.) → [[docs/02_data]]
@@ -16,7 +48,7 @@
 - 🔒 (방향 무관 유효) 백본 family(ViT 주력+ResEnc 안전망)·단일채널·단일체크포인트 / SSL 골격(DINO+MAE+register/Gram/KoLeo+의료aug, **balancing=단순결합 novelty 아님**) / 디코더(conv-stem+UNETR, MAE사전학습→전이, 단 novelty 아님=S3D 선점) / 의료특화 scope / resume 인프라.
 - ⏳ patch 16³vs8³ / dense MAE vs iBOT / ViT vs ResEnc / 백본크기 / aug / modality-embedding / 120초 / downstream specifics. (**thesis novelty 축은 전략 fork에서 결정**.)
 
-## ⏭️ 다음 게이트
+## 📜 (historical, 2026-06-22) 초기 게이트 이력 — conflict pilot·Phase A (모두 종료, 현재상태는 상단 🎯)
 **⓪ CONFLICT PILOT GATE — 1차 실측 완료(2026-06-22, GPU4·ViT-S·2000subset·3000step·bf16)**
 - 결과: cos(∇L_d,∇L_g) mean **+0.017**·median +0.018·**cos<0 43%**·std 0.108 (초기40%→후기44%). 손실 둘 다 감소(1.02→0.55 / 8.22→5.70)=정상학습, collapse/NaN 없음.
 - 해석(비판적): **충돌 실재·빈번하나 aggregate는 near-orthogonal(약함)**. 강충돌(cos<−0.1) ~13%뿐.
@@ -26,7 +58,7 @@
 - **run03 장기 30k step(창발 검증, 완료)**: 후반에도 평평(aggregate cos<0 52%→42% **상승 없음**, 깊은층 L05~07 평평 유지) → **cosine 충돌 가설 결정적 기각**(3k·30k 2 regime + 창발 부재). magnitude 불균형은 robust·심화(|∇dense|/|∇global| 입력 ~0.8 → 깊은층 0.05~0.07, global 15~20× 우세). 잔여 캐비엇 ViT-S(ViT-L 아님)이나 평평궤적상 규모창발 저확률. → `experiments/conflict_pilot/run03_*/summary.md`
 - ⏭️ **(C도 S3D 선점으로 탈락)** → 전략 fork 아래.
 
-## ⏭️ 전략 확정: II+III (2026-06-22)
+## 📜 (historical, 2026-06-22) 전략 확정: II+III — 로드맵 1~5 전부 완료(현재상태는 상단 🎯)
 **thesis = "하나의 SSL ckpt+디코더가 seg(50%)·cls·reg 이질 task를 *동시* Pareto-good하게 만드는 recipe는 무엇·왜"** — 챌린지 제출 시스템 = first-author 체계연구(한 노력 두 산출). S3D=seg-only라 미점유, pilot 충돌부재=공존 positive 근거. fairness(I)=보조 ablation. decoder-transfer/balancing=상속(novelty 아님, S3D/표준 인용). → [[docs/03_architecture_method]] §1.
 - (탈락: Conflict-Aware 자체 falsify, Decoder-transfer S3D 선점, IV negative-results는 fallback)
 
@@ -65,6 +97,8 @@
 
 ## 🧠 인사이트 → 코드변경 지식 로그 (왜 바꿨나 — 누적)
 > 실험/리뷰가 준 인사이트와 그로 인한 코드 변경·이유. foundation model 학습 지식 축적용. 최신이 위.
+
+- **[문서 currency pass + 자기생성 SUMMARY 과장 정정] (2026-06-30, user "전부 최신화")**: SCRATCHPAD header가 06-22 pre-Phase-A에 멈춰 있어(실제는 R3 Wave-I·task1 v2_frozen까지 완료) Explore 에이전트로 stale 파일 전수조사 → 검증 숫자로 최신화. **자기수정 적발**: ① **Wave-I SUMMARY가 "men 천장=데이터 sufficiency 증명"으로 과장**(combo 0.379≠men 0.159, thick6은 오히려 ↑) → "부분설명, 잔여=병변형/모달"로 정정(R3_WAVEI_SUMMARY·COMPARISON·journey·design 일괄). ② **foundation_design §10 infarct 행 내부불일치**(0.942−0.519≠0.346) → scratch 0.596으로 수정(overnight 일관). ③ **C1~C3 모순 반영**: task1 0.942(LOOCV)≠hidden 0.658 caveat 전 문서 부착, frozen-probe floor 최신 d2_probe(brainage random 0.137 Δ+0.656·polymicro 0.608)로 갱신. 갱신 파일: SCRATCHPAD(🎯 LIVE 블록 신설)·foundation_model_design §10·downstream_finetuning_journey·COMPARISON·docs 03/04/05 stale 배너·메모리 2건. **교훈: living status는 매 게이트 갱신, 자기생성 SUMMARY는 숫자 재검증 후에만 "완료"**([[code-review-mandatory]]). docs 03/04/05는 pre-Phase-A라 배너+LIVE 출처 지정(내용은 역사 보존).
 
 - **[Wave-E 예정: encoder 보존(frozen/low-LR) — few-shot seg 성공사례 핵심] (2026-06-28, user 자료)**: VISTA3D(1-shot pre 0.795 vs scratch 0.185, Δ+0.61)·SAM few-shot(encoder freeze, decoder만)·Med3D·Models Genesis·Swin-UNETR SSL 공통패턴 = **encoder 보존 + decoder/adapter만 학습 + task별 preprocess/postprocess**. **우리 적신호: men finetune−scratch Δ+0.02(VISTA3D Δ+0.61 대비 비정상 작음)** = 우리 `transfer_decoder`가 **encoder까지 full-FT(seg_finetune.py:69)** → n23서 사전학습 prior 파괴 의심. frozen-encoder probe 코드는 이미 있음(seg_finetune.py:35-49 freeze=True)나 R1~D 전부 full-FT로만 돌림. **Wave-E(Wave-D 후)**: encoder frozen(decoder만) + low-LR(enc_lr 1e-5) 두 변형 men·trig 테스트 + postprocess(largest-component·threshold). VISTA3D식. 이게 Δ 키울 최유력 레버. + scratch 엄격 동protocol 비교.
 

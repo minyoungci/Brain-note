@@ -89,3 +89,17 @@
 - **frozen+adapter 충돌**: Wave-E서 men=full-FT 검증과 역방향.
 - **blob loss(IPMI2023) = 향후 1순위 미시도 옵션**: instance-level loss로 크기편차1500배·검출병목 직격, drop-in·단일ckpt·추론0. 단 기대이득 작음(MS +5%F1) → 사용자 판단으로 보류.
 - **men 최종 = Wave-C 1mm-iso full-FT Tversky β0.8 + EMA: Dice 0.159 / NSD 0.137** (확정). 천장=n23 few-shot+extra-axial+thick-slice 삼중고(데이터 한계).
+
+## Wave-I (men 천장 controlled ablation — trig를 men 조건으로 변환, 2026-06-29)
+질문: men 0.159 천장이 thick-slice+n23 *때문*(모델/decoder 아님)인가? trig(isotropic n40)을 men 조건으로 깎아 재현 시도.
+| 조건 | Dice | 비고 |
+|---|---|---|
+| 앵커 n40 thick1 isotropic full | 0.395 | trig 정상 조건 |
+| thick6 (z 6mm 모사, n40) | 0.432 | ↑ 오히려 상승 |
+| n23 (isotropic) | 0.344 | |
+| **combo = men 조건 (n23+thick6)** | **0.379** | |
+| (재현 타겟) 실제 men | **0.159** | |
+- ⚠️ **정정(2026-06-30)**: 원 SUMMARY "combo가 men 0.16 근접 → sufficiency 증명"은 **과장**. combo 0.379 ≠ men 0.159(2.4배 격차), thick6은 오히려 ↑(반대 방향), thick+n 합산 효과는 0.395→0.379(−0.016뿐). 0.379→0.159 잔여 격차(~0.22)는 **병변형(extra-axial blob)·모달(flair≠t2w)·single-modality few-shot**이 주원인(SUMMARY C2 caveat). 방향성("decoder/모델 결함 아님")은 유지되나 **데이터(해상도+n)만으로 sufficiency 미증명**.
+
+## (별도 트랙) Flagship S3D-Vista adapter — men (2026-06-29)
+- `Flagship/v1_evidence/`: S3D submanifold-MAE 기반 VISTA식 adapter를 men에 시도. **F1 frozen flair: pre 0.116 / scr 0.084 / Δ+0.032** — Wave-C best 0.159 **못 넘음**. F2 수동 중단. → adapter도 men 천장 못 깸(데이터 한계 재확인). men 최종 best 불변 = **Wave-C 0.159**.

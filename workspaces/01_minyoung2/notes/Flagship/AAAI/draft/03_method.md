@@ -24,13 +24,19 @@ objective using an EMA teacher `[VERIFY: exact global objective (DINO/Sinkhorn) 
 with KoLeo regularization to discourage representational collapse.
 
 **Objective.** `L = L_dense + w_global * L_global`, where `L_dense` is masked-voxel MSE and `w_global` controls the
-dense/global balance. We pretrain on the FOMO300K corpus (226,793 preprocessed crops `[VERIFY]`) under a fixed
+dense/global balance. We pretrain on the FOMO300K corpus (226,793 preprocessed volumes from 36 public sources) under a fixed
 preprocessing pipeline — crop-to-nonzero, volume-wise z-normalization, 1mm-isotropic resampling, RAS orientation
 (no skull-stripping, no bias-field correction) — for 150k steps in bf16.
 
-> **Positioning.** Our technical contributions (3.2–3.4) are *not* a new pretraining loss or architecture. They are
-> a diagnostic + protocol for deployment (TC1), an objective-balance characterization with a selection criterion
-> (TC2), and a shortcut-controlled evaluation methodology (TC3).
+> **Positioning.** Our technical contributions (3.2–3.4) are *not* a new pretraining loss or architecture. The
+> headline (TC2, under validation) is two-part: (i) a *finding* that effective rank decouples from transfer under
+> joint dense+global objective balancing (rank monotonic, transfer inverted-U), so RankMe-style rank selection
+> fails; and (ii) a *label-free criterion* that locates the transfer optimum, validated as a selection procedure
+> (leave-one-task-out regret) — whose existence is gated on a candidate-metric screen. Complemented by a
+> scratch-convergence diagnostic + budget/protocol-adaptive transfer method (TC1) and a shortcut-controlled
+> external evaluation methodology (TC3, validation rigor). Scale (FOMO300K, 226,793 volumes) is the regime that
+> makes label-free selection necessary, not a contribution in itself. We do NOT claim rank selects the optimum,
+> nor that external validation is complete.
 
 ## 3.2 TC1 — Scratch-Convergence Diagnostic & Protocol-Adaptive Transfer
 

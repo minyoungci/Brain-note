@@ -3,7 +3,8 @@
 ## 목적
 
 이 문서는 hybrid 기여 **C1(protocol-adaptive transfer)** 과 **C2(objective balance & rank mechanism)** 를
-증명하는 ablation plan이다. dense branch 자체(SparK-style submanifold masked conv)는 novelty가 아니므로
+증명하는 ablation plan이다. dense branch 자체(dense conv+re-mask로 SparK의 submanifold sparse conv를 *근사* —
+연산은 SparK와 비등가하나 method 기여로 주장하지 않음, ConvMAE 계열 인용)는 novelty가 아니므로
 ablation의 목표가 아니다 — 그것은 구현 detail로만 다룬다.
 
 핵심 전환(이전 plan 대비): anti-leakage hidden-content probe는 동어반복(아래 Group S)이므로
