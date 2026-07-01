@@ -13,6 +13,205 @@ Brain MRI Foundation
   + scaling law / data quality ablation
 ```
 
+## 0.1 Evidence Update: A10-A15 Gates
+
+Updated: 2026-07-01 UTC
+
+The current Brain-JEPA pilot evidence changes the next-step policy. Simple global correction, coarse-anatomy correction, frozen anatomy heads, and shared pseudo-tissue dense prediction have now been tested and rejected.
+
+| Branch | Source-probe | Task1 AUROC | Brain-age Pearson | Task5 AUROC | Decision |
+|---|---:|---:|---:|---:|---|
+| A10 dense S3D distill `w=0.05` | 0.0778 | 0.8077 | 0.6085 | 0.8976 | best JEPA research branch, not final |
+| A11 dense + global align `w=0.02` | 0.2130 | 0.6827 | 0.6929 | 0.8194 | reject: shortcut returns |
+| A12 dense + anatomy summary `w=0.10` | 0.1685 | 0.4038 | 0.7038 | 0.6233 | reject: coarse target damages classification |
+| A13 frozen A10 + `shared+anatsum` | 0.0852 | 0.7212 | 0.5846 | 0.8837 | reject: source-safe but no brain-age recovery |
+| A14 dense + pseudo-tissue `w=0.05` | 0.1574 | 0.6346 | 0.7770 | 0.9201 | reject: morphology improves, Task1 fails |
+| A15 dense + pseudo-tissue `w=0.02` | 0.1648 | 0.4038 | 0.7591 | 0.9462 | reject: Task5/age strong, Task1 collapses |
+
+Conclusion:
+
+```text
+Do not continue global-align, anatomy-summary-weight, frozen-anatomy-head, or pseudo-tissue-weight sweeps.
+```
+
+A13 is particularly important: freezing the encoder prevented the severe A12 Task5 collapse, but still failed to improve brain-age. Therefore the failure is not only destructive gradient flow into the shared encoder. The low-frequency anatomy-summary target itself is too weak.
+
+A14/A15 are equally important in the opposite direction: a richer dense pseudo-tissue target does recover brain-age and Task5, but damages Task1 even when the weight is reduced. Therefore the next blocker is feature coupling. Morphology-sensitive targets should not be forced into the same single shared feature without a separate morphology/task representation design.
+
+## 0.2 Launch Rules For The Next JEPA Experiment
+
+The next JEPA run must satisfy all of the following before launch:
+
+```text
+1. It changes the target structure, not only a weight.
+2. It uses richer anatomy than the rejected low-frequency summary.
+3. It has a pre-registered gate against A10:
+   source <= 0.10 preferred, <= 0.17 hard max
+   Task1 >= 0.80 preferred, no worse than 0.72 hard floor
+   Brain-age > 0.6085 minimum; >0.672 preferred
+   Task5 >= 0.88 minimum
+4. It includes an explicit stop rule at the first checkpoint if the gate fails.
+```
+
+Current local filesystem check did not find ready atlas/tissue/ROI label volumes in the project tree. A14/A15 used unsupervised pseudo-tissue targets and showed that the signal is useful but too coupled to the shared representation. Until atlas/tissue/ROI targets or a structural disentanglement implementation exists, the only valid next directions are:
+
+- **source-heldout-selection**: no new pretraining; evaluate existing A10/S3D representations under source-held-out or A2-orthogonalized protocols.
+- **multi-head morphology/task disentanglement**: keep the A10 shared feature, train morphology-specific pseudo-tissue/atlas heads separately, and evaluate `shared`, `morphology`, and `shared+morphology` features independently.
+- **atlas/ROI-context**: only after a reproducible atlas/tissue preprocessing path exists.
+
+Status update:
+
+```text
+A16 implements the multi-head morphology/task disentanglement path:
+  frozen A10 encoder
+  + separate pseudo-tissue morphology head
+  + feature spaces: shared, morph, shared_plus_morph
+
+Launch:
+  Flagship/v2_jepa/runs/pilot_a16_frozen_a10_pseudotissue_morph_g192e128_seed4500_gpu0_20260701
+
+First decision:
+  evaluate ckpt_step1000.pt.
+```
+
+Step1000 result:
+
+| Feature | Source-probe | Task1 AUROC | Brain-age Pearson | Task5 AUROC | Decision |
+|---|---:|---:|---:|---:|---|
+| A16 `shared_plus_morph` | 0.0815 | 0.7981 | 0.6573 | 0.8854 | continue to 10k |
+| A10 reference | 0.0778 | 0.8077 | 0.6085 | 0.8976 | current best JEPA research branch |
+
+This is the first post-A10 branch that improves brain-age without the A14/A15 Task1 collapse or A11/A14 source leakage. It is not a final replacement yet, but it validates morphology/task feature separation as the next direction.
+
+Final 10k result:
+
+| Feature | Source-probe | Task1 AUROC | Brain-age Pearson | Task5 AUROC | Decision |
+|---|---:|---:|---:|---:|---|
+| A16 `shared_plus_morph` | 0.1185 | 0.8077 | 0.7064 | 0.9201 | best balanced JEPA research candidate so far |
+| A10 reference | 0.0778 | 0.8077 | 0.6085 | 0.8976 | stronger source robustness, weaker global biology |
+| S3D+InfoNCE wg0.5 reference | 0.3105 | 0.7212 | 0.7924 | 0.9566 | production reference |
+
+A16 confirms the architecture direction:
+
+```text
+Do not force morphology targets into the shared JEPA representation.
+Use a separated morphology feature space and combine it with the shared feature only at evaluation/fine-tuning time.
+```
+
+Next branch:
+
+```text
+A17 = A16 + source-adversarial regularization or source-gated early stopping
+goal: keep A16 downstream gains while pushing source-probe back toward A10 (~0.08).
+```
+
+A17 step1000 update:
+
+| Branch | Source-probe | Task1 AUROC | Brain-age Pearson | Task5 AUROC | Status |
+|---|---:|---:|---:|---:|---|
+| A17 adv `0.05` | 0.0944 | 0.7500 | 0.6350 | 0.9375 | continue to 10k |
+| A17 adv `0.10` | 0.1037 | 0.7788 | 0.6646 | 0.8785 | continue to 10k |
+| A16 step10000 | 0.1185 | 0.8077 | 0.7064 | 0.9201 | current best balanced JEPA |
+
+A17 confirms that adversarial morphology-head regularization can reduce source-probe, but the first checkpoint loses too much downstream signal. Continue to 10k only because A16 also improved substantially after step1000.
+
+A17 final 10k update:
+
+| Branch | Source seed100 | Source mean seeds 100/101/102 | Task1 AUROC | Brain-age Pearson | Task5 AUROC | Decision |
+|---|---:|---:|---:|---:|---:|---|
+| A17 adv `0.05` | 0.1167 | — | 0.7500 | 0.7219 | 0.9427 | reject as best: Task1 weak |
+| A17 adv `0.10` | 0.1167 | 0.1130 | 0.8654 | 0.7122 | 0.9080 | current best JEPA research candidate |
+| A16 step10000 | 0.1185 | 0.1259 | 0.8077 | 0.7064 | 0.9201 | previous best balanced JEPA |
+
+A17 adv `0.10` becomes the current best JEPA research candidate because it improves A16 on mean source-probe, Task1, and brain-age while keeping Task5 above the gate. It is not a final foundation-model claim yet; source-held-out downstream and richer anatomy/modality objectives are still required.
+
+## 0.3 A18 Paired-Modality Result And A19 Policy
+
+Updated: 2026-07-01 UTC
+
+A18 tested the most direct modality-aware idea:
+
+```text
+same subject/session + same shape
+context = T1, target = FLAIR or T2
+loss = paired-modality JEPA + masked S3D dense distillation + source adversary
+```
+
+Step5000 gate:
+
+| Branch | Source-probe | Task1 AUROC | Brain-age Pearson | Task5 AUROC | Protocol Task1 | Protocol Task5 | Decision |
+|---|---:|---:|---:|---:|---:|---:|---|
+| A18 T1-FLAIR | 0.0981 | 0.6827 | 0.7568 | 0.9774 | 0.4423 | 0.9045 | stop |
+| A18 T1-T2 | 0.1056 | 0.4231 | 0.7568 | 0.8715 | not run | not run | stop |
+| A17 adv `0.10` | 0.1130 mean | 0.8654 | 0.7122 | 0.9080 | 0.8173 | 0.8976 | best JEPA research candidate |
+| S3D+InfoNCE wg0.5 | 0.3105 mean | 0.7212 | 0.7924 | 0.9566 | 0.8269 | 0.9010 | production reference |
+
+Conclusion:
+
+```text
+Paired-modality prediction is useful, but not as the only shared-vector target.
+It improves age/global morphology while keeping source-probe low,
+but it damages pathology-sensitive and protocol-heldout Task1 signal.
+```
+
+Therefore A19 must not be another paired-modality shared-vector run. The next valid architecture is:
+
+```text
+A19 = A17-style source-safe shared representation
+    + separate modality-invariant anatomy branch
+    + separate pathology/global task-sensitive branch
+    + nuisance/source branch or covariance penalty
+
+paired-modality loss -> anatomy branch only
+S3D dense/local distill -> shared/local path
+source adversary -> nuisance-sensitive branch and/or morphology branch
+downstream feature gate -> shared, anatomy, pathology, shared+heads
+```
+
+Pre-registered A19 gates:
+
+| Gate | Minimum | Promotion target |
+|---|---:|---:|
+| Source-probe | `<=0.17` | near A17 `0.113` or lower |
+| Random Task1 | `>=0.80` | beat A17 `0.865` or S3D `0.721` depending protocol |
+| Brain-age | `>0.756` preferred | approach S3D `0.792` |
+| Random Task5 | `>=0.90` | match S3D `0.956` or A18 T1-FLAIR `0.977` without protocol collapse |
+| Protocol Task1 | `>=0.817` | match/beat S3D `0.827` |
+| Protocol Task5 | `>=0.897` | match/beat S3D `0.901` |
+
+Stop rule:
+
+```text
+If protocol-group Task1 fails below 0.72 at the first evaluated checkpoint,
+stop immediately even if source-probe or brain-age is strong.
+```
+
+A19 result:
+
+| Branch | Best source feature | Source-probe | Task1 AUROC | Decision |
+|---|---|---:|---:|---|
+| A19 T1-FLAIR | shared_plus_a19_task | 0.1685 | 0.4712 | stop |
+| A19 T1-T2 | a19_task | 0.1352 | 0.4712 | stop |
+
+Conclusion:
+
+```text
+A19 confirms that anatomy/modality consistency can be source-safe,
+but it still does not preserve multi-modal pathology classification.
+Do not continue A19 as-is.
+```
+
+Updated next policy:
+
+```text
+Best completed JEPA research candidate remains A17 adv=0.10.
+
+Before launching A20, require one of:
+  1. a pathology-preserving SSL target that is not just anatomy/modality alignment;
+  2. external/source-heldout validation of A17 to decide whether JEPA is already useful enough as a confound-aware research model;
+  3. a clear segmentation/dense-transfer gate showing local features improve where global Task1 does not.
+```
+
 ## 1. Why Not Copy CT VoCo Directly
 
 VoCo의 핵심 철학은 맞다.
@@ -493,4 +692,3 @@ We design an anatomy- and modality-aware SSL framework for large-scale 3D brain 
 ```
 
 This is more defensible because the novelty is the brain-MRI-specific objective and evaluation, not transplantation of a CT objective.
-
